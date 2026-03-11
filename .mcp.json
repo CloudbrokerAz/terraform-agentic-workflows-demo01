@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "aws-knowledge-mcp-server": {
+      "url": "https://knowledge-mcp.global.api.aws",
+      "type": "http"
+    },
+    "terraform": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "TFE_TOKEN",
+        "-e",
+        "ENABLE_TF_OPERATIONS=true",
+        "hashicorp/terraform-mcp-server:0.4.0",
+        "--toolsets=all"
+      ]
+    }
+  }
+}
