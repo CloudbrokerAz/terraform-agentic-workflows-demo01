@@ -101,6 +101,5 @@ When scanning Terraform infrastructure specs, pay special attention to:
 - IAM permission scope (least privilege boundaries)
 - Encryption requirements (at-rest, in-transit, key management)
 - Multi-region/AZ strategy
-- Module vs raw resource boundaries
 - State management and backend configuration
 - Environment promotion strategy

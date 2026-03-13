@@ -60,21 +60,21 @@ Mapping of the `tf-plan-module` orchestrator skill and its interaction with the 
 │  │  │ -search_provs│ │ -aws_read    │ │  _modules    │ │-get_provs│ │  │
 │  │  │              │ │ -aws_recomm  │ │ -get_module  │ │          │ │  │
 │  │  │ OUTPUT:      │ │ OUTPUT:      │ │ OUTPUT:      │ │ OUTPUT:  │ │  │
-│  │  │ Findings     │ │ Findings     │ │ Findings     │ │ Findings │ │  │
-│  │  │ (<500 tok)   │ │ (<500 tok)   │ │ (<500 tok)   │ │(<500 tok)│ │  │
-│  │  │ IN-MEMORY    │ │ IN-MEMORY    │ │ IN-MEMORY    │ │IN-MEMORY │ │  │
+│  │  │ research-    │ │ research-    │ │ research-    │ │research- │ │  │
+│  │  │ {slug}.md    │ │ {slug}.md    │ │ {slug}.md    │ │{slug}.md │ │  │
+│  │  │ TO DISK      │ │ TO DISK      │ │ TO DISK      │ │TO DISK   │ │  │
 │  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └────┬─────┘ │  │
 │  │         │                │                │              │        │  │
 │  │         └────────────────┴────────┬───────┴──────────────┘        │  │
 │  │                                   │                               │  │
-│  │                    All findings returned in-memory                 │  │
-│  │                    (P4: NO files written to disk)                  │  │
+│  │                    All findings written to disk as                  │  │
+│  │                    specs/{FEATURE}/research-{slug}.md              │  │
 │  └───────────────────────────────────┬───────────────────────────────┘  │
 │                                      │                                  │
 │            Orchestrator holds:                                           │
 │            - Clarified requirements (from Step 6)                        │
-│            - Research findings (from Step 7)                             │
 │            - $FEATURE path                                               │
+│            Research files on disk at specs/{FEATURE}/research-*.md       │
 │                                      │                                  │
 │                                      ▼                                  │
 │  PHASE 2: DESIGN                                                         │
@@ -87,9 +87,9 @@ Mapping of the `tf-plan-module` orchestrator skill and its interaction with the 
 │  │  │  INPUT (via $ARGUMENTS):                                     │  │  │
 │  │  │  - FEATURE path                                              │  │  │
 │  │  │  - Clarified requirements                                    │  │  │
-│  │  │  - Research findings summary                                 │  │  │
 │  │  │                                                              │  │  │
 │  │  │  READS ITSELF:                                               │  │  │
+│  │  │  - specs/{FEATURE}/research-*.md (research findings)         │  │  │
 │  │  │  - .foundations/memory/module-constitution.md                        │  │  │
 │  │  │  - .foundations/templates/module-design-template.md            │  │  │
 │  │  │                                                              │  │  │
@@ -173,19 +173,20 @@ tf-plan-module orchestrator
     │         ▼
     │    Clarified requirements ─────────────────────────────────┐
     │                                                            │
-    ├──▶ 3-4x tf-module-research agents (concurrent, in-memory)       │
+    ├──▶ 3-4x tf-module-research agents (concurrent, write to disk)   │
     │    ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
     │    │ Provider  │ │ AWS best │ │ Registry │ │ Edge     │   │
     │    │ docs Q    │ │ practice │ │ patterns │ │ cases    │   │
     │    └─────┬────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘   │
     │          └───────────┴────────────┴─────────────┘         │
     │                      │                                     │
-    │              Research findings (in-memory) ────────────────┤
+    │              Research files: specs/{FEATURE}/research-*.md │
     │                                                            │
     │                                                            ▼
-    ├──▶ tf-module-design agent ◀──── requirements + findings + $FEATURE
+    ├──▶ tf-module-design agent ◀──── requirements + $FEATURE
     │         │
     │         │  Also reads (itself):
+    │         │  - specs/{FEATURE}/research-*.md
     │         │  - module-constitution.md
     │         │  - module-design-template.md
     │         │
@@ -212,7 +213,7 @@ tf-plan-module orchestrator
 The ONLY artifact passed between the two skills is:
     specs/{FEATURE}/design.md
 
-No other files, no shared state, no intermediate research artifacts.
+Research artifacts (specs/{FEATURE}/research-*.md) persist on disk but are consumed only by the design agent.
 ```
 
 ## Analysis: Does the Flow Make Sense?
@@ -221,16 +222,16 @@ No other files, no shared state, no intermediate research artifacts.
 
 ### What's Right
 
-1. **Single artifact output (P1)**: The entire planning phase produces exactly one file: `specs/{FEATURE}/design.md`. No research files, no separate specs, no intermediate artifacts.
+1. **Single design artifact (P1)**: The planning phase produces one design file: `specs/{FEATURE}/design.md`. Research files (`specs/{FEATURE}/research-*.md`) are intermediate artifacts consumed by the design agent.
 
-2. **Research feeds design, not files (P4)**: The tf-module-research agents return findings in-memory. The orchestrator passes these to tf-module-design via `$ARGUMENTS`. Nothing is written to disk. This prevents terminology drift from intermediate research artifacts.
+2. **Research persisted to disk (P4)**: The tf-module-research agents write findings to `specs/{FEATURE}/research-{slug}.md`. The design agent reads these files directly — the orchestrator only verifies they exist via Glob and passes the FEATURE path.
 
 3. **Security embedded in design (P3)**: Security is woven through at three points:
    - Step 5: Ambiguity scan flags security-configurable features
    - Step 6: Mandatory security-defaults clarification question
    - tf-module-design agent: Mandatory Section 4 (Security Controls) with CIS/WA references, plus security assertions required in Section 5 tests
 
-4. **Orchestrator directs, doesn't accumulate (P6)**: The orchestrator passes short context (requirements, findings summary, file paths) to agents. It verifies design.md exists via Glob and checks section presence via Grep. It never reads the full design content itself.
+4. **Orchestrator directs, doesn't accumulate (P6)**: The orchestrator passes short context (requirements, file paths) to agents. It verifies research and design files exist via Glob and checks section presence via Grep. It never reads the full content itself.
 
 5. **Phase order is fixed (P8)**: Understand must complete before Design starts. Research agents must all return before tf-module-design launches. User must approve before /tf-module-implement can run.
 

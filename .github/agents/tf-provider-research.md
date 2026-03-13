@@ -1,11 +1,7 @@
 ---
-name: tf-provider-research
 description: Investigate cloud service APIs, Terraform Plugin Framework patterns, and existing provider implementations. Each instance answers ONE research question. Use during planning phase to resolve API behavior and design decisions.
-tools:
-  - read
-  - shell
-  - search
-  - web_fetch
+name: tf-provider-research
+tools: ['view', 'create', 'bash', 'grep', 'glob', 'web_fetch']
 ---
 
 
@@ -25,7 +21,7 @@ Answer ONE research question per instance using API/SDK documentation, Plugin Fr
 
 ## Output
 
-Return concise research findings as agent output — do NOT write to disk.
+Write research findings to `specs/{FEATURE}/research-{slug}.md` where `{FEATURE}` is parsed from `$ARGUMENTS` and `{slug}` is a short kebab-case identifier for the topic (e.g., `api-endpoints`, `schema-design`, `plugin-framework`). Return a one-line summary to the orchestrator confirming the file path written.
 
 ```markdown
 ## Research: {Question}

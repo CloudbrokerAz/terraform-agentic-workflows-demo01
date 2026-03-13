@@ -1,6 +1,6 @@
 FROM srlynch1/terraform-ai-tools:latest
 
-RUN npm install -g @github/copilot@v0.0.411 && \
+RUN npm install -g @github/copilot && \
     npm cache clean --force
 
 # Install pre-commit (base image has uv but not pre-commit)

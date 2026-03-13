@@ -1,0 +1,126 @@
+name: "Claude Review (@claude)"
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+env:
+  # TFE_TOKEN exists in both Actions and Dependabot secret stores.
+  # GitHub resolves the correct store based on the trigger context.
+  TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
+
+jobs:
+  # ── Gate: fast filter to prevent bot comments from entering the concurrency group ──
+  # GitHub evaluates concurrency BEFORE job-level `if`, so a bot comment
+  # (e.g. Claude's "working…" progress update) would cancel an in-progress
+  # review via cancel-in-progress even though the job would be skipped.
+  # This gate job has NO concurrency group, so bot comments exit immediately
+  # without affecting running reviews.
+  gate:
+    name: "Filter"
+    if: >-
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@claude') &&
+      github.event.comment.user.login != 'claude[bot]' &&
+      github.event.comment.user.login != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Comment from ${{ github.event.comment.user.login }} passed gate"
+
+  review:
+    name: "Claude Review"
+    needs: gate
+    concurrency:
+      group: claude-review-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR branch
+        id: pr
+        run: |
+          PR_DATA=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.issue.number }} --jq '{ref: .head.ref, sha: .head.sha}')
+          echo "ref=$(echo "$PR_DATA" | jq -r '.ref')" >> "$GITHUB_OUTPUT"
+          echo "sha=$(echo "$PR_DATA" | jq -r '.sha')" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+          cli_config_credentials_hostname: app.terraform.io
+          cli_config_credentials_token: ${{ env.TFE_TOKEN }}
+
+      - name: Terraform Init
+        run: terraform init -input=false
+        continue-on-error: true
+
+      # Run pre-commit to surface ALL issues in a single pass (validate,
+      # fmt, tflint, docs, trivy, etc.) so Claude sees the full picture
+      # rather than discovering errors one-at-a-time across pipeline reruns.
+      - name: Run pre-commit checks
+        uses: pre-commit/action@v3.0.1
+        continue-on-error: true
+
+      - name: Capture pre-commit results
+        if: always()
+        run: |
+          pre-commit run --all-files 2>&1 | tee .pre-commit-results.txt || true
+
+      # Run terraform plan to capture ALL errors (including variable validation
+      # rules that validate alone won't catch). This gives Claude the complete
+      # picture in a single pass instead of discovering errors one per cycle.
+      - name: Terraform Plan
+        if: always()
+        run: |
+          set +e
+          terraform plan -input=false 2>&1 | tee .plan-results.txt
+          echo "plan_exit=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      # .mcp.json uses Docker (local dev); .mcp-ci.json uses npx (CI-friendly).
+      # The action hardcodes enableAllProjectMcpServers=true, so it loads .mcp.json.
+      - name: Use CI MCP config
+        run: cp .mcp-ci.json .mcp.json
+
+      # track_progress forces tag mode (comment tracking + PR context).
+      # Without it, 'prompt' on issue_comment events triggers agent mode
+      # which runs silently without posting results to the PR.
+      # The prompt is appended as <custom_instructions> to the full PR context.
+      # Tag mode sets allowedTools which auto-enables sandbox in Claude Code.
+      # Sandbox conflicts with settings loaded from file paths. Passing
+      # --settings as inline JSON satisfies the sandbox check.
+      - name: Run Claude
+        uses: anthropics/claude-code-action@5d0cc745cd0cce4c0e9e0b3511de26c3bc285eb5  # latest main (2026-03-12)
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          trigger_phrase: "@claude"
+          track_progress: true
+          show_full_output: true
+          claude_args: "--model claude-sonnet-4-6 --max-turns 30 --settings '{}' --allowedTools 'Bash(terraform:*)'"
+          prompt: |
+            BEFORE making any changes, read these two files to understand ALL issues:
+
+            1. .pre-commit-results.txt — pre-commit hook results (validate, fmt, tflint, docs)
+            2. .plan-results.txt — full terraform plan output (includes variable validation
+               errors that terraform validate alone won't catch)
+
+            IMPORTANT: Terraform stops at the first error it finds. After you fix the errors
+            shown in .plan-results.txt, you MUST run `terraform plan -input=false` again
+            locally to check for additional errors that were hidden behind the first one.
+            Keep fixing and re-running plan until it either succeeds or only shows
+            expected changes. Do NOT push until plan passes or produces a clean changeset.
+
+            Then read and follow .claude/agents/module-upgrade-remediation.md as your playbook for this task.

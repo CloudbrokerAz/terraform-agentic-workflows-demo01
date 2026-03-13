@@ -1,11 +1,7 @@
 ---
+description: Validate Terraform module code against design.md, run tests and static analysis, perform quality scoring, and auto-fix unambiguous issues. Produces structured validation report.
 name: tf-module-validator
-description: Validate Terraform module code against design.md, run tests and static analysis, perform quality scoring, and auto-fix unambiguous issues.Produces structured validation report.
-tools:
-  - read
-  - edit
-  - shell
-  - search
+tools: ['view', 'edit', 'bash', 'grep', 'glob']
 skills:
   - tf-judge-criteria
 ---

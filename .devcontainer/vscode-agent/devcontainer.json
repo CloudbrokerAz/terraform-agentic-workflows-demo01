@@ -1,28 +1,27 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
-	"name": "${localWorkspaceFolderBasename} - Copilot",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	// "build": {
+  "name": "${localWorkspaceFolderBasename} - Copilot",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  // "build": {
   //   "dockerfile": "Dockerfile"
   // },
   "build": {
     "dockerfile": "Dockerfile"
-    }
-  ,
+  },
   // "runArgs": ["--env-file", ".devcontainer/devcontainer.env"],
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2.12.4": {}
   },
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
+  // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "bash .devcontainer/vscode-agent/scripts/post-create.sh",
   "postStartCommand": "docker image pull hashicorp/terraform-mcp-server:0.4.0",
-	// Configure tool-specific properties.
+  // Configure tool-specific properties.
   "customizations": {
     "vscode": {
       "extensions": [
@@ -45,19 +44,24 @@
               "hashicorp/terraform-mcp-server"
             ]
           },
-          "aws-knowledge-mcp": {
-            "url": "https://knowledge-mcp.global.api.aws",
-            "type": "http"
-          }                      
+          "aws-documentation-mcp-server": {
+            "command": "uvx",
+            "args": ["awslabs.aws-documentation-mcp-server@latest"],
+            "env": {
+              "FASTMCP_LOG_LEVEL": "ERROR",
+              "AWS_DOCUMENTATION_PARTITION": "aws",
+              "MCP_USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            }
+          }
         }
       }
-		}
-	},
+    }
+  },
   "containerEnv": {
     "XDG_CONFIG_HOME": "/workspace"
   },
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
   "remoteEnv": {
     "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
     "GH_TOKEN": "${localEnv:GITHUB_TOKEN}",

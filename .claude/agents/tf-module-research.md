@@ -7,6 +7,7 @@ skills:
   - tf-research
 tools:
   - Read
+  - Write
   - Bash
   - Grep
   - Glob
@@ -40,7 +41,7 @@ Answer ONE research question per instance using AWS documentation, provider docs
 
 ## Output
 
-Return concise research findings to the orchestrator. Findings are returned in-memory — do NOT write to disk. The orchestrator will pass them to the design agent via `$ARGUMENTS`.
+Write research findings to `specs/{FEATURE}/research-{slug}.md` where `{FEATURE}` is parsed from `$ARGUMENTS` and `{slug}` is a short kebab-case identifier for the topic (e.g., `ec2-instance`, `alb`, `security-group`, `networking`). Return a one-line summary to the orchestrator confirming the file path written.
 
 ```markdown
 ## Research: {Question}
@@ -80,7 +81,7 @@ Return concise research findings to the orchestrator. Findings are returned in-m
 - **AWS docs first**: Start with AWS documentation to understand the service behavior and best practices
 - **Provider docs second**: Use provider docs to identify resource types, arguments, and attributes
 - **Registry for patterns**: Study public and private registry modules for design patterns and conventions
-- **Return output**: Format findings as concise structured text and return as agent output — do NOT write to disk
+- **Write to disk**: Write findings to `specs/{FEATURE}/research-{slug}.md` — the design agent reads these files directly
 - **MUST run in foreground** (uses MCP tools)
 
 ## Examples
