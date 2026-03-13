@@ -1,11 +1,7 @@
 ---
-name: tf-provider-test-writer
 description: Terraform provider test writer. Write Go acceptance test stubs from provider-design-{resource}.md. Converts Section 5 test scenarios into test functions and config functions with t.Skip("not implemented").
-tools:
-  - read
-  - edit
-  - shell
-  - search
+name: tf-provider-test-writer
+tools: ['view', 'edit', 'bash', 'grep', 'glob']
 skills:
   - provider-test-patterns
 ---

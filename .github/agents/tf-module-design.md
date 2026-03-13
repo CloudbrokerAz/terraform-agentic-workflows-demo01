@@ -1,17 +1,7 @@
 ---
-name: tf-module-design
 description: Terraform module design. Produce a single design.md from clarified requirements and research findings. Merges specification, planning, and security baseline concerns into one artifact covering purpose, scope, and design decisions.
-tools:
-  - read
-  - edit
-  - shell
-  - search
-  - mcp__terraform__search_providers
-  - mcp__terraform__get_provider_details
-  - mcp__terraform__search_modules
-  - mcp__terraform__get_module_details
-  - mcp__aws-knowledge-mcp-server__aws___search_documentation
-  - mcp__aws-knowledge-mcp-server__aws___read_documentation
+name: tf-module-design
+tools: ['view', 'edit', 'bash', 'grep', 'glob', 'terraform/search_providers', 'terraform/get_provider_details', 'terraform/search_modules', 'terraform/get_module_details', 'aws-documentation-mcp-server/search_documentation', 'aws-documentation-mcp-server/read_documentation']
 skills:
   - tf-architecture-patterns
   - tf-security-baselines
@@ -35,9 +25,10 @@ Produce a single `specs/{FEATURE}/design.md` from clarified requirements and res
 2. **Parse Input**: Extract from `$ARGUMENTS`:
    - The FEATURE path (e.g., `specs/vpc/`)
    - Clarified requirements from Phase 1 (user-confirmed functional and non-functional requirements)
-   - Research findings from Phase 1 (MCP research results — provider documentation, AWS best practices, resource behavior, and registry patterns that MUST inform the design). Every resource selection in Section 2 must reference these findings.
 
-3. **Design**: Populate ALL 7 sections of the design template. Start with a Table of Contents linking to all 7 sections. Each section has specific rules:
+3. **Load Research**: Read all research files from `specs/{FEATURE}/research-*.md` via Glob. These contain MCP research results — provider documentation, AWS best practices, resource behavior, and registry patterns that MUST inform the design. Every resource selection in Section 2 must reference these findings.
+
+4. **Design**: Populate ALL 7 sections of the design template. Start with a Table of Contents linking to all 7 sections. Each section has specific rules:
 
    ### Section 1 — Purpose & Requirements
 
@@ -123,7 +114,7 @@ Produce a single `specs/{FEATURE}/design.md` from clarified requirements and res
 
    List any unresolved items marked `[DEFERRED]` with context. This section SHOULD be empty if Phase 1 clarification was thorough.
 
-4. **Validate**: Before writing the file, check completeness:
+5. **Validate**: Before writing the file, check completeness:
    - Table of Contents links to all 7 sections
    - Every variable in §3 has Type + Description filled
    - Every resource in §2 has a Logical Name and Key Configuration
@@ -139,7 +130,7 @@ Produce a single `specs/{FEATURE}/design.md` from clarified requirements and res
    - Variable names appear exactly once — in §3 Interface Contract
    - Resource names appear exactly once — in §2 Resource Inventory
 
-5. **Write**: Output the completed design to `specs/{FEATURE}/design.md`. Create the directory if it does not exist.
+6. **Write**: Output the completed design to `specs/{FEATURE}/design.md`. Create the directory if it does not exist.
 
 ## Constraints
 

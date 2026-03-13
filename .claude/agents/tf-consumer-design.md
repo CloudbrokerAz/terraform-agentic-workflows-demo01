@@ -34,9 +34,10 @@ Produce a single `specs/{FEATURE}/consumer-design.md` from clarified requirement
 2. **Parse Input**: Extract from `$ARGUMENTS`:
    - The FEATURE path (e.g., `specs/order-service/`)
    - Clarified requirements from Phase 1 (user-confirmed functional and non-functional requirements)
-   - Research findings from Phase 1 (MCP research results — private registry module availability, module interfaces, wiring patterns, and AWS architecture guidance that MUST inform the design). Every module selection in Section 2 must reference these findings.
 
-3. **Design**: Populate ALL 6 sections of the design template. Start with a Table of Contents linking to all 6 sections. Each section has specific rules:
+3. **Load Research**: Read all research files from `specs/{FEATURE}/research-*.md` via Glob. These contain MCP research results — private registry module availability, module interfaces, wiring patterns, and AWS architecture guidance that MUST inform the design. Every module selection in Section 2 must reference these findings.
+
+4. **Design**: Populate ALL 6 sections of the design template. Start with a Table of Contents linking to all 6 sections. Each section has specific rules:
 
    ### Section 1 — Purpose & Requirements
 
@@ -97,7 +98,7 @@ Produce a single `specs/{FEATURE}/consumer-design.md` from clarified requirement
 
    List any unresolved items marked `[DEFERRED]` with context. This section SHOULD be empty if Phase 1 clarification was thorough.
 
-4. **Self-Validate**: Before writing the file, run these quality checks:
+5. **Self-Validate**: Before writing the file, run these quality checks:
 
    #### Requirement Quality Validation
    - Every functional requirement in §1 maps to at least one module in §2
@@ -123,7 +124,7 @@ Produce a single `specs/{FEATURE}/consumer-design.md` from clarified requirement
    - Every security control in §4 references a specific module from §2
    - Implementation checklist items in §5 cover all modules from §2
 
-5. **Write**: Output the completed design to `specs/{FEATURE}/consumer-design.md`. Create the directory if it does not exist.
+6. **Write**: Output the completed design to `specs/{FEATURE}/consumer-design.md`. Create the directory if it does not exist.
 
 ## Constraints
 

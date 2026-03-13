@@ -1,14 +1,10 @@
 ---
-name: tf-module-test-writer
 description: Terraform module test writer. Write module scaffolding (versions.tf, variables.tf) and convert design.md test scenarios into `.tftest.hcl` files for TDD workflow. Reads Sections 2, 3, and 5 of the design.md.
-tools:
-  - read
-  - edit
-  - search
+name: tf-module-test-writer
+tools: ['view', 'edit', 'grep', 'glob', 'bash', 'execute', 'skill']
 skills:
   - terraform-test
 ---
-
 
 # tf-module-test-writer
 
@@ -196,7 +192,7 @@ run "test_minimum_valid_name_length" {
 
 - Every `run` block has `command = plan` unless explicitly specified otherwise in the design
 - Variable values come directly from the design.md scenario inputs -- do not invent values
-- **Test against root module directly** -- do NOT use `module {}` blocks in run blocks. Tests run against the root module, so assert on `resource_type.resource_name.*` (e.g., `aws_s3_bucket.this.bucket`), not `module.*.resource_type.*`
+- **Test against module ** -- do NOT use `module {}` blocks in run blocks. Tests run against the module, so assert on `resource_type.resource_name.*` (e.g., `aws_s3_bucket.this.bucket`), not `module.*.resource_type.*`
 - For conditional resources using `count`, use index syntax: `resource_type.name[0].attribute` when enabled, `length(resource_type.name[*]) == 0` when disabled
 - **Set-typed blocks**: Use `one()` for set-typed nested blocks — chain `one()` at every set-typed level (see `terraform-test` skill, Plan-Mode Limitations, item 2 for patterns and examples). Check the Schema Notes column in design.md Section 2 to identify which nested blocks are sets
 - **Plan-mode output limitation**: Computed outputs (ARNs, endpoints, IDs) are unknown during `command = plan`. Do NOT assert on `output.*` values. Assert on resource attributes directly instead (e.g., assert `length(aws_s3_bucket_website_configuration.this[*]) == 1` rather than `output.website_endpoint != null`)
@@ -209,7 +205,7 @@ run "test_minimum_valid_name_length" {
 - **No invented tests**: Only generate what the design specifies. If a scenario is not in Section 5, do not create a test for it.
 - **No invented variable values**: Use the exact values specified in the design scenarios. If a scenario says `name = "my-bucket"`, use `"my-bucket"`, not `"test-bucket"`.
 - **File organization matches convention**: basic, complete, edge_cases, and validation -- four test files. The validation file contains both reject cases (expect_failures) and boundary-pass cases (assert blocks).
-- **snake_case for all run block names**: Convert scenario names to snake_case, prefixed with `test_` (e.g., "Default Encryption" becomes `test_default_encryption`).
+- **snake_case for all run block names**: Convert scenario names to snake*case, prefixed with `test*`(e.g., "Default Encryption" becomes`test_default_encryption`).
 - **error_message in every assert block**: Must be descriptive and specific to the condition being tested, not generic.
 - **expect_failures for validation**: Validation reject run blocks use `expect_failures = [var.variable_name]` and contain NO assert blocks.
 - **Boundary-pass cases**: Validation boundary-pass run blocks use `assert` blocks (NOT `expect_failures`) to confirm the boundary value is accepted. Place these after the reject cases in `validation.tftest.hcl`, separated by a `# --- Boundary-pass cases ---` comment.

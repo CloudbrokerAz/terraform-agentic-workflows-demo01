@@ -5,6 +5,7 @@ model: opus
 color: green
 tools:
   - Read
+  - Write
   - Bash
   - Grep
   - Glob
@@ -28,7 +29,7 @@ Answer ONE research question per instance using API/SDK documentation, Plugin Fr
 
 ## Output
 
-Return concise research findings as agent output — do NOT write to disk.
+Write research findings to `specs/{FEATURE}/research-{slug}.md` where `{FEATURE}` is parsed from `$ARGUMENTS` and `{slug}` is a short kebab-case identifier for the topic (e.g., `api-endpoints`, `schema-design`, `plugin-framework`). Return a one-line summary to the orchestrator confirming the file path written.
 
 ```markdown
 ## Research: {Question}

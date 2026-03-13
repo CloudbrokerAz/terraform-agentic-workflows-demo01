@@ -1,23 +1,7 @@
 ---
-name: tf-module-research
 description: Investigate cloud service provider resources via docs, Terraform provider docs, and registry patterns. Each instance answers ONE research question. Use during planning phase to resolve resource behavior and design decisions.
-tools:
-  - read
-  - shell
-  - search
-  - mcp__terraform__search_modules
-  - mcp__terraform__get_module_details
-  - mcp__terraform__search_private_modules
-  - mcp__terraform__get_private_module_details
-  - mcp__terraform__search_private_providers
-  - mcp__terraform__get_private_provider_details
-  - mcp__terraform__search_providers
-  - mcp__terraform__get_provider_details
-  - mcp__terraform__search_policies
-  - mcp__aws-knowledge-mcp-server__aws___search_documentation
-  - mcp__aws-knowledge-mcp-server__aws___read_documentation
-  - mcp__aws-knowledge-mcp-server__aws___recommend
-  - mcp__aws-knowledge-mcp-server__aws___get_regional_availability
+name: tf-module-research
+tools: ['view', 'create', 'bash', 'grep', 'glob', 'terraform/search_modules', 'terraform/get_module_details', 'terraform/get_latest_module_version', 'terraform/get_latest_provider_version', 'terraform/get_provider_capabilities', 'terraform/search_providers', 'terraform/get_provider_details', 'terraform/search_policies', 'terraform/get_policy_details', 'aws-documentation-mcp-server/search_documentation', 'aws-documentation-mcp-server/read_documentation', 'aws-documentation-mcp-server/recommend']
 skills:
   - tf-research
 ---
@@ -38,7 +22,7 @@ Answer ONE research question per instance using AWS documentation, provider docs
 
 ## Output
 
-Return concise research findings to the orchestrator. Findings are returned in-memory — do NOT write to disk. The orchestrator will pass them to the design agent via `$ARGUMENTS`.
+Write research findings to `specs/{FEATURE}/research-{slug}.md` where `{FEATURE}` is parsed from `$ARGUMENTS` and `{slug}` is a short kebab-case identifier for the topic (e.g., `ec2-instance`, `alb`, `security-group`, `networking`). Return a one-line summary to the orchestrator confirming the file path written.
 
 ```markdown
 ## Research: {Question}
@@ -78,7 +62,7 @@ Return concise research findings to the orchestrator. Findings are returned in-m
 - **AWS docs first**: Start with AWS documentation to understand the service behavior and best practices
 - **Provider docs second**: Use provider docs to identify resource types, arguments, and attributes
 - **Registry for patterns**: Study public and private registry modules for design patterns and conventions
-- **Return output**: Format findings as concise structured text and return as agent output — do NOT write to disk
+- **Write to disk**: Write findings to `specs/{FEATURE}/research-{slug}.md` — the design agent reads these files directly
 - **MUST run in foreground** (uses MCP tools)
 
 ## Examples

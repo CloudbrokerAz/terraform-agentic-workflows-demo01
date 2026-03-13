@@ -20,11 +20,11 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 4. Create feature branch: `bash .foundations/scripts/bash/create-new-feature.sh --json --issue $ISSUE_NUMBER --short-name "<module-name>" "<feature description>"`. Parse the JSON output to capture `$BRANCH_NAME` as `$FEATURE` and `$DESIGN_FILE`.
 5. Scan requirements against the `tf-domain-category` skill
 6. Ask up to 4 clarification questions via `AskUserQuestion`. Must include a security-defaults question.
-7. Launch 3-4 concurrent `tf-module-research` subagents for provider docs, AWS best practices, registry patterns, and edge cases. Wait for all to complete.
+7. Launch 3-4 concurrent `tf-module-research` subagents for provider docs, AWS best practices, registry patterns, and edge cases. Wait for all to complete. Verify research files exist at `specs/{FEATURE}/research-*.md` via Glob.
 
 ## Phase 2: Design
 
-8. Launch `tf-module-design` agent with FEATURE path, clarified requirements, and research findings summary. The agent reads the constitution and design template itself.
+8. Launch `tf-module-design` agent with FEATURE path and clarified requirements. The agent reads the constitution, design template, and research files from `specs/{FEATURE}/research-*.md` itself.
 9. Verify `specs/{FEATURE}/design.md` exists via Glob. Re-launch once if missing.
 10. Grep to confirm all 7 sections present (`## 1. Purpose` through `## 7. Open Questions`). Fix inline if any missing.
 11. Present design summary to user via `AskUserQuestion`: input/output counts, resource count, security controls, test scenarios, checklist items. Options: approve, review file first, request changes.

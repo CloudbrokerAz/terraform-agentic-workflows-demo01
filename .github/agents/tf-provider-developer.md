@@ -1,12 +1,7 @@
 ---
-name: tf-provider-developer
 description: Terraform provider developer. Execute individual implementation checklist items from provider-design-{resource}.md with Go provider code. Item context from specs/{FEATURE}/provider-design-{resource}.md.
-tools:
-  - read
-  - edit
-  - shell
-  - search
-  - web_fetch
+name: tf-provider-developer
+tools: ['view', 'edit', 'bash', 'grep', 'glob', 'web_fetch']
 skills:
   - provider-resources
   - provider-actions

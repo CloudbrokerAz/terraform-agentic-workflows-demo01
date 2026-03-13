@@ -29,11 +29,11 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
    - **AWS architecture**: Service integration patterns, networking requirements, best practices
    - **Module wiring**: How module outputs connect to inputs, type compatibility, composition patterns
    - **Workspace and deployment**: HCP Terraform workspace configuration, variable sets, dynamic credentials
-   Wait for all to complete. Collect findings for the design agent.
+   Wait for all to complete. Verify research files exist at `specs/{FEATURE}/research-*.md` via Glob.
 
 ## Phase 2: Design
 
-8. Launch `tf-consumer-design` agent with FEATURE path, clarified requirements, and research findings summary. The agent reads the constitution and design template itself.
+8. Launch `tf-consumer-design` agent with FEATURE path and clarified requirements. The agent reads the constitution, design template, and research files from `specs/{FEATURE}/research-*.md` itself.
 9. Verify `specs/{FEATURE}/consumer-design.md` exists via Glob. Re-launch once if missing.
 10. Grep to confirm all 6 sections present (`## 1. Purpose` through `## 6. Open Questions`). Fix inline if any missing.
 11. Present design summary to user via `AskUserQuestion`: module count, wiring connection count, variable count, security controls, checklist items. Options: approve, review file first, request changes.
