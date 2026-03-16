@@ -9,6 +9,8 @@ skills:
 
 # Provider Resource Design Author
 
+use skill provider-resources
+
 Produce a single `specs/{FEATURE}/provider-design-{resource}.md` from clarified requirements and research findings. This document is the SINGLE SOURCE OF TRUTH for the resource implementation.
 
 ## Instructions

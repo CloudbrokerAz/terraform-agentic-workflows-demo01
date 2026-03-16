@@ -1,9 +1,8 @@
 ---
 description: Produce a single consumer-design.md from clarified requirements and research findings. Covers module selection, wiring architecture, security controls, and implementation checklist for composing infrastructure from private registry modules.
 name: tf-consumer-design
-tools: ['view', 'edit', 'bash', 'grep', 'glob', 'terraform/search_providers', 'terraform/get_provider_details', 'terraform/search_modules', 'terraform/get_module_details', 'terraform/search_private_modules', 'terraform/get_private_module_details', 'aws-documentation-mcp-server/search_documentation', 'aws-documentation-mcp-server/read_documentation']
+tools: ["view", "edit", "bash", "grep", "glob"]
 ---
-
 
 # Consumer Design Author
 
@@ -161,12 +160,12 @@ Produce a single `specs/{FEATURE}/consumer-design.md` from clarified requirement
 
 Use this when assessing severity of security design choices:
 
-| Rating | Meaning | Example |
-|--------|---------|---------|
-| **Critical (P0)** | Block deployment | Hardcoded credentials, public database, disabled encryption, IAM `*:*` |
-| **High (P1)** | Fix before production | Module secure default overridden, overly permissive security groups, missing audit logging |
-| **Medium (P2)** | Fix in current sprint | Missing VPC Flow Logs, no alarm configuration, weak tagging |
-| **Low (P3)** | Add to backlog | Missing resource tags, suboptimal instance sizing |
+| Rating            | Meaning               | Example                                                                                    |
+| ----------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| **Critical (P0)** | Block deployment      | Hardcoded credentials, public database, disabled encryption, IAM `*:*`                     |
+| **High (P1)**     | Fix before production | Module secure default overridden, overly permissive security groups, missing audit logging |
+| **Medium (P2)**   | Fix in current sprint | Missing VPC Flow Logs, no alarm configuration, weak tagging                                |
+| **Low (P3)**      | Add to backlog        | Missing resource tags, suboptimal instance sizing                                          |
 
 ## Security Domain Checklist
 

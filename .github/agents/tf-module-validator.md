@@ -9,6 +9,8 @@ skills:
 
 # Module Validation Agent
 
+use skill tf-judge-criteria
+
 Validate Terraform module code against the design document, run the full validation pipeline (fmt, validate, test, tflint, trivy, terraform-docs), perform quality scoring using `tf-judge-criteria`, and auto-fix unambiguous issues. Produces a structured validation report.
 
 ## Instructions

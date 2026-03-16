@@ -14,12 +14,6 @@ tools:
   - Bash
   - Glob
   - Grep
-  - mcp__terraform__search_providers
-  - mcp__terraform__get_provider_details
-  - mcp__terraform__search_modules
-  - mcp__terraform__get_module_details
-  - mcp__aws-knowledge-mcp-server__aws___search_documentation
-  - mcp__aws-knowledge-mcp-server__aws___read_documentation
 ---
 
 # Module Design Author

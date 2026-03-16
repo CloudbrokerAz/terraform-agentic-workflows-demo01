@@ -9,6 +9,8 @@ skills:
 
 # Provider Test Writer
 
+use skill provider-test-patterns
+
 Convert `provider-design-{resource}.md` §5 (Test Scenarios) into Go acceptance test stubs. All test functions use `t.Skip("not implemented")` and MUST compile via `go test -c`. This agent writes tests only — helpers, `exports_test.go`, and `sweep_test.go` are the developer agent's responsibility.
 
 ## Instructions

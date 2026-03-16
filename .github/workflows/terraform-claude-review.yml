@@ -109,18 +109,11 @@ jobs:
           trigger_phrase: "@claude"
           track_progress: true
           show_full_output: true
-          claude_args: "--model claude-sonnet-4-6 --max-turns 30 --settings '{}' --allowedTools 'Bash(terraform:*)'"
+          settings: '{}'
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 45
+            --allowedTools Bash(terraform:*),Bash(git:*)
           prompt: |
-            BEFORE making any changes, read these two files to understand ALL issues:
-
-            1. .pre-commit-results.txt — pre-commit hook results (validate, fmt, tflint, docs)
-            2. .plan-results.txt — full terraform plan output (includes variable validation
-               errors that terraform validate alone won't catch)
-
-            IMPORTANT: Terraform stops at the first error it finds. After you fix the errors
-            shown in .plan-results.txt, you MUST run `terraform plan -input=false` again
-            locally to check for additional errors that were hidden behind the first one.
-            Keep fixing and re-running plan until it either succeeds or only shows
-            expected changes. Do NOT push until plan passes or produces a clean changeset.
-
-            Then read and follow .claude/agents/module-upgrade-remediation.md as your playbook for this task.
+            Read .pre-commit-results.txt and .plan-results.txt for initial context, then
+            read and follow .claude/agents/module-upgrade-remediation.md as your playbook.

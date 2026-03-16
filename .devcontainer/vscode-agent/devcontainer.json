@@ -20,7 +20,7 @@
 
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "bash .devcontainer/vscode-agent/scripts/post-create.sh",
-  "postStartCommand": "docker image pull hashicorp/terraform-mcp-server:0.4.0",
+  "postStartCommand": "bash .devcontainer/vscode-agent/scripts/post-start.sh",
   // Configure tool-specific properties.
   "customizations": {
     "vscode": {
