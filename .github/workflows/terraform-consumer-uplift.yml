@@ -220,8 +220,8 @@ jobs:
                   | sed \
                     -e 's/created/:white_check_mark: add/' \
                     -e 's/destroyed/:bangbang: destroy/' \
-                    -e 's/replaced/:recycle: replace/' \
-                    -e 's/updated/:pencil2: change/' \
+                    -e 's/replaced/:warning: replace/' \
+                    -e 's/updated/:warning: change/' \
                     -e 's/read/:mag: read/'
               } > plan_resources_table.txt
 
@@ -664,9 +664,9 @@ jobs:
             body += `| Action | Count |\n`;
             body += `|--------|-------|\n`;
             body += `| :white_check_mark: **Add** | ${plan.add || 0} |\n`;
-            body += `| :pencil2: **Change** | ${plan.change || 0} |\n`;
+            body += `| :warning: **Change** | ${plan.change || 0} |\n`;
             body += `| :bangbang: **Destroy** | ${plan.destroy || 0} |\n`;
-            body += `| :recycle: **Replace** | ${plan.replace || 0} |\n`;
+            body += `| :warning: **Replace** | ${plan.replace || 0} |\n`;
             body += `| **Total** | **${planTotal}** |\n\n`;
 
             // ── Plan resource table ──

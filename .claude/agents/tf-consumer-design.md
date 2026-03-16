@@ -13,14 +13,6 @@ tools:
   - Bash
   - Glob
   - Grep
-  - mcp__terraform__search_providers
-  - mcp__terraform__get_provider_details
-  - mcp__terraform__search_modules
-  - mcp__terraform__get_module_details
-  - mcp__terraform__search_private_modules
-  - mcp__terraform__get_private_module_details
-  - mcp__aws-knowledge-mcp-server__aws___search_documentation
-  - mcp__aws-knowledge-mcp-server__aws___read_documentation
 ---
 
 # Consumer Design Author
@@ -179,12 +171,12 @@ Produce a single `specs/{FEATURE}/consumer-design.md` from clarified requirement
 
 Use this when assessing severity of security design choices:
 
-| Rating | Meaning | Example |
-|--------|---------|---------|
-| **Critical (P0)** | Block deployment | Hardcoded credentials, public database, disabled encryption, IAM `*:*` |
-| **High (P1)** | Fix before production | Module secure default overridden, overly permissive security groups, missing audit logging |
-| **Medium (P2)** | Fix in current sprint | Missing VPC Flow Logs, no alarm configuration, weak tagging |
-| **Low (P3)** | Add to backlog | Missing resource tags, suboptimal instance sizing |
+| Rating            | Meaning               | Example                                                                                    |
+| ----------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| **Critical (P0)** | Block deployment      | Hardcoded credentials, public database, disabled encryption, IAM `*:*`                     |
+| **High (P1)**     | Fix before production | Module secure default overridden, overly permissive security groups, missing audit logging |
+| **Medium (P2)**   | Fix in current sprint | Missing VPC Flow Logs, no alarm configuration, weak tagging                                |
+| **Low (P3)**      | Add to backlog        | Missing resource tags, suboptimal instance sizing                                          |
 
 ## Security Domain Checklist
 

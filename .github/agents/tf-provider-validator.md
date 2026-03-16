@@ -10,6 +10,9 @@ skills:
 
 # Provider Validation Agent
 
+use skill provider-resources
+use skill provider-run-acceptance-tests
+
 Validate Terraform provider code against the design document, run build and static analysis, perform code review, and auto-fix unambiguous issues. Design file path and service directory are provided in `$ARGUMENTS`.
 
 ## Instructions

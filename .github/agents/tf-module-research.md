@@ -9,6 +9,8 @@ skills:
 
 # Infrastructure Research Investigator
 
+use skill tf-research
+
 Answer ONE research question per instance using AWS documentation, provider docs, and registry patterns as authoritative sources.
 
 ## Instructions

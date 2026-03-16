@@ -1,16 +1,14 @@
 ---
 description: Terraform module design. Produce a single design.md from clarified requirements and research findings. Merges specification, planning, and security baseline concerns into one artifact covering purpose, scope, and design decisions.
 name: tf-module-design
-tools: ['view', 'edit', 'bash', 'grep', 'glob', 'terraform/search_providers', 'terraform/get_provider_details', 'terraform/search_modules', 'terraform/get_module_details', 'aws-documentation-mcp-server/search_documentation', 'aws-documentation-mcp-server/read_documentation']
+tools: ["view", "edit", "bash", "grep", "glob"]
 skills:
   - tf-architecture-patterns
   - tf-security-baselines
   - terraform-test
 ---
 
-
 # Module Design Author
-
 
 use skill terraform-test
 use skill tf-security-baselines
@@ -87,20 +85,29 @@ Produce a single `specs/{FEATURE}/design.md` from clarified requirements and res
 
    ### Section 5 — Test Scenarios
 
-   Define test scenarios that will drive TDD implementation. Five scenario groups are required:
-   - **Secure Defaults** (basic) — Verify the module works with minimal inputs and security is enabled by default
-   - **Full Features** (complete) — Verify all features enabled, all optional resources created, all outputs populated
-   - **Feature Interactions** (edge cases) — Verify non-obvious toggle combinations: features that gate other resources, disabled-feature suppression, features without their typical companions, default/merge precedence. Aim for 3-6 sub-scenarios covering the meaningful combinations from the resource inventory's Conditional column.
-   - **Validation Errors** (reject) — Verify invalid inputs are rejected with clear error messages
-   - **Validation Boundaries** (accept) — Verify boundary-pass values are accepted: minimum valid, maximum valid, and edge values for each validation rule. Confirms validations do not over-reject.
-   - **Start with a Test Strategy sub-section** specifying: (1) tests run against the root module directly (no `module {}` blocks), (2) mock provider strategy (`mock_provider` blocks), (3) whether `mock_data` blocks are needed for data sources
-   - Each scenario specifies: Purpose, Example directory, Command (`plan` for all plan-only tests), Inputs (HCL), and Assertions
+   Define test scenarios that will drive TDD implementation. Three test categories are required:
+
+   **Category 1: Unit Tests** (mock providers, `command = plan`)
+   Tests that use `mock_provider` blocks and run with `command = plan`. No cloud credentials needed. These are fast, deterministic, and run during every CI build.
+   - **Secure Defaults** — Verify the module works with minimal inputs and security is enabled by default
+   - **Full Features** — Verify all features enabled, all optional resources created, all outputs populated
+   - **Feature Interactions** — Verify non-obvious toggle combinations: features that gate other resources, disabled-feature suppression, features without their typical companions, default/merge precedence. Aim for 3-6 sub-scenarios covering the meaningful combinations from the resource inventory's Conditional column.
+   - **Validation Errors** — Verify invalid inputs are rejected with clear error messages (use `expect_failures`)
+   - **Validation Boundaries** — Verify boundary-pass values are accepted: minimum valid, maximum valid, and edge values for each validation rule
+
+   **Category 2: Acceptance Tests** (real providers, `command = plan`)
+   Tests that use real provider credentials with `command = plan`. Verifies the plan output against real AWS APIs without creating resources. Marked with `# acceptance` comment. Not run during this workflow (requires credentials).
+
+   **Category 3: Integration Tests** (real providers, `command = apply`)
+   Tests that use real provider credentials with `command = apply`. Creates and destroys real infrastructure to verify end-to-end behavior. Marked with `# integration` comment. Not run during this workflow (requires credentials).
+
+   **General rules for all categories**:
+   - **Start with a Test Strategy sub-section** specifying: (1) tests run against the root module directly (no `module {}` blocks), (2) mock provider strategy for unit tests (`mock_provider` blocks), (3) whether `mock_data` blocks are needed for data sources, (4) which scenarios are acceptance vs integration
+   - Each scenario specifies: Purpose, Command (`plan` or `apply`), Inputs (HCL), and Assertions
    - **Every assertion maps 1:1 to a `.tftest.hcl` assert block** — no compound assertions
    - **Every assertion includes the HCL access path** — e.g., `aws_s3_bucket.this.bucket == "my-bucket"` or `one(aws_s3_bucket_server_side_encryption_configuration.this.rule).apply_server_side_encryption_by_default[0].sse_algorithm == "aws:kms"`. Use the Schema Notes column from Section 2 to determine when `one()` is needed for set-typed blocks.
-   - **Flag plan-time unknowns**: Assertions on computed or provider-resolved attributes are untestable with `command = plan` and mock providers. This includes: (1) provider-generated values like ARNs, endpoints, and IDs, and (2) cross-resource reference attributes that mock providers cannot resolve (e.g., `.bucket` on `aws_s3_bucket_policy`, `.id` or `.arn` read from a dependent resource). If an attribute's value comes from another resource's computed output, it will be unknown with mocks. Mark these with `[plan-unknown]` so the test writer can substitute resource-existence checks.
-   - Use `command = plan` for all plan-only tests (no cloud access needed)
-   - Include security assertions from line 1: encryption enabled, public access blocked, TLS enforced, least-privilege policies
-   - Validation error scenarios use `expect_failures` to verify rejection of bad inputs
+   - **Flag plan-time unknowns in unit tests**: Assertions on computed or provider-resolved attributes are untestable with `command = plan` and mock providers. Mark these with `[plan-unknown]` so the test writer can substitute resource-existence checks. Acceptance and integration tests CAN assert on these values since they use real providers.
+   - Include security assertions: encryption enabled, public access blocked, TLS enforced, least-privilege policies
 
    ### Section 6 — Implementation Checklist
 
@@ -121,7 +128,8 @@ Produce a single `specs/{FEATURE}/design.md` from clarified requirements and res
    - Architectural Decisions appear before Resource Inventory in §2
    - Every security control in §4 has a CIS or Well-Architected reference (or explicit N/A justification)
    - Every security control row in §4 maps to at least one specific assertion in §5 (not just resource existence -- assert the enforced configuration value)
-   - §5 has all 5 scenario groups: secure defaults, full features, feature interactions, validation errors, validation boundaries
+   - §5 has all 3 test categories: unit tests (mock), acceptance tests (plan), integration tests (apply)
+   - Unit tests cover: secure defaults, full features, feature interactions, validation errors, validation boundaries
    - Every test scenario in §5 has >= 2 assertions
    - Feature interactions cover toggle combinations from §2 resource Conditional column
    - Validation boundaries include boundary-pass cases for each validation rule in §3
@@ -169,13 +177,14 @@ Produce a single `specs/{FEATURE}/design.md` from clarified requirements and res
 
 ### Test Scenarios (Section 5)
 
-- Start with a Test Strategy sub-section (root module testing, mock provider config, mock_data needs)
-- Use `command = plan` for all plan-only tests
+- Start with a Test Strategy sub-section (root module testing, mock provider config, mock_data needs, acceptance/integration scope)
+- Three test categories required: unit tests (mock providers, `command = plan`), acceptance tests (real providers, `command = plan`), integration tests (real providers, `command = apply`)
+- Unit tests cover 5 scenario groups: secure defaults, full features, feature interactions, validation errors, validation boundaries
+- Acceptance and integration test files are created but not run during this workflow (require credentials)
 - Map 1:1 from design assertion to `.tftest.hcl` assert block — include the HCL access path in each assertion
 - Use `one()` for set-typed nested blocks (check Schema Notes in Section 2)
-- Mark computed or provider-resolved attribute assertions with `[plan-unknown]` (includes ARNs, endpoints, IDs, and cross-resource references like `.bucket` or `.id` on dependent resources)
-- Include security assertions from line 1
-- Five scenario groups required: secure defaults, full features, feature interactions, validation errors, validation boundaries
+- Mark computed or provider-resolved attribute assertions with `[plan-unknown]` in unit tests (includes ARNs, endpoints, IDs, and cross-resource references)
+- Include security assertions
 
 ### Implementation Checklist (Section 6)
 

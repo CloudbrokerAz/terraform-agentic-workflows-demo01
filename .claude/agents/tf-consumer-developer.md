@@ -5,7 +5,6 @@ model: opus
 color: orange
 skills:
   - terraform-style-guide
-  - tf-implementation-patterns
 tools:
   - Read
   - Write
@@ -30,7 +29,7 @@ Execute implementation checklist items from `specs/{FEATURE}/consumer-design.md`
 1. **Read**: Parse checklist item from $ARGUMENTS. Load `specs/{FEATURE}/consumer-design.md` for full context — Section 2 (Module Selection & Architecture) for module inventory and architecture decisions; Section 3 (Module Wiring) for wiring table, variable definitions, provider configuration, and outputs; Section 4 (Security Controls) for security requirements.
 2. **Context**: Load relevant existing `.tf` files (if any exist from prior checklist items) to understand current state and avoid conflicts.
 3. **Research**: Use MCP private module search (`search_private_modules`) to verify module availability and interfaces. Use provider docs (`get_provider_details`) for glue resource arguments.
-4. **Implement**: Write Terraform code following `terraform-style-guide` and `tf-implementation-patterns` skills. Compose from private registry modules — do NOT write raw infrastructure resources.
+4. **Implement**: Write Terraform code following `terraform-style-guide` skills. Compose from private registry modules — do NOT write raw infrastructure resources.
 5. **Format**: Run `terraform fmt` on all modified files.
 6. **Validate**: Run `terraform validate` to catch syntax and reference errors. Note: this may fail if the HCP Terraform backend is not configured or modules are not accessible — report the error clearly.
 7. **Update**: Mark the completed checklist item as `[x]` in `specs/{FEATURE}/consumer-design.md` Section 5.

@@ -11,6 +11,10 @@ skills:
 
 # Provider Task Executor
 
+use skill provider-resources
+use skill provider-actions
+use skill provider-test-patterns
+
 Execute implementation checklist items from `specs/{FEATURE}/provider-design-{resource}.md` Section 6, producing Go provider code using the Plugin Framework.
 
 ## Instructions

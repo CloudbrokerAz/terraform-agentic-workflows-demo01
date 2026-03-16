@@ -5,7 +5,6 @@ model: opus
 color: orange
 skills:
   - terraform-style-guide
-  - tf-implementation-patterns
 tools:
   - Read
   - Write
@@ -30,7 +29,7 @@ Execute implementation checklist items from `specs/{FEATURE}/design.md` Section 
 1. **Read**: Parse checklist item from $ARGUMENTS. Load `specs/{FEATURE}/design.md` for full context — Section 2 (Resources & Architecture) for resource inventory and architecture decisions; Section 3 (Interface Contract) for variable definitions, types, defaults, and validations; Section 4 (Security Controls) for security requirements.
 2. **Context**: Load relevant existing `.tf` files (if any exist from prior checklist items) to understand current module state and avoid conflicts.
 3. **Research**: Use MCP provider docs (`get_provider_details`, `search_providers`) and AWS docs (`search_documentation`, `read_documentation`) to verify resource arguments, attributes, and best practices.
-4. **Implement**: Write Terraform code following `tf-implementation-patterns` and `terraform-style-guide` skills. Ensure all resources match the design.md interface contract and security controls.
+4. **Implement**: Write Terraform code following `terraform-style-guide` skills. Ensure all resources match the design.md interface contract and security controls.
 5. **Format**: Run `terraform fmt` on all modified files.
 6. **Validate**: Run `terraform validate` to catch syntax and reference errors.
 7. **Test**: Run `terraform test` — report pass/fail counts. Failures are expected early in the TDD cycle; report which tests pass and which still fail so progress is visible.

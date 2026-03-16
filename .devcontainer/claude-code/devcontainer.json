@@ -12,6 +12,7 @@
   },
 
   "postCreateCommand": "bash /workspace/.devcontainer/claude-code/scripts/post-create.sh",
+  "postStartCommand": "bash /workspace/.devcontainer/claude-code/scripts/post-start.sh",
 
   "customizations": {
     "vscode": {

@@ -212,14 +212,15 @@ terraform {
 
 ### 5.1 Test Coverage
 
-Every module MUST have `.tftest.hcl` files covering:
+Every module MUST have `.tftest.hcl` files in three categories:
 
-| Scenario | Purpose |
-|----------|---------|
-| Secure defaults | Validates secure baseline with only required inputs |
-| Full features | Validates all features enabled together |
-| Conditional creation disabled | Validates `create = false` or `enable_* = false` |
-| Input validation | Validates variable constraints reject bad inputs |
+| Category | Provider | Command | Purpose |
+|----------|----------|---------|---------|
+| Unit tests | `mock_provider` | `plan` | Fast, deterministic validation of resource config, feature toggles, and input validation. No credentials needed. |
+| Acceptance tests | Real | `plan` | Plan-level verification against real AWS APIs. Validates computed attributes and provider-resolved values. Requires credentials. |
+| Integration tests | Real | `apply` | End-to-end resource creation and destruction. Verifies functional behavior in AWS. Requires credentials. |
+
+Unit tests MUST cover: secure defaults, full features, feature interactions, validation errors, and validation boundaries.
 
 ### 5.2 Validation Pipeline
 
@@ -240,13 +241,15 @@ Pre-commit hooks MUST enforce these checks.
 
 ```
 tests/
-  basic.tftest.hcl         # Secure defaults, features disabled, core outputs
-  complete.tftest.hcl       # All features enabled, security assertions
-  edge_cases.tftest.hcl     # Feature toggle combinations, disabled-feature suppression
-  validation.tftest.hcl     # Invalid input cases (expect_failures) + boundary-pass acceptance
+  unit_basic.tftest.hcl         # Unit: secure defaults with minimal inputs (mock providers)
+  unit_complete.tftest.hcl      # Unit: all features enabled (mock providers)
+  unit_edge_cases.tftest.hcl    # Unit: feature toggle combinations (mock providers)
+  unit_validation.tftest.hcl    # Unit: invalid inputs (expect_failures) + boundary-pass (mock providers)
+  acceptance.tftest.hcl         # Acceptance: plan with real providers (requires credentials)
+  integration.tftest.hcl        # Integration: apply with real providers (requires credentials)
 ```
 
-Each test file maps to a scenario group in `design.md` Section 5.
+Each test file maps to a category and scenario group in `design.md` Section 5.
 
 ---
 

@@ -102,19 +102,24 @@ It is not repeated anywhere else in any artifact.}
 
 ## 5. Test Scenarios
 
-{Five scenario groups are required: Secure Defaults, Full Features, Feature Interactions, Validation Errors, and Validation Boundaries.}
+{Three test categories are required: Unit Tests, Acceptance Tests, and Integration Tests.}
 
 ### Test Strategy
 
 - **Module source**: Tests run against the **root module directly** — do NOT use `module {}` blocks in `run` blocks. Assert on `resource_type.resource_name.attribute`, not `module.name.resource_type.attribute`.
-- **Mock providers**: All test files use `mock_provider` blocks (e.g., `mock_provider "aws" {}`). Add `mock_data` blocks for any `data` sources in the resource inventory.
-- **Plan-time limitations**: `command = plan` with mock providers means certain attributes are unknown. This includes: (1) provider-generated values like ARNs, endpoints, and IDs, and (2) cross-resource reference attributes that mock providers cannot resolve (e.g., `.bucket` on `aws_s3_bucket_policy`, `.id` or `.arn` read from a dependent resource). If an attribute's value comes from another resource's computed output or is resolved by the provider during plan, it will be unknown with mocks. Mark such assertions with `[plan-unknown]` below so the test writer can substitute resource-existence checks.
+- **Unit tests**: Use `mock_provider` blocks (e.g., `mock_provider "aws" {}`) with `command = plan`. Add `mock_data` blocks for any `data` sources. Fast, deterministic, no credentials needed. Run during every CI build.
+- **Acceptance tests**: Use real providers with `command = plan`. Validates plan output against real AWS APIs without creating resources. Requires credentials. Not run during this workflow.
+- **Integration tests**: Use real providers with `command = apply`. Creates and destroys real infrastructure. Requires credentials. Not run during this workflow.
+- **Plan-time limitations (unit tests only)**: `command = plan` with mock providers means certain attributes are unknown — provider-generated values (ARNs, endpoints, IDs) and cross-resource references. Mark such assertions with `[plan-unknown]` so the test writer can substitute resource-existence checks.
 
-### Scenario: Secure Defaults (basic)
+### Unit Tests
+
+{Unit tests use mock providers and `command = plan`. All scenarios below go into test files that run without credentials.}
+
+#### Scenario: Secure Defaults (basic)
 
 **Purpose**: Verify the module works with minimal inputs and security is enabled by default
-**Example**: `examples/basic/`
-**Command**: `plan`
+**Command**: `plan` (mock providers)
 
 **Inputs**:
 ```hcl
@@ -129,13 +134,12 @@ It is not repeated anywhere else in any artifact.}
 
 {Each assertion MUST include the HCL access path that the test writer will use in the assert condition.
 Use `one()` for set-typed nested blocks (see Schema Notes in Section 2).
-Mark assertions on computed or provider-resolved attributes with `[plan-unknown]` — this includes provider-generated values (ARNs, endpoints, IDs) AND cross-resource references resolved by the provider (e.g., `.bucket`, `.id`, `.arn` on dependent resources).}
+Mark assertions on computed or provider-resolved attributes with `[plan-unknown]`.}
 
-### Scenario: Full Features (complete)
+#### Scenario: Full Features (complete)
 
 **Purpose**: Verify all features enabled, all optional resources created, all outputs populated
-**Example**: `examples/complete/`
-**Command**: `plan`
+**Command**: `plan` (mock providers)
 
 **Inputs**:
 ```hcl
@@ -148,17 +152,17 @@ Mark assertions on computed or provider-resolved attributes with `[plan-unknown]
 - {security assertions still hold with all features on}
 - ...
 
-### Scenario: Feature Interactions (edge cases)
+#### Scenario: Feature Interactions (edge cases)
 
-**Purpose**: Verify non-obvious combinations of feature toggles produce correct behavior. Each sub-scenario tests a specific toggle combination where the interaction matters -- not just "feature on" or "feature off" in isolation.
-**Command**: `plan`
+**Purpose**: Verify non-obvious combinations of feature toggles produce correct behavior.
+**Command**: `plan` (mock providers)
 
 {List sub-scenarios. Each sub-scenario is a separate `run` block with its own inputs and assertions.
 Focus on combinations where:
-- Two toggles interact to gate a resource (e.g., policy requires BOTH website AND public access)
+- Two toggles interact to gate a resource
 - Disabling a feature should suppress dependent resources
-- A feature is present without its typical companion (e.g., CORS without website)
-- Default precedence matters (e.g., consumer tags overriding module tags)}
+- A feature is present without its typical companion
+- Default precedence matters}
 
 **Sub-scenario: {descriptive name}**
 **Inputs**:
@@ -171,34 +175,73 @@ Focus on combinations where:
 
 {Repeat for each meaningful toggle combination. Aim for 3-6 sub-scenarios.}
 
-### Scenario: Validation Boundaries (accept)
+#### Scenario: Validation Boundaries (accept)
 
-**Purpose**: Verify validation rules accept values at the valid boundary. Complements the reject cases -- confirms validations do not over-reject.
-**Command**: `plan`
+**Purpose**: Verify validation rules accept values at the valid boundary.
+**Command**: `plan` (mock providers)
 
 **Boundary-pass cases**:
 - {input}: {boundary value} -> accepted (description of why this is the boundary)
 - ...
 
 {For each validation rule in Section 3, include the minimum valid and/or maximum valid value.
-Example: `bucket_name = "abc"` (exactly 3 chars, minimum valid length).
 Each case becomes a `run` block with `command = plan` and an assert that the relevant resource is created.}
 
-### Scenario: Validation Errors
+#### Scenario: Validation Errors (reject)
 
 **Purpose**: Verify input validation rejects bad inputs
+**Command**: `plan` (mock providers)
 
 **Expect error cases**:
 - {input}: {value} -> {expected error message substring}
 - ...
 
-{Rules:
-- For security-enforcing resources (policies, encryption, access controls), assert the configuration content, not just existence
+{Each case uses `expect_failures` to verify rejection of bad inputs.}
+
+### Acceptance Tests
+
+{Acceptance tests use real providers with `command = plan`. They verify plan output against real AWS APIs without creating resources. These test files are created but NOT run during this workflow (require credentials). Mark each run block with `# acceptance` comment.}
+
+#### Scenario: Plan Verification
+
+**Purpose**: Verify plan output with real provider APIs — validates computed attributes, ARN formats, and provider-resolved references that unit tests cannot check
+**Command**: `plan` (real providers)
+
+**Inputs**:
+```hcl
+{same as secure defaults or full features inputs}
+```
+
+**Assertions**:
+- {assertions on computed attributes that were `[plan-unknown]` in unit tests}
+- {assertions on provider-resolved values like ARN formats}
+- ...
+
+### Integration Tests
+
+{Integration tests use real providers with `command = apply`. They create and destroy real infrastructure to verify end-to-end behavior. These test files are created but NOT run during this workflow (require credentials). Mark each run block with `# integration` comment.}
+
+#### Scenario: End-to-End
+
+**Purpose**: Verify resources are created, configured correctly, and functional in AWS
+**Command**: `apply` (real providers)
+
+**Inputs**:
+```hcl
+{inputs for a realistic deployment}
+```
+
+**Assertions**:
+- {assertions on actual resource state post-apply}
+- {assertions on outputs that depend on real resource creation}
+- ...
+
+{General rules for all test categories:
+- For security-enforcing resources, assert the configuration content, not just existence
 - Every assertion becomes exactly one assert block in .tftest.hcl
-- Every assertion includes an HCL access path (e.g., `aws_s3_bucket.this.bucket == "my-bucket"`) so the test writer can translate directly to an assert condition
-- Use `one()` for set-typed nested blocks — check Schema Notes column in Section 2 to identify which blocks are sets vs lists
-- Mark assertions on computed or provider-resolved attributes with `[plan-unknown]` — this includes provider-generated values (ARNs, endpoints, IDs) AND cross-resource reference attributes that mock providers cannot resolve (e.g., `.bucket` on `aws_s3_bucket_policy`, `.id` read from a dependency). The test writer will substitute resource-existence checks
-- Every security control from Section 4 must have at least one corresponding assertion here}
+- Every assertion includes an HCL access path
+- Use `one()` for set-typed nested blocks — check Schema Notes column in Section 2
+- Every security control from Section 4 must have at least one corresponding assertion}
 
 ---
 
@@ -208,7 +251,7 @@ Each case becomes a `run` block with `command = plan` and an assert that the rel
 - [ ] **B: Security core** -- {encryption, access controls, policy -- whatever is security-critical}
 - [ ] **C: Feature set** -- {remaining resources, conditional creation}
 - [ ] **D: Examples** -- examples/basic/ and examples/complete/
-- [ ] **E: Tests** -- .tftest.hcl files from scenarios above
+- [ ] **E: Tests** -- unit (.tftest.hcl with mock providers), acceptance (plan with real providers), integration (apply with real providers)
 - [ ] **F: Polish** -- README (terraform-docs), formatting, validation, security scan
 
 {Keep this to 4-8 items. Each item = one implementation pass.
