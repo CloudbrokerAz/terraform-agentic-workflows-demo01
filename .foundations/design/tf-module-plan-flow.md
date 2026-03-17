@@ -1,16 +1,16 @@
-# tf-plan-module Flow Diagram
+# tf-module-plan Flow Diagram
 
-Mapping of the `tf-plan-module` orchestrator skill and its interaction with the `tf-module-research` and `tf-module-design` agents.
+Mapping of the `tf-module-plan` orchestrator skill and its interaction with the `tf-module-research` and `tf-module-design` agents.
 
 ## Full Flow
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                      tf-plan-module (Orchestrator Skill)                     │
+│                      tf-module-plan (Orchestrator Skill)                     │
 │                           Phases 1 + 2                                   │
 ├──────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
-│  PHASE 1: UNDERSTAND                                                     │
+│  PHASE 1: REQUIREMENTS & RESEARCH                                        │
 │  ┌────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                    │  │
 │  │  Step 1: Run validate-env.sh --json                                │  │
@@ -28,12 +28,12 @@ Mapping of the `tf-plan-module` orchestrator skill and its interaction with the 
 │  │          (issue body updated again after Step 6)                   │  │
 │  │                │                                                   │  │
 │  │                ▼                                                   │  │
-│  │  Step 4: create-new-feature.sh → capture $FEATURE branch          │  │
+│  │  Step 4: create-new-feature.sh --json --issue $ISSUE_NUMBER        │  │
+│  │          --short-name "<module-name>" "<feature description>"       │  │
+│  │          → capture $BRANCH_NAME as $FEATURE and $DESIGN_FILE       │  │
 │  │                │                                                   │  │
 │  │                ▼                                                   │  │
 │  │  Step 5: Scan requirements against tf-domain-category              │  │
-│  │          (8-category ambiguity scan)                               │  │
-│  │          Always flag security-configurable features                │  │
 │  │                │                                                   │  │
 │  │                ▼                                                   │  │
 │  │  Step 6: AskUserQuestion (up to 4 questions)                       │  │
@@ -44,26 +44,29 @@ Mapping of the `tf-plan-module` orchestrator skill and its interaction with the 
 │  │                         │                                          │  │
 │  │                         ▼                                          │  │
 │  │  Step 7: Launch 3-4 CONCURRENT tf-module-research agents                 │  │
+│  │          Wait for all to complete.                                  │  │
+│  │          Verify research files exist at                             │  │
+│  │          specs/{FEATURE}/research-*.md via Glob.                    │  │
 │  │                                                                    │  │
-│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────┐ │  │
-│  │  │ tf-module-research │ │ tf-module-research │ │ tf-module-research │ │sdd-resrch│ │  │
-│  │  │  (Agent 1)   │ │  (Agent 2)   │ │  (Agent 3)   │ │(Agent 4) │ │  │
-│  │  │              │ │              │ │              │ │ optional  │ │  │
-│  │  │ Provider     │ │ AWS best     │ │ Registry     │ │ Edge     │ │  │
-│  │  │ docs         │ │ practices    │ │ patterns     │ │ cases    │ │  │
-│  │  │              │ │              │ │              │ │          │ │  │
-│  │  │ INPUT:       │ │ INPUT:       │ │ INPUT:       │ │ INPUT:   │ │  │
-│  │  │ 1 question   │ │ 1 question   │ │ 1 question   │ │1 question│ │  │
-│  │  │              │ │              │ │              │ │          │ │  │
-│  │  │ MCP calls:   │ │ MCP calls:   │ │ MCP calls:   │ │MCP calls:│ │  │
-│  │  │ -get_provider│ │ -aws_search  │ │ -search      │ │-aws_read │ │  │
-│  │  │ -search_provs│ │ -aws_read    │ │  _modules    │ │-get_provs│ │  │
-│  │  │              │ │ -aws_recomm  │ │ -get_module  │ │          │ │  │
-│  │  │ OUTPUT:      │ │ OUTPUT:      │ │ OUTPUT:      │ │ OUTPUT:  │ │  │
-│  │  │ research-    │ │ research-    │ │ research-    │ │research- │ │  │
-│  │  │ {slug}.md    │ │ {slug}.md    │ │ {slug}.md    │ │{slug}.md │ │  │
-│  │  │ TO DISK      │ │ TO DISK      │ │ TO DISK      │ │TO DISK   │ │  │
-│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └────┬─────┘ │  │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ │  │
+│  │  │ tf-module-research │ │ tf-module-research │ │ tf-module-research │ │ tf-module-research │ │  │
+│  │  │  (Agent 1)   │ │  (Agent 2)   │ │  (Agent 3)   │ │  (Agent 4)   │ │  │
+│  │  │              │ │              │ │              │ │  optional    │ │  │
+│  │  │ Provider     │ │ AWS best     │ │ Registry     │ │ Edge         │ │  │
+│  │  │ docs         │ │ practices    │ │ patterns     │ │ cases        │ │  │
+│  │  │              │ │              │ │              │ │              │ │  │
+│  │  │ INPUT:       │ │ INPUT:       │ │ INPUT:       │ │ INPUT:       │ │  │
+│  │  │ 1 question   │ │ 1 question   │ │ 1 question   │ │ 1 question   │ │  │
+│  │  │              │ │              │ │              │ │              │ │  │
+│  │  │ MCP calls:   │ │ MCP calls:   │ │ MCP calls:   │ │ MCP calls:   │ │  │
+│  │  │ -get_provider│ │ -aws_search  │ │ -search      │ │ -aws_read    │ │  │
+│  │  │ -search_provs│ │ -aws_read    │ │  _modules    │ │ -get_provs   │ │  │
+│  │  │              │ │ -aws_recomm  │ │ -get_module  │ │              │ │  │
+│  │  │ OUTPUT:      │ │ OUTPUT:      │ │ OUTPUT:      │ │ OUTPUT:      │ │  │
+│  │  │ research-    │ │ research-    │ │ research-    │ │ research-    │ │  │
+│  │  │ {slug}.md    │ │ {slug}.md    │ │ {slug}.md    │ │ {slug}.md    │ │  │
+│  │  │ TO DISK      │ │ TO DISK      │ │ TO DISK      │ │ TO DISK      │ │  │
+│  │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ │  │
 │  │         │                │                │              │        │  │
 │  │         └────────────────┴────────┬───────┴──────────────┘        │  │
 │  │                                   │                               │  │
@@ -166,7 +169,7 @@ Mapping of the `tf-plan-module` orchestrator skill and its interaction with the 
 User prompt
     │
     ▼
-tf-plan-module orchestrator
+tf-module-plan orchestrator
     │
     ├──▶ Parse arguments + AskUserQuestion (clarifications)
     │         │
@@ -201,11 +204,11 @@ tf-plan-module orchestrator
          /tf-module-implement picks up from here
 ```
 
-## Handoff to tf-implement-module
+## Handoff to tf-module-implement
 
 ```
 ┌─────────────┐                              ┌──────────────┐
-│ tf-plan-module  │  produces                    │ tf-implement-module  │
+│ tf-module-plan  │  produces                    │ tf-module-implement  │
 │ (Phases 1-2)│ ──────▶ design.md ──────▶    │ (Phases 3-4)  │
 │             │         (approved)           │               │
 └─────────────┘                              └──────────────┘

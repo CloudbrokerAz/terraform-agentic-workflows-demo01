@@ -1,13 +1,13 @@
 # tf-module-implement Flow Diagram
 
-Mapping of the `tf-module-implement` orchestrator skill and its interaction with the `tf-module-test-writer` and `tf-module-developer` agents.
+Mapping of the `tf-module-implement` orchestrator skill and its interaction with the `tf-module-test-writer`, `tf-module-developer`, and `tf-module-validator` agents.
 
 ## Full Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     tf-module-implement (Orchestrator Skill)               │
-│                        Phases 3 + 4                                 │
+│                     tf-module-implement (Orchestrator Skill)        │
+│                        Phases 3 + 4                                │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  PREREQUISITES                                                      │
@@ -22,9 +22,9 @@ Mapping of the `tf-module-implement` orchestrator skill and its interaction with
 │  PHASE 3: BUILD + TEST                                              │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │                                                              │   │
-│  │  Step 5: Launch tf-module-test-writer agent                         │   │
+│  │  Step 5: Launch tf-module-test-writer agent                  │   │
 │  │  ┌────────────────────────────────────────────────────────┐  │   │
-│  │  │           tf-module-test-writer (Agent)                        │  │   │
+│  │  │           tf-module-test-writer (Agent)                │  │   │
 │  │  │                                                        │  │   │
 │  │  │  INPUT:  design.md Sections 2, 3, 5                    │  │   │
 │  │  │                                                        │  │   │
@@ -53,7 +53,7 @@ Mapping of the `tf-module-implement` orchestrator skill and its interaction with
 │  │  Step 9: FOR EACH checklist item:                            │   │
 │  │  ┌──────────────────────────────────────────────────────┐    │   │
 │  │  │  ┌──────────────────────────────────────────────┐    │    │   │
-│  │  │  │       tf-module-developer (Agent)                │    │    │   │
+│  │  │  │       tf-module-developer (Agent)            │    │    │   │
 │  │  │  │                                              │    │    │   │
 │  │  │  │  INPUT:  design.md + checklist item desc     │    │    │   │
 │  │  │  │                                              │    │    │   │
@@ -77,8 +77,9 @@ Mapping of the `tf-module-implement` orchestrator skill and its interaction with
 │  │                         │                                    │   │
 │  │                         ▼                                    │   │
 │  │  Step 10: terraform test (final)                             │   │
-│  │           Failures? ──Yes──▶ Re-launch tf-module-test-writer with   │   │
-│  │                              error output + data source info  │   │
+│  │           Failures? ──Yes──▶ Re-launch tf-module-test-writer │   │
+│  │                              with error output + data source │   │
+│  │                              info                            │   │
 │  │           │                                                  │   │
 │  │           ▼ No                                               │   │
 │  │  Step 11: Grep: all checklist items [x]?                     │   │
@@ -88,16 +89,28 @@ Mapping of the `tf-module-implement` orchestrator skill and its interaction with
 │                         ▼                                           │
 │  PHASE 4: VALIDATE                                                  │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  Step 12 (all parallel):                                     │   │
-│  │    terraform test                                            │   │
-│  │    terraform validate                                        │   │
-│  │    terraform fmt -check -recursive                           │   │
-│  │    trivy config .                                            │   │
-│  │    terraform-docs markdown . > README.md                     │   │
+│  │  Step 12: Launch tf-module-validator agent                   │   │
+│  │  ┌────────────────────────────────────────────────────────┐  │   │
+│  │  │           tf-module-validator (Agent)                   │  │   │
+│  │  │                                                        │  │   │
+│  │  │  Runs full pipeline internally:                        │  │   │
+│  │  │    terraform fmt                                       │  │   │
+│  │  │    terraform validate                                  │  │   │
+│  │  │    terraform test                                      │  │   │
+│  │  │    tflint                                              │  │   │
+│  │  │    trivy config .                                      │  │   │
+│  │  │    terraform-docs                                      │  │   │
+│  │  │  Scores quality, auto-fixes unambiguous issues         │  │   │
+│  │  │  Writes report to specs/{FEATURE}/reports/             │  │   │
+│  │  └────────────────────────────────────────────────────────┘  │   │
 │  │                                                              │   │
-│  │  Step 13: Fix failures (max 3 rounds)                        │   │
-│  │  Step 14: Write validation report to specs/{FEATURE}/reports/│   │
-│  │  Step 15: Checkpoint commit → push branch → create PR        │   │
+│  │  Step 13: Glob: report file exists?                          │   │
+│  │           Failures? ──Yes──▶ Fix + re-launch validator       │   │
+│  │                              (max 3 rounds)                  │   │
+│  │           │                                                  │   │
+│  │           ▼ No failures                                      │   │
+│  │  Step 14: Checkpoint commit → push branch → create PR        │   │
+│  │           linking to $ISSUE_NUMBER                           │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                         │                                           │
 │                         ▼                                           │
@@ -112,8 +125,8 @@ design.md ──────────────┬────────�
   (Sections 2, 3, 5)    │              (Sections 2, 3, 4, 6)   │
                          ▼                                      ▼
                ┌─────────────────┐              ┌──────────────────────┐
-               │ tf-module-test-writer  │              │  tf-module-developer    │
-               │                 │              │  (per checklist item)│
+               │ tf-module-test- │              │  tf-module-developer │
+               │ writer          │              │  (per checklist item)│
                └────────┬────────┘              └──────────┬───────────┘
                         │                                  │
                         ▼                                  ▼
@@ -125,6 +138,20 @@ design.md ──────────────┬────────�
                                    ▼
                         tf-module-implement orchestrator
                         (validates, tests, commits)
+                                   │
+                                   ▼
+                        ┌──────────────────────┐
+                        │ tf-module-validator  │
+                        │                      │
+                        │ fmt, validate, test, │
+                        │ tflint, trivy,       │
+                        │ terraform-docs       │
+                        │ quality scoring,     │
+                        │ auto-fixes, report   │
+                        └──────────┬───────────┘
+                                   │
+                                   ▼
+                        specs/{FEATURE}/reports/
 ```
 
 ## Analysis: Does the Flow Make Sense?
@@ -137,11 +164,13 @@ design.md ──────────────┬────────�
 
 2. **Single artifact (P1)**: Everything flows from `design.md`. No intermediate files are created between agents.
 
-3. **Agent single-responsibility (P5)**: tf-module-test-writer reads design and produces tests + scaffolding. tf-module-developer reads design + checklist item and produces .tf code. Clean separation.
+3. **Agent single-responsibility (P5)**: tf-module-test-writer reads design and produces tests + scaffolding. tf-module-developer reads design + checklist item and produces .tf code. tf-module-validator runs the full quality pipeline, scores, auto-fixes, and writes the report. Clean separation.
 
 4. **Orchestrator directs, doesn't accumulate (P6)**: tf-module-implement checks file existence via Glob, passes file paths and item descriptions to agents, and runs validation commands. It doesn't read/merge agent outputs.
 
 5. **Fix cycle at step 10**: If tests still fail after all items, tf-module-test-writer is re-launched with error context. This handles the case where task executors introduce data sources that tests didn't originally mock.
+
+6. **Validator consolidation (P5)**: Phase 4 delegates the entire validation pipeline to the tf-module-validator agent rather than running individual commands in the orchestrator. This keeps the orchestrator thin (P6) and gives the validator agent autonomy to score quality, auto-fix unambiguous issues, and produce a structured report — all within a bounded retry loop (max 3 rounds at step 13).
 
 ### One Tension Worth Noting
 

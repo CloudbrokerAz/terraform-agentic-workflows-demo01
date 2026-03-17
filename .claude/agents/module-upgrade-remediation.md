@@ -24,7 +24,7 @@ You are a Terraform module upgrade remediation agent invoked via `@claude` on a 
 
 1. **PR comments** — Job 4 (Decision) posted a structured analysis comment with the plan summary (add/change/destroy/replace counts), resource change table, risk assessment, and rationale. Read it from your prompt context.
 2. **PR labels** — Encode the pipeline outcome: `risk:low|medium|high|critical`, `version:patch|minor|major`, `auto-merge|needs-review|breaking-change`.
-3. **On-disk results** — `.plan-results.txt` contains the `terraform plan` output from the CI step. `.pre-commit-results.txt` contains pre-commit hook results. **WARNING**: Terraform stops at the first error it encounters, so `.plan-results.txt` may show only a subset of all issues. You MUST iterate (see Step 3) to find them all.
+3. **On-disk results** — `.plan-results.txt` contains the speculative plan results from HCP Terraform (status, resource counts, run link). `.pre-commit-results.txt` contains pre-commit hook results. **WARNING**: Terraform stops at the first error it encounters, so `.plan-results.txt` may show only a subset of all issues. You MUST iterate (see Step 3) to find them all. Use the TFC run link in `.plan-results.txt` for full plan error details.
 4. **Module registry** — Use `get_private_module_details` to compare old vs new module interfaces.
 
 ## Playbook

@@ -375,8 +375,6 @@ details.ed-card[open]::details-content { height: auto; }
     <button class="header-link" onclick="scrollToSection('pipeline-section')">Pipeline</button>
     <button class="header-link" onclick="scrollToSection('escalation-section')">Escalation</button>
     <button class="header-link" onclick="scrollToSection('decision-section')">Decision</button>
-    <button class="header-link" onclick="scrollToSection('apply-section')">Apply</button>
-    <button class="header-link" onclick="scrollToSection('artifacts-section')">Artifacts</button>
     <button id="search-btn" onclick="openSearch()" title="Search (/)">&#x2315;</button>
     <button id="toc-toggle" onclick="toggleTOC()" title="Table of Contents">&#x2630;</button>
   </div>
@@ -569,10 +567,12 @@ details.ed-card[open]::details-content { height: auto; }
       <!-- === CLAUDE REVIEW WORKFLOW BOX ============= -->
       <!-- ============================================ -->
 
-      <!-- Dashed lines from NEEDS-REVIEW and BREAKING-CHANGE outcomes down to Claude Review -->
-      <line x1="865" y1="280" x2="520" y2="440" stroke="#9A7B2D" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.2"/>
-      <text x="680" y="355" font-family="JetBrains Mono,monospace" font-size="8" fill="#9A7B2D" opacity="0.5" transform="rotate(-18 680 355)">@claude review comment</text>
-      <line x1="865" y1="350" x2="520" y2="450" stroke="#C4283A" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.2"/>
+      <!-- Curved paths from NEEDS-REVIEW and BREAKING-CHANGE outcomes down to Claude Review -->
+      <path d="M 865 280 C 865 360, 650 430, 520 440" fill="none" stroke="#9A7B2D" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.25"/>
+      <polygon points="524,437 517,441 522,444" fill="#9A7B2D" opacity="0.4"/>
+      <text x="740" y="372" font-family="JetBrains Mono,monospace" font-size="8" fill="#9A7B2D" opacity="0.6">@claude review</text>
+      <path d="M 865 350 C 865 400, 680 440, 520 448" fill="none" stroke="#C4283A" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.25"/>
+      <polygon points="524,445 517,449 522,452" fill="#C4283A" opacity="0.4"/>
 
       <!-- Claude Review workflow box -->
       <rect x="100" y="430" width="550" height="110" rx="10" fill="none" stroke="#9A7B2D" stroke-width="1.5" stroke-dasharray="6 3"/>
@@ -602,9 +602,10 @@ details.ed-card[open]::details-content { height: auto; }
       <text x="382" y="527" text-anchor="middle" font-size="8" fill="white" opacity="0.75">diagnose + fix + push</text>
 
       <!-- Dashed arrow: Claude Review back up to Workflow 1 (synchronize re-trigger) -->
-      <path d="M 475 513 C 560 513, 570 470, 570 430 C 570 400, 560 395, 540 395 L 375 395 L 375 390" fill="none" stroke="#1A6B7A" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.25"/>
-      <polygon points="372,393 375,386 378,393" fill="#1A6B7A" opacity="0.35"/>
-      <text x="560" y="408" font-family="JetBrains Mono,monospace" font-size="8" fill="#1A6B7A" opacity="0.5">synchronize</text>
+      <path d="M 475 513 Q 540 513, 565 475 Q 590 435, 560 395 L 375 395 L 375 390" fill="none" stroke="#1A6B7A" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.3"/>
+      <polygon points="372,393 375,386 378,393" fill="#1A6B7A" opacity="0.45"/>
+      <text x="590" y="450" font-family="JetBrains Mono,monospace" font-size="9" fill="#1A6B7A" opacity="0.55" font-weight="500">synchronize</text>
+      <text x="590" y="460" font-family="JetBrains Mono,monospace" font-size="7" fill="#1A6B7A" opacity="0.4">re-triggers WF1</text>
 
       <!-- Feedback loop label -->
       <text x="375" y="560" text-anchor="middle" font-family="Source Sans 3,sans-serif" font-size="11" fill="#8A8A8A" opacity="0.6" font-style="italic">Decision posts @claude review comment &#8594; Claude Review workflow fixes + pushes &#8594; synchronize re-triggers uplift pipeline</text>
@@ -1059,175 +1060,9 @@ details.ed-card[open]::details-content { height: auto; }
   </div>
 </div>
 
-<!-- ===== POST-MERGE APPLY ===== -->
-<div class="chapter-divider" id="apply-section" data-section="apply-section">
-  <div class="chapter-number">Post-Merge</div>
-  <h2 class="chapter-title">Apply & Rollback</h2>
-  <p class="chapter-subtitle">Separate workflow triggers on merge to main. Includes structured rollback on failure.</p>
-</div>
-
-<div class="subsection" id="apply-paths" data-sub="Apply Paths">
-  <div class="card-grid">
-    <details class="ed-card" style="border-top: 3px solid var(--green)">
-      <summary>
-        <h3>Success Path</h3>
-        <p>Upload config tarball, create run via API, poll until applied, confirm run, comment results on merged PR.</p>
-        <div class="node-row" style="margin-top:8px">
-          <span class="node node-script">applied</span>
-          <span class="node node-ref">PR comment</span>
-        </div>
-      </summary>
-      <div class="card-expand">
-        <ul>
-          <li>Upload configuration via <code>POST /api/v2/configuration-versions</code></li>
-          <li>Create run via <code>POST /api/v2/runs</code></li>
-          <li>Poll run status until <code>applied</code> or <code>errored</code></li>
-          <li>Comment run URL + summary on the merged PR</li>
-        </ul>
-      </div>
-    </details>
-    <details class="ed-card" style="border-top: 3px solid var(--red)">
-      <summary>
-        <h3>Failure Path (D6)</h3>
-        <p>Comment error details on PR, create incident issue, auto-generate draft rollback PR, tag CODEOWNERS.</p>
-        <div class="node-row" style="margin-top:8px">
-          <span class="node node-cmd">incident issue</span>
-          <span class="node node-agent">rollback PR</span>
-        </div>
-      </summary>
-      <div class="card-expand">
-        <ul>
-          <li>Comment error details on the merged PR</li>
-          <li>Create <code>incident:apply-failure</code> issue with run details</li>
-          <li>Auto-generate draft rollback PR via <code>git revert</code></li>
-          <li>Tag CODEOWNERS for immediate attention</li>
-        </ul>
-        <p class="card-detail">The rollback PR is a draft -- it is not auto-merged.</p>
-      </div>
-    </details>
-  </div>
-  <details class="ed-card">
-    <summary>
-      <h3>Why No Auto-Revert</h3>
-      <p>Auto-reverting merges at enterprise scale is dangerous -- it can cascade through dependent workspaces, trigger unexpected destroys, and bypass change management.</p>
-    </summary>
-    <div class="card-expand">
-      <p>The rollback PR goes through the normal pipeline (classify, validate, plan) to ensure the revert is safe before merging. Human control is preserved throughout. This is a deliberate design choice to prevent cascading failures in complex workspace dependency graphs.</p>
-    </div>
-  </details>
-</div>
-
-<!-- ===== ARTIFACTS ===== -->
-<div class="chapter-divider" id="artifacts-section" data-section="artifacts-section">
-  <div class="chapter-number">Implementation</div>
-  <h2 class="chapter-title">Artifacts</h2>
-  <p class="chapter-subtitle">Everything needed to implement the consumer uplift pipeline</p>
-</div>
-
-<div class="subsection" id="artifacts-table" data-sub="File Inventory">
-  <table class="artifact-table">
-    <tr>
-      <th>File</th>
-      <th>Type</th>
-      <th>Purpose</th>
-    </tr>
-    <tr>
-      <td>.github/workflows/terraform-consumer-uplift.yml</td>
-      <td><span class="node node-script">workflow</span></td>
-      <td>The deterministic pipeline. Runs 4 jobs on PR open/sync (classify semver &rarr; validate terraform &rarr; risk assess &rarr; decision). The Decision job auto-posts an <code>@claude review</code> comment on needs-review and breaking-change outcomes, triggering the Claude Review workflow.</td>
-    </tr>
-    <tr>
-      <td>.github/workflows/terraform-claude-review.yml</td>
-      <td><span class="node node-script">workflow</span></td>
-      <td>Interactive <code>@claude</code> review workflow. Triggers on <code>issue_comment</code> when <code>@claude</code> is mentioned. Includes a gate job to prevent bot comments from cancelling in-progress reviews. Claude diagnoses issues, fixes consumer code, and pushes -- the push re-triggers the uplift pipeline.</td>
-    </tr>
-    <tr>
-      <td>.github/workflows/terraform-apply.yml</td>
-      <td><span class="node node-script">workflow</span></td>
-      <td>Runs after a PR merges to main. Uploads the Terraform config to HCP Terraform, creates a run, and applies it. If apply fails, creates an incident issue and a draft rollback PR.</td>
-    </tr>
-    <tr>
-      <td>.claude/agents/module-upgrade-remediation.md</td>
-      <td><span class="node node-agent">agent</span></td>
-      <td>The playbook Claude reads when invoked via <code>@claude</code> on a PR. Tells it how to diagnose plan failures, compare old/new module interfaces via MCP, fix consumer <code>.tf</code> files, validate, and push. Auto-loaded by <code>claude-code-action</code> because it lives in <code>.claude/</code>.</td>
-    </tr>
-    <tr>
-      <td>.foundations/scripts/bash/classify-version-bump.sh</td>
-      <td><span class="node node-script">script</span></td>
-      <td>Used by Job 1. Parses the <code>git diff</code> of a PR to find module <code>source</code> URL changes, extracts old/new version numbers, and classifies the bump as patch, minor, or major.</td>
-    </tr>
-    <tr>
-      <td>.foundations/scripts/bash/scan-module-versions.sh</td>
-      <td><span class="node node-script">script</span></td>
-      <td>Fallback scanner that queries the HCP Terraform private registry API directly. Catches module updates that Dependabot misses (e.g. submodule paths like <code>//modules/foo</code>). Runs on a cron schedule.</td>
-    </tr>
-    <tr>
-      <td>.github/dependabot.yml</td>
-      <td><span class="node node-ref">config</span></td>
-      <td>Configures Dependabot to scan the private Terraform registry monthly for new module versions. When it finds one, it opens a PR with the version bump &mdash; which triggers the main pipeline.</td>
-    </tr>
-    <tr>
-      <td>.mcp-ci.json</td>
-      <td><span class="node node-mcp">config</span></td>
-      <td>MCP server config for CI environments. Points to the Terraform MCP server via <code>npx</code> (not Docker, since Actions runners don&rsquo;t have Docker by default). Gives <code>@claude</code> access to <code>get_private_module_details</code> and other registry tools during the interactive fix job.</td>
-    </tr>
-    <tr>
-      <td>.claude-pipeline-context.md</td>
-      <td><span class="node node-artifact">dynamic</span></td>
-      <td>Not checked in. Written dynamically by the workflow&rsquo;s &ldquo;Collect pipeline context&rdquo; step right before invoking <code>@claude</code>. Contains current PR labels, pipeline outcome, and <code>terraform plan</code> output so Claude has immediate context without re-running plan.</td>
-    </tr>
-    <tr>
-      <td>.github/workflows/module-update-tracker.yml</td>
-      <td><span class="node node-ref">deferred</span></td>
-      <td>Phase D (not yet implemented). A dashboard workflow that aggregates all pending module upgrades into a single self-updating tracking issue, giving visibility across the estate.</td>
-    </tr>
-  </table>
-</div>
-
-<div class="subsection" id="artifacts-phases" data-sub="Implementation Phases">
-  <div class="subsection-title">Implementation Phases</div>
-
-  <div class="card-grid triple">
-    <div class="ed-card" style="border-top: 3px solid var(--cyan)">
-      <h3>Phase A: Scripts</h3>
-      <ul>
-        <li>classify-version-bump.sh</li>
-        <li>scan-module-versions.sh</li>
-        <li>.mcp-ci.json</li>
-        <li>dependabot.yml</li>
-      </ul>
-    </div>
-    <div class="ed-card" style="border-top: 3px solid var(--purple)">
-      <h3>Phase B: Workflows</h3>
-      <ul>
-        <li>module-upgrade-remediation.md</li>
-        <li>consumer-uplift.yml</li>
-        <li>consumer-uplift-apply.yml</li>
-      </ul>
-    </div>
-    <div class="ed-card" style="border-top: 3px solid var(--green)">
-      <h3>Phase C: Docs</h3>
-      <ul>
-        <li>Visual diagram (this page)</li>
-        <li>AGENTS.md updates</li>
-      </ul>
-    </div>
-  </div>
-  <div class="card-grid single" style="margin-top:0">
-    <div class="ed-card" style="border-top: 3px solid var(--text-caption); opacity: 0.7">
-      <h3>Phase D: Optional Enhancements (Deferred)</h3>
-      <ul>
-        <li>module-update-tracker.yml (dashboard issue)</li>
-        <li>Copilot ruleset configuration guide</li>
-      </ul>
-    </div>
-  </div>
-</div>
-
 <!-- Footer -->
 <div style="text-align:center;padding:60px 28px 40px;border-top:1px solid var(--border);max-width:var(--max-w);margin:40px auto 0">
-  <p style="font-family:var(--serif);font-size:14px;color:var(--text-caption)">Consumer Module Uplift -- Use Case 1 of Issue #3</p>
-  <p style="font-size:11px;color:var(--text-caption);margin-top:4px">Part of the <span style="color:var(--red);font-weight:600">HCP Terraform x AI Agents</span> SDD framework</p>
+  <p style="font-size:11px;color:var(--text-caption)">Part of the <span style="color:var(--red);font-weight:600">HCP Terraform x AI Agents</span> SDD framework</p>
 </div>
 
 <script>
@@ -1342,22 +1177,10 @@ var searchItems = [
   { id: 'escalation-risk-levels', type: 'component', name: 'Risk Levels', desc: 'Low, medium, high, and critical risk classification cards' },
   { id: 'decision-section', type: 'section', name: 'Decision Matrix', desc: 'Deterministic risk classification from plan exit code and semver type' },
   { id: 'decision-matrix', type: 'component', name: 'Matrix Table', desc: '5-row decision matrix: no changes, adds only, changes, destroy/replace, plan fails' },
-  { id: 'apply-section', type: 'section', name: 'Apply & Rollback', desc: 'Post-merge apply workflow with structured rollback on failure' },
-  { id: 'apply-paths', type: 'component', name: 'Apply Paths', desc: 'Success path (apply + comment) and failure path (incident + rollback PR)' },
-  { id: 'artifacts-section', type: 'section', name: 'Artifacts', desc: 'Implementation files: workflows, scripts, configs, agent prompts' },
-  { id: 'artifacts-table', type: 'component', name: 'File Inventory', desc: 'All files needed to implement the consumer uplift pipeline' },
-  { id: 'artifacts-phases', type: 'component', name: 'Implementation Phases', desc: 'Phase A (scripts), B (workflows), C (docs), D (optional)' },
   // Concepts
   { id: 'decision-section', type: 'concept', name: 'Auto-Merge', desc: 'Only zero-change plans are auto-merged. Any infrastructure change requires review.' },
   { id: 'decision-section', type: 'concept', name: 'DESTROY/REPLACE', desc: 'Always classified as breaking-change. Merge is blocked regardless of semver type.' },
-  { id: 'escalation-section', type: 'concept', name: '@claude Fix Loop', desc: 'Comment @claude to fix consumer code. Pipeline re-validates after push.' },
-  { id: 'apply-section', type: 'concept', name: 'Rollback PR', desc: 'Draft revert PR created on apply failure. Goes through normal pipeline validation.' },
-  // Scripts/files
-  { id: 'artifacts-table', type: 'script', name: 'classify-version-bump.sh', desc: 'Parse git diff to detect semver bump type (patch/minor/major)' },
-  { id: 'artifacts-table', type: 'script', name: 'scan-module-versions.sh', desc: 'TFC API fallback scanner for version detection' },
-  { id: 'artifacts-table', type: 'workflow', name: 'terraform-consumer-uplift.yml', desc: 'Main pipeline: 4 deterministic jobs on pull_request events' },
-  { id: 'artifacts-table', type: 'workflow', name: 'terraform-apply.yml', desc: 'Post-merge apply + rollback on failure' },
-  { id: 'artifacts-table', type: 'agent', name: 'module-upgrade-remediation.md', desc: '@claude remediation playbook for module upgrades' }
+  { id: 'escalation-section', type: 'concept', name: '@claude Fix Loop', desc: 'Comment @claude to fix consumer code. Pipeline re-validates after push.' }
 ];
 
 var typeColors = {
@@ -1447,7 +1270,7 @@ var tocObserver = new IntersectionObserver(function(entries) {
 document.querySelectorAll('.subsection, .chapter-divider[data-section], #landing').forEach(function(s) { tocObserver.observe(s); });
 
 // ============================================================
-// ANIMATED FLOW BALL — single ball, randomised path per cycle
+// ANIMATED FLOW BALL — Catmull-Rom spline for smooth curves
 // ============================================================
 (function() {
   var ball = document.getElementById('flow-ball');
@@ -1455,7 +1278,6 @@ document.querySelectorAll('.subsection, .chapter-divider[data-section], #landing
   var svgEl = document.getElementById('pipeline-svg');
   if (!ball || !trail || !svgEl) return;
 
-  // Filters keyed by color for glow switching
   var filters = {
     '#4A6B8A': 'url(#glow-ice)',
     '#1A6B7A': 'url(#glow-teal)',
@@ -1467,21 +1289,19 @@ document.querySelectorAll('.subsection, .chapter-divider[data-section], #landing
   };
 
   // Waypoints: [x, y, color, pauseMs]
-  // The ball traverses these in order, pausing at job centres
   var baseWaypoints = [
-    [375, 80,  '#4A6B8A', 0],      // Dependabot bottom
-    [375, 140, '#4A6B8A', 0],      // Workflow entry
-    [122, 214, '#1A6B7A', 180],    // Job 1 centre
-    [200, 214, '#1A6B7A', 0],      // Job 1 exit
-    [297, 214, '#B87333', 180],    // Job 2 centre
-    [375, 214, '#B87333', 0],      // Job 2 exit
-    [472, 214, '#6B3FA0', 180],    // Job 3 centre
-    [550, 214, '#6B3FA0', 0],      // Job 3 exit
-    [637, 214, '#C4283A', 180],    // Job 4 centre
-    [705, 214, '#C4283A', 0]       // Job 4 exit
+    [375, 80,  '#4A6B8A', 0],
+    [375, 140, '#4A6B8A', 0],
+    [122, 214, '#1A6B7A', 180],
+    [200, 214, '#1A6B7A', 0],
+    [297, 214, '#B87333', 180],
+    [375, 214, '#B87333', 0],
+    [472, 214, '#6B3FA0', 180],
+    [550, 214, '#6B3FA0', 0],
+    [637, 214, '#C4283A', 180],
+    [705, 214, '#C4283A', 0]
   ];
 
-  // Outcome forks — randomly selected each cycle
   var outcomePaths = [
     // Auto-Merge -> On Merge
     [
@@ -1500,36 +1320,147 @@ document.querySelectorAll('.subsection, .chapter-divider[data-section], #landing
       [770, 320, '#C4283A', 120],
       [865, 320, '#C4283A', 250]
     ],
-    // Needs-Review -> Claude Review workflow -> back to Job 1 (feedback loop)
+    // Needs-Review -> Claude Review -> feedback loop
     [
       [770, 250, '#9A7B2D', 120],
       [865, 250, '#9A7B2D', 140],
-      [520, 440, '#9A7B2D', 0],      // down to Claude Review box area
-      [195, 513, '#9A7B2D', 140],     // Gate job
-      [382, 513, '#9A7B2D', 200],     // Claude Review job
-      [475, 513, '#9A7B2D', 0],       // exit Claude Review
-      [570, 430, '#1A6B7A', 0],       // curve up
-      [375, 390, '#1A6B7A', 0],       // top of return path
-      [375, 140, '#1A6B7A', 0],       // back to workflow entry
-      [122, 214, '#1A6B7A', 180]      // Job 1 re-run
+      [520, 440, '#9A7B2D', 0],
+      [195, 513, '#9A7B2D', 140],
+      [382, 513, '#9A7B2D', 200],
+      [475, 513, '#9A7B2D', 0],
+      [570, 430, '#1A6B7A', 0],
+      [375, 390, '#1A6B7A', 0],
+      [375, 140, '#1A6B7A', 0],
+      [122, 214, '#1A6B7A', 180]
     ]
   ];
 
-  var speed = 0.30; // px per ms — slower, more elegant
-  var path = [];
-  var segIdx = 0;
-  var segT = 0;
-  var pauseUntil = 0;
-  var pauseStartR = 5;
-  var pauseTargetR = 7;
-  var pauseDuration = 0;
+  // --- Catmull-Rom spline helpers ---
+  // Returns point on a Catmull-Rom segment between p1 and p2
+  // with control points p0 and p3, at parameter t in [0,1]
+  function catmullRom(p0, p1, p2, p3, t, alpha) {
+    if (alpha === undefined) alpha = 0.5; // centripetal
+    function dist2(a, b) {
+      var dx = b[0] - a[0], dy = b[1] - a[1];
+      return dx * dx + dy * dy;
+    }
+    var d01 = Math.pow(dist2(p0, p1), alpha * 0.5);
+    var d12 = Math.pow(dist2(p1, p2), alpha * 0.5);
+    var d23 = Math.pow(dist2(p2, p3), alpha * 0.5);
+    if (d01 < 1e-4) d01 = 1;
+    if (d12 < 1e-4) d12 = 1;
+    if (d23 < 1e-4) d23 = 1;
+
+    var b1x = (d01 * d01 * p2[0] - d12 * d12 * p0[0] + (2 * d01 * d01 + 3 * d01 * d12 + d12 * d12) * p1[0]) / (3 * d01 * (d01 + d12));
+    var b1y = (d01 * d01 * p2[1] - d12 * d12 * p0[1] + (2 * d01 * d01 + 3 * d01 * d12 + d12 * d12) * p1[1]) / (3 * d01 * (d01 + d12));
+    var b2x = (d23 * d23 * p1[0] - d12 * d12 * p3[0] + (2 * d23 * d23 + 3 * d23 * d12 + d12 * d12) * p2[0]) / (3 * d23 * (d23 + d12));
+    var b2y = (d23 * d23 * p1[1] - d12 * d12 * p3[1] + (2 * d23 * d23 + 3 * d23 * d12 + d12 * d12) * p2[1]) / (3 * d23 * (d23 + d12));
+
+    var t2 = t * t, t3 = t2 * t;
+    var mt = 1 - t, mt2 = mt * mt, mt3 = mt2 * mt;
+    return [
+      mt3 * p1[0] + 3 * mt2 * t * b1x + 3 * mt * t2 * b2x + t3 * p2[0],
+      mt3 * p1[1] + 3 * mt2 * t * b1y + 3 * mt * t2 * b2y + t3 * p2[1]
+    ];
+  }
+
+  // Build a dense array of {x, y, color} samples from waypoints using Catmull-Rom
+  function buildSplinePath(waypoints) {
+    var samples = [];
+    var samplesPerSeg = 40; // more samples = smoother
+    var n = waypoints.length;
+    if (n < 2) return samples;
+
+    for (var i = 0; i < n - 1; i++) {
+      var p0 = waypoints[Math.max(0, i - 1)];
+      var p1 = waypoints[i];
+      var p2 = waypoints[i + 1];
+      var p3 = waypoints[Math.min(n - 1, i + 2)];
+
+      for (var s = 0; s < samplesPerSeg; s++) {
+        var t = s / samplesPerSeg;
+        var pt = catmullRom(p0, p1, p2, p3, t);
+        // Color: blend from p1 color to p2 color
+        var col = t < 0.5 ? p1[2] : p2[2];
+        samples.push({ x: pt[0], y: pt[1], color: col });
+      }
+    }
+    // Add final point
+    var last = waypoints[n - 1];
+    samples.push({ x: last[0], y: last[1], color: last[2] });
+
+    return samples;
+  }
+
+  // Compute cumulative arc-length for uniform-speed traversal
+  function computeArcLengths(samples) {
+    var lengths = [0];
+    for (var i = 1; i < samples.length; i++) {
+      var dx = samples[i].x - samples[i - 1].x;
+      var dy = samples[i].y - samples[i - 1].y;
+      lengths.push(lengths[i - 1] + Math.sqrt(dx * dx + dy * dy));
+    }
+    return lengths;
+  }
+
+  // Given a distance along the path, return interpolated {x, y, color}
+  function sampleAtDistance(samples, arcLengths, d) {
+    var total = arcLengths[arcLengths.length - 1];
+    if (d <= 0) return samples[0];
+    if (d >= total) return samples[samples.length - 1];
+    // Binary search for segment
+    var lo = 0, hi = arcLengths.length - 1;
+    while (lo < hi - 1) {
+      var mid = (lo + hi) >> 1;
+      if (arcLengths[mid] < d) lo = mid; else hi = mid;
+    }
+    var segLen = arcLengths[hi] - arcLengths[lo];
+    var t = segLen > 0 ? (d - arcLengths[lo]) / segLen : 0;
+    return {
+      x: samples[lo].x + (samples[hi].x - samples[lo].x) * t,
+      y: samples[lo].y + (samples[hi].y - samples[lo].y) * t,
+      color: t < 0.5 ? samples[lo].color : samples[hi].color
+    };
+  }
+
+  // Build pause schedule: at each waypoint with pauseMs > 0,
+  // record what distance along the spline it corresponds to
+  function buildPauseSchedule(waypoints, samples, arcLengths) {
+    var schedule = [];
+    var sampleIdx = 0;
+    var samplesPerSeg = 40;
+    for (var i = 0; i < waypoints.length; i++) {
+      var wpDist;
+      if (i === 0) {
+        wpDist = 0;
+      } else if (i === waypoints.length - 1) {
+        wpDist = arcLengths[arcLengths.length - 1];
+      } else {
+        // Waypoint i corresponds to sample index i * samplesPerSeg
+        var si = Math.min(i * samplesPerSeg, arcLengths.length - 1);
+        wpDist = arcLengths[si];
+      }
+      if (waypoints[i][3] > 0) {
+        schedule.push({ dist: wpDist, duration: waypoints[i][3] });
+      }
+    }
+    return schedule;
+  }
+
+  var speed = 0.30; // px per ms
+  var splineSamples = [];
+  var arcLengths = [];
+  var totalLength = 0;
+  var pauseSchedule = [];
+  var currentDist = 0;
+  var currentPause = -1; // index into pauseSchedule, -1 = not pausing
   var pauseElapsed = 0;
-  var fadeState = 'in'; // 'in' | 'visible' | 'out' | 'wait'
+  var fadeState = 'in';
   var fadeT = 0;
   var waitUntil = 0;
   var lastTs = 0;
-  // Trail follows main ball with a buffer
   var trailX = 0, trailY = 0;
+  var currentWaypoints = [];
 
   function buildPath() {
     var p = baseWaypoints.slice();
@@ -1538,25 +1469,19 @@ document.querySelectorAll('.subsection, .chapter-divider[data-section], #landing
     return p;
   }
 
-  function segDist(a, b) {
-    var dx = b[0] - a[0], dy = b[1] - a[1];
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  function easeInOut(t) {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  }
-
   function startCycle() {
-    path = buildPath();
-    segIdx = 0;
-    segT = 0;
+    currentWaypoints = buildPath();
+    splineSamples = buildSplinePath(currentWaypoints);
+    arcLengths = computeArcLengths(splineSamples);
+    totalLength = arcLengths[arcLengths.length - 1];
+    pauseSchedule = buildPauseSchedule(currentWaypoints, splineSamples, arcLengths);
+    currentDist = 0;
+    currentPause = -1;
+    pauseElapsed = 0;
     fadeState = 'in';
     fadeT = 0;
-    pauseUntil = 0;
-    pauseElapsed = 0;
-    pauseDuration = 0;
-    var wp = path[0];
+
+    var wp = currentWaypoints[0];
     ball.setAttribute('cx', wp[0]);
     ball.setAttribute('cy', wp[1]);
     ball.setAttribute('r', '5');
@@ -1566,14 +1491,17 @@ document.querySelectorAll('.subsection, .chapter-divider[data-section], #landing
     trail.setAttribute('cx', wp[0]);
     trail.setAttribute('cy', wp[1]);
     trail.setAttribute('fill', wp[2]);
+
+    svgEl.appendChild(trail);
+    svgEl.appendChild(ball);
   }
 
   function tick(ts) {
     if (!lastTs) { lastTs = ts; startCycle(); }
-    var dt = Math.min(ts - lastTs, 50); // cap for tab-switch
+    var dt = Math.min(ts - lastTs, 50);
     lastTs = ts;
 
-    // Fade in/out handling
+    // Fade in/out
     if (fadeState === 'in') {
       fadeT = Math.min(fadeT + dt / 400, 1);
       ball.setAttribute('opacity', String(fadeT * 0.92));
@@ -1585,7 +1513,7 @@ document.querySelectorAll('.subsection, .chapter-divider[data-section], #landing
       trail.setAttribute('opacity', String(fadeT * 0.28));
       if (fadeT <= 0) {
         fadeState = 'wait';
-        waitUntil = ts + 600 + Math.random() * 400; // random gap before next cycle
+        waitUntil = ts + 600 + Math.random() * 400;
       }
     } else if (fadeState === 'wait') {
       if (ts >= waitUntil) startCycle();
@@ -1593,73 +1521,55 @@ document.querySelectorAll('.subsection, .chapter-divider[data-section], #landing
       return;
     }
 
-    // Pausing at a waypoint with radius pulse
-    if (pauseUntil > 0) {
-      if (ts < pauseUntil) {
-        pauseElapsed += dt;
-        var pt = Math.min(pauseElapsed / pauseDuration, 1);
-        // Ease out then back: grow to 7 at midpoint, shrink to 5 by end
-        var pulseT = pt < 0.5 ? pt * 2 : 2 - pt * 2;
-        var r = pauseStartR + (pauseTargetR - pauseStartR) * pulseT;
-        ball.setAttribute('r', String(r));
-        requestAnimationFrame(tick);
-        return;
+    // Check if we're at a pause point
+    if (currentPause >= 0) {
+      pauseElapsed += dt;
+      var pd = pauseSchedule[currentPause].duration;
+      var pt = Math.min(pauseElapsed / pd, 1);
+      var pulseT = pt < 0.5 ? pt * 2 : 2 - pt * 2;
+      var r = 5 + 2 * pulseT;
+      ball.setAttribute('r', String(r));
+      if (pauseElapsed >= pd) {
+        currentPause = -1;
+        ball.setAttribute('r', '5');
       }
-      pauseUntil = 0;
-      ball.setAttribute('r', '5');
+      requestAnimationFrame(tick);
+      return;
     }
 
-    // Move along current segment
-    if (segIdx < path.length - 1) {
-      var from = path[segIdx];
-      var to = path[segIdx + 1];
-      var dist = segDist(from, to);
-      var dur = dist / speed; // ms for this segment
-      if (dur < 1) dur = 1;
-      segT += dt / dur;
-      if (segT > 1) segT = 1;
+    // Advance along spline
+    currentDist += speed * dt;
 
-      var eased = easeInOut(segT);
-      var x = from[0] + (to[0] - from[0]) * eased;
-      var y = from[1] + (to[1] - from[1]) * eased;
-
-      // Color transitions mid-segment
-      var col = segT < 0.5 ? from[2] : to[2];
-      ball.setAttribute('cx', x);
-      ball.setAttribute('cy', y);
-      ball.setAttribute('fill', col);
-      ball.setAttribute('filter', filters[col] || 'url(#glow-teal)');
-
-      // Trail follows with damped lerp (smoother, more trailing)
-      var tLerp = 0.08;
-      trailX += (x - trailX) * tLerp;
-      trailY += (y - trailY) * tLerp;
-      trail.setAttribute('cx', trailX);
-      trail.setAttribute('cy', trailY);
-      trail.setAttribute('fill', col);
-
-      // Ensure ball renders on top
-      if (segIdx === 0 && segT < 0.1) {
-        svgEl.appendChild(trail);
-        svgEl.appendChild(ball);
-      }
-
-      if (segT >= 1) {
-        segIdx++;
-        segT = 0;
-        // Pause at this waypoint if specified
-        if (segIdx < path.length && path[segIdx][3] > 0) {
-          pauseDuration = path[segIdx][3];
-          pauseElapsed = 0;
-          pauseUntil = ts + pauseDuration;
-        }
-        // Last waypoint — start fade out
-        if (segIdx >= path.length - 1) {
-          fadeState = 'out';
-          fadeT = 1;
-        }
+    // Check if we've hit a pause waypoint
+    for (var pi = 0; pi < pauseSchedule.length; pi++) {
+      var ps = pauseSchedule[pi];
+      if (currentDist >= ps.dist && currentDist - speed * dt < ps.dist) {
+        currentDist = ps.dist; // snap to exact pause point
+        currentPause = pi;
+        pauseElapsed = 0;
+        break;
       }
     }
+
+    if (currentDist >= totalLength) {
+      fadeState = 'out';
+      fadeT = 1;
+      currentDist = totalLength;
+    }
+
+    var pt = sampleAtDistance(splineSamples, arcLengths, currentDist);
+    ball.setAttribute('cx', pt.x);
+    ball.setAttribute('cy', pt.y);
+    ball.setAttribute('fill', pt.color);
+    ball.setAttribute('filter', filters[pt.color] || 'url(#glow-teal)');
+
+    // Trail with smooth damped following
+    var tLerp = 0.1;
+    trailX += (pt.x - trailX) * tLerp;
+    trailY += (pt.y - trailY) * tLerp;
+    trail.setAttribute('cx', trailX);
+    trail.setAttribute('cy', trailY);
+    trail.setAttribute('fill', pt.color);
 
     requestAnimationFrame(tick);
   }
