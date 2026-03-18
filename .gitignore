@@ -49,3 +49,6 @@ notes-during-refactoring/
 .DS_Store
 .copilot/config.json
 .copilot/logs/*
+
+# Sync skill (root-only, not synced to downstream fork)
+.claude/skills/sync-downstream/
