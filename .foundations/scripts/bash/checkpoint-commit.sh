@@ -6,9 +6,9 @@
 # tf-implement-module after each workflow step. Handles empty-commit detection,
 # deterministic commit messages, and push failures.
 #
-# Commits use --no-verify to skip pre-commit hooks. These are intermediate
-# workflow saves on in-progress code — hooks like tflint would reject partial
-# modules. Phase 4 runs `pre-commit run --all-files` as the explicit quality gate.
+# Pre-commit hooks run on every commit. If hooks auto-fix files (fmt, docs),
+# the script re-stages and retries once. If hooks fail on the retry, the
+# commit fails — the orchestrator must fix the code before checkpointing.
 #
 # Usage: ./checkpoint-commit.sh [OPTIONS] <step_name>
 #
@@ -131,15 +131,34 @@ if git diff --cached --quiet; then
     exit 0
 fi
 
-# --- Commit (skip hooks — see header comment) ---
+# --- Commit (hooks run — if they auto-fix files, re-stage and retry once) ---
+commit_with_retry() {
+    if git commit -m "$COMMIT_MSG" "$@"; then
+        return 0
+    fi
+
+    # Hooks may have auto-fixed files (fmt, terraform-docs). Re-stage and retry.
+    git add "$STAGE_DIR"
+    if git diff --cached --quiet; then
+        # Hooks fixed files but unstaged everything — nothing left to commit
+        return 1
+    fi
+
+    if git commit -m "$COMMIT_MSG" "$@"; then
+        return 0
+    fi
+
+    return 1
+}
+
 if $JSON_MODE; then
-    if ! git commit --no-verify -m "$COMMIT_MSG" >/dev/null 2>&1; then
+    if ! commit_with_retry >/dev/null 2>&1; then
         printf '{"committed":false,"pushed":false,"reason":"commit_failed","message":"%s"}\n' "$COMMIT_MSG"
         exit 1
     fi
 else
-    if ! git commit --no-verify -m "$COMMIT_MSG"; then
-        echo "ERROR: git commit failed." >&2
+    if ! commit_with_retry; then
+        echo "ERROR: git commit failed. Pre-commit hooks may have reported issues — fix and retry." >&2
         exit 1
     fi
 fi

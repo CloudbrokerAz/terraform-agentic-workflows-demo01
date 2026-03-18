@@ -23,32 +23,24 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 
 5. Extract checklist items from consumer-design.md Section 5 via Grep.
 6. For each checklist item (sequentially — items depend on prior items):
-   - Launch concurrent `tf-consumer-developer` subagents with FEATURE path and item description.
+   - Launch `tf-consumer-developer` subagent with FEATURE path and item description.
    - When it completes, verify expected files exist via Glob.
    - Run `terraform fmt -check` and `terraform validate` (validate may require `terraform init` first).
    - Checkpoint commit.
-   Use concurrent subagents for independent items only when their outputs do not overlap.
-7. After all items: run `terraform validate`. If failures remain, re-launch `tf-consumer-developer` subagents targeted at the specific errors
+     Use concurrent subagents for independent items only when their outputs do not overlap.
+7. After all items: run `terraform validate`. If failures remain, re-launch `tf-consumer-developer` subagents targeted at the specific errors.
 8. Verify all checklist items in consumer-design.md Section 5 are marked `[x]` via Grep. If any remain `[ ]`, either mark them (if the work was done by a prior item) or flag the gap before proceeding.
 
-## Phase 4: Validate
+## Phase 4: Validate & Deploy
 
-9. Launch concurrent `tf-consumer-validator` subagents with FEATURE path. The validator performs:
-   - Design conformance check (modules, wiring, variables vs design)
-   - Static analysis (`terraform fmt`, `terraform validate`, `tflint`, `trivy`)
-   - Quality scoring using `tf-judge-criteria`
-   Security is enforced by Sentinel policies at the workspace level and by modules being inherently secure — the validator does not perform a separate security review.
-10. Review validator output. If quality score < 7.0:
-    - Launch `tf-consumer-developer` subagents targeted at specific issues
-    - Re-run `tf-consumer-validator` after fixes.
-11. Deploy to sandbox — trigger plan+apply in HCP Terraform sandbox workspace. Capture run URL and deploy status.
-12. Write deployment report to `specs/{FEATURE}/reports/` by reading the `tf-report-template` skill inline and applying the consumer template format (`tf-report-template/template/tf-consumer-template.md`). This is not a subagent dispatch — write the report directly. Include: static analysis results, quality score, sandbox deployment results (if run).
-13. Checkpoint commit, push branch, create PR linking to `$ISSUE_NUMBER`.
-14. Ask user via `AskUserQuestion`: "Destroy sandbox resources?" Options:
-    - **Yes, destroy** — trigger destroy run in sandbox workspace
-    - **No, keep** — leave sandbox resources running
-    If destroy confirmed, run the destroy and report status.
+9. Deploy to sandbox — trigger `terraform apply -auto-approve` against the HCP Terraform workspace. Capture the run ID and URL.
+10. Launch `tf-consumer-validator` with `$FEATURE` path, run ID, and workspace name.
+11. Verify report exists via Glob. Read the quality score from it. If score < 7.0:
+    - Fix issues with `tf-consumer-developer` subagents
+    - Destroy sandbox, redeploy, re-launch validator (max 3 rounds)
+12. Checkpoint commit, push branch, create PR linking to `$ISSUE_NUMBER`.
+13. Ask user: "Destroy sandbox resources?" If yes, trigger destroy run and report status.
 
 ## Done
 
-Report: validation status, quality score, sandbox deploy status (if run), PR link.
+Report at `specs/{FEATURE}/reports/deployment-report.md`. Output: quality score, sandbox deploy status, PR link.

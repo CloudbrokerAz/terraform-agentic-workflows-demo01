@@ -48,6 +48,10 @@ Execute the following 4 steps sequentially. The design file path and deployment 
 4. Run `trivy config .` (if available) — report pass/fail with findings by severity
 5. Collect and report all errors/warnings
 
+### Step 2 — Cost Controls
+1. use tf-runtask skill to check if cost reporting is available for this deployment context (e.g., via HCP Terraform run details)
+2. If cost reporting is available via runtask list details, extract and summarize cost estimates for the planned deployment
+
 ### Step 3 — Quality Scoring
 
 Apply `tf-judge-criteria` skill (Consumer Workflow dimensions) to score the deployment:
@@ -86,6 +90,9 @@ Return the validation report as agent output. The orchestrator will use this to 
 - Variables: X/Y declared correctly
 - Provider config: default_tags present / missing
 - Raw resources: {count} (glue only: Yes/No)
+
+### Cost Controls
+- where cost reporting is available via runtask list details here
 
 ### Static Analysis
 - terraform fmt: PASS/FAIL
