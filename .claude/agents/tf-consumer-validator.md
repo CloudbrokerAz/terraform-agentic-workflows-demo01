@@ -49,7 +49,11 @@ Execute the following 4 steps sequentially. The design file path and deployment 
    - No static credentials
 8. Report mismatches as a structured checklist
 
-### Step 2 — Static Analysis
+### Step 2 — Cost Controls
+1. use tf-runtask skill to check if cost reporting is available for this deployment context (e.g., via HCP Terraform run details)
+2. If cost reporting is available via runtask list details, extract and summarize cost estimates for the planned deployment
+
+### Step 3 — Static Analysis
 
 1. Run `terraform fmt -check -recursive` — report pass/fail
 2. Run `terraform validate` — report pass/fail with error details
@@ -58,7 +62,7 @@ Execute the following 4 steps sequentially. The design file path and deployment 
 5. check runtask output.
 6. Collect and report
 
-### Step 3 — Quality Scoring
+### Step 4 — Quality Scoring
 
 Apply `tf-judge-criteria` skill (Consumer Workflow dimensions) to score the deployment:
 
@@ -71,7 +75,7 @@ Apply `tf-judge-criteria` skill (Consumer Workflow dimensions) to score the depl
 
 Calculate overall score. If Security & Compliance < 5.0, force "Not Production Ready".
 
-### Step 4 — Sandbox Deployment (if requested)
+### Step 5 — Sandbox Deployment (if requested)
 
 If `$ARGUMENTS` includes sandbox deployment instructions:
 
@@ -98,6 +102,9 @@ Return the validation report as agent output. The orchestrator will use this to 
 - Variables: X/Y declared correctly
 - Provider config: default_tags present / missing
 - Raw resources: {count} (glue only: Yes/No)
+
+### Cost Controls
+- where cost reporting is available via runtask list details here
 
 ### Static Analysis
 
