@@ -1,5 +1,10 @@
 {
-    "permissions": {
+  "statusLine": {
+    "type": "command",
+    "command": "/usr/local/bin/claude-statusline.sh",
+    "padding": 0
+  },
+  "permissions": {
     "allow": [
       "Bash(git fetch:*)",
       "Bash(.foundations/scripts/bash/create-new-feature.sh:*)",

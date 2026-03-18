@@ -12,6 +12,19 @@ touch /commandhistory/.bash_history
 sudo chown -R node:node /home/node/.claude
 chmod 700 /home/node/.claude
 
+# Configure Claude statusline in user settings
+CLAUDE_SETTINGS="/home/node/.claude/settings.json"
+STATUSLINE_CONFIG='{"model":"opus[1m]","statusLine":{"type":"command","command":"/usr/local/bin/claude-statusline.sh","padding":0}}'
+if [ -f "$CLAUDE_SETTINGS" ] && [ -s "$CLAUDE_SETTINGS" ]; then
+    # Merge statusLine into existing settings
+    tmp=$(jq --argjson sl "$STATUSLINE_CONFIG" '. * $sl' "$CLAUDE_SETTINGS")
+    echo "$tmp" > "$CLAUDE_SETTINGS"
+else
+    echo "$STATUSLINE_CONFIG" | jq . > "$CLAUDE_SETTINGS"
+fi
+chmod 600 "$CLAUDE_SETTINGS"
+echo "Claude statusline configured"
+
 # Configure Terraform credentials for HCP Terraform
 if [ -n "${TFE_TOKEN:-}" ]; then
     mkdir -p ~/.terraform.d

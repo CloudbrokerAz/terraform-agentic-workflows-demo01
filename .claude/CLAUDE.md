@@ -39,6 +39,10 @@ When creating design documents, use the canonical template for the relevant work
 - **Provider design**: `.foundations/templates/provider-design-template.md`
 - **Consumer design**: `.foundations/templates/consumer-design-template.md`
 
+## Gotchas
+
+- **`disableAllHooks` also disables the statusline.** The `disableAllHooks` setting in `settings.local.json` disables both hooks **and** `statusLine` command execution. If the statusline disappears, check this setting first.
+
 ## Key Conventions
 
 - Workflow conventions are defined in the orchestrator skills (`tf-module-plan`, `tf-module-implement`, `tf-provider-plan`, `tf-provider-implement`, `tf-consumer-plan`, `tf-consumer-implement`). Follow AGENTS.md `## Context Management` for subagent rules.

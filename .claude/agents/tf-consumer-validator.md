@@ -5,6 +5,7 @@ model: opus
 color: purple
 skills:
   - tf-judge-criteria
+  - tf-runtask
 tools:
   - Read
   - Write
@@ -54,7 +55,8 @@ Execute the following 4 steps sequentially. The design file path and deployment 
 2. Run `terraform validate` — report pass/fail with error details
 3. Run `tflint` (if available) — report pass/fail with issue count
 4. Run `trivy config .` (if available) — report pass/fail with findings by severity
-5. Collect and report all errors/warnings
+5. check runtask output.
+6. Collect and report
 
 ### Step 3 — Quality Scoring
 
@@ -90,6 +92,7 @@ Return the validation report as agent output. The orchestrator will use this to 
 ## Validation Report: {FEATURE}
 
 ### Design Conformance
+
 - Modules: X/Y from inventory present (mismatches: [...])
 - Wiring: X/Y connections verified
 - Variables: X/Y declared correctly
@@ -97,25 +100,28 @@ Return the validation report as agent output. The orchestrator will use this to 
 - Raw resources: {count} (glue only: Yes/No)
 
 ### Static Analysis
+
 - terraform fmt: PASS/FAIL
 - terraform validate: PASS/FAIL (N errors)
 - tflint: PASS/FAIL/SKIPPED (N issues)
 - trivy: PASS/FAIL/SKIPPED (N critical, N high, N medium, N low)
 
 ### Quality Score
-| # | Dimension | Score | Issues |
-|---|-----------|-------|--------|
-| 1 | Module Usage | {X.X} | {summary} |
-| 2 | Security & Compliance | {X.X} | {summary} |
-| 3 | Code Quality | {X.X} | {summary} |
-| 4 | Variables & Outputs | {X.X} | {summary} |
-| 5 | Wiring & Integration | {X.X} | {summary} |
-| 6 | Constitution Alignment | {X.X} | {summary} |
+
+| #   | Dimension              | Score | Issues    |
+| --- | ---------------------- | ----- | --------- |
+| 1   | Module Usage           | {X.X} | {summary} |
+| 2   | Security & Compliance  | {X.X} | {summary} |
+| 3   | Code Quality           | {X.X} | {summary} |
+| 4   | Variables & Outputs    | {X.X} | {summary} |
+| 5   | Wiring & Integration   | {X.X} | {summary} |
+| 6   | Constitution Alignment | {X.X} | {summary} |
 
 Overall: {X.X}/10.0 — {Level}
 Production Readiness: {Ready / Not Ready}
 
 ### Sandbox Deployment
+
 - Workspace: {name}
 - Run URL: {url}
 - Plan: PASS/FAIL/SKIPPED
@@ -124,6 +130,7 @@ Production Readiness: {Ready / Not Ready}
 - Cost Estimate: {monthly or N/A}
 
 ### Issues Requiring Manual Fix
+
 - [list of issues with file:line references]
 ```
 
