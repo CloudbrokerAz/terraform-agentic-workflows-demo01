@@ -3,14 +3,14 @@
 # │  CLAUDE CODE STATUSLINE                                             │
 # │  Powerline statusline with themes and worktree awareness           │
 # │                                                                     │
-# │  Requires: bash, jq, git, bc, powerline-patched font              │
+# │  Requires: bash, jq, git, awk, powerline-patched font             │
 # │                                                                     │
 # │  Settings (~/.claude/settings.json):                                │
 # │    {                                                                │
 # │      "statusLine": {                                                │
 # │        "type": "command",                                           │
-# │        "command": "~/.claude/statusline.sh",                        │
-# │        "padding": 0                                                 │
+# │        "command": "bash /workspace/.claude/claude-statusline.sh",  │
+# │        "padding": 1                                                 │
 # │      }                                                              │
 # │    }                                                                │
 # │                                                                     │
@@ -27,7 +27,10 @@
 # │    mono        Pure grayscale — context is the only color          │
 # └─────────────────────────────────────────────────────────────────────┘
 
-set -euo pipefail
+# Do NOT use set -e, -u, or pipefail: any failed subcommand (git, jq, awk on
+# null values, or unset variables) would silently kill the script and produce
+# blank output in Claude Code's status bar.
+set +e +u +o pipefail
 
 input=$(cat)
 
@@ -190,35 +193,37 @@ MODEL=$(echo "$input" | jq -r '.model.display_name // "--"')
 MODEL_ID=$(echo "$input" | jq -r '.model.id // ""')
 CWD=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // ""')
 PROJECT_DIR=$(echo "$input" | jq -r '.workspace.project_dir // ""')
-COST=$(echo "$input" | jq -r '.cost.total_cost_usd // 0')
-DURATION_MS=$(echo "$input" | jq -r '.cost.total_duration_ms // 0')
-LINES_ADDED=$(echo "$input" | jq -r '.cost.total_lines_added // 0')
-LINES_REMOVED=$(echo "$input" | jq -r '.cost.total_lines_removed // 0')
+# cost/duration/lines are not in the Claude Code statusLine JSON schema;
+# default to 0 so display degrades gracefully.
+COST=0
+DURATION_MS=0
+LINES_ADDED=0
+LINES_REMOVED=0
 
 CTX_PCT=$(echo "$input" | jq -r '
-  if .context_window.used_percentage then .context_window.used_percentage
-  elif .used_percentage then .used_percentage
-  else 0 end | round
+  (.context_window.used_percentage // 0) | round
 ')
 
+# Derive used tokens from current_usage.input_tokens (last API call) as a proxy,
+# or fall back to total_input_tokens for the session.
 CTX_USED=$(echo "$input" | jq -r '
-  if .context_window.used then .context_window.used
-  elif .used_tokens then .used_tokens
-  else 0 end
+  (.context_window.current_usage.input_tokens
+   // .context_window.total_input_tokens
+   // 0)
 ')
 
 CTX_TOTAL=$(echo "$input" | jq -r '
-  if .context_window.total then .context_window.total
-  elif .total_tokens then .total_tokens
-  elif .context_window.max then .context_window.max
-  else 0 end
+  (.context_window.context_window_size // 0)
 ')
 
-# Format tokens: 1500 → "1.5k", 200000 → "200k"
+# Format tokens: 1500 → "1.5k", 200000 → "200k", 1000000 → "1M"
 fmt_tokens() {
   local n=$1
   if [ "$n" -ge 1000000 ] 2>/dev/null; then
-    printf '%.1fM' "$(echo "scale=1; $n / 1000000" | bc 2>/dev/null)"
+    local m_int=$(( n / 1000000 ))
+    local m_frac=$(( (n % 1000000) / 100000 ))
+    if [ "$m_frac" -gt 0 ]; then printf '%s.%sM' "$m_int" "$m_frac"
+    else printf '%sM' "$m_int"; fi
   elif [ "$n" -ge 1000 ] 2>/dev/null; then
     local k=$(( n / 1000 ))
     local r=$(( (n % 1000) / 100 ))
@@ -231,10 +236,15 @@ fmt_tokens() {
   fi
 }
 
+# Guard against jq returning literal "null"
+[ "$CTX_USED" = "null" ]  && CTX_USED=0
+[ "$CTX_TOTAL" = "null" ] && CTX_TOTAL=0
+[ "$CTX_PCT" = "null" ]   && CTX_PCT=0
+
 CTX_USED_FMT=$(fmt_tokens "$CTX_USED")
 CTX_TOTAL_FMT=$(fmt_tokens "$CTX_TOTAL")
 
-# Build context display: "58% 45k/200k" or just "58%" if no token data
+# Build context display: "58% 580k/1M" or just "58%" if no token data
 if [ -n "$CTX_USED_FMT" ] && [ -n "$CTX_TOTAL_FMT" ]; then
   CTX_TOKENS="${CTX_USED_FMT}/${CTX_TOTAL_FMT}"
 else
@@ -260,7 +270,7 @@ else
   DURATION="0s"
 fi
 
-if [ "$(echo "$COST > 0" | bc 2>/dev/null || echo 0)" = "1" ]; then
+if [ "$(awk "BEGIN{print ($COST > 0) ? 1 : 0}")" = "1" ]; then
   COST_FMT=$(printf '$%.2f' "$COST")
 else
   COST_FMT='$0.00'
@@ -268,9 +278,9 @@ fi
 
 BURN_FMT=""
 if [ "$DURATION_MS" -gt 120000 ] 2>/dev/null; then
-  HOURS=$(echo "scale=4; $DURATION_MS / 3600000" | bc 2>/dev/null || echo "0")
-  if [ "$(echo "$HOURS > 0" | bc 2>/dev/null || echo 0)" = "1" ]; then
-    BURN=$(echo "scale=2; $COST / $HOURS" | bc 2>/dev/null || echo "0")
+  HOURS=$(awk "BEGIN{printf \"%.4f\", $DURATION_MS / 3600000}")
+  if [ "$(awk "BEGIN{print ($HOURS > 0) ? 1 : 0}")" = "1" ]; then
+    BURN=$(awk "BEGIN{printf \"%.2f\", $COST / $HOURS}")
     BURN_FMT=$(printf '$%s/h' "$BURN")
   fi
 fi
@@ -328,10 +338,10 @@ fi
 
 # ── Context state ─────────────────────────────────────────────────────
 
-if [ "$CTX_PCT" -gt "$CTX_CRIT" ]; then
+if [ "${CTX_PCT:-0}" -gt "${CTX_CRIT:-90}" ]; then
   c_bg="$ctx_r_bg" c_fg="$ctx_r_fg" c_arrow="$ctx_r_arrow"
   c_bar="$ctx_r_bar" c_pct="$ctx_r_pct"
-elif [ "$CTX_PCT" -gt "$CTX_WARN" ]; then
+elif [ "${CTX_PCT:-0}" -gt "${CTX_WARN:-75}" ]; then
   c_bg="$ctx_y_bg" c_fg="$ctx_y_fg" c_arrow="$ctx_y_arrow"
   c_bar="$ctx_y_bar" c_pct="$ctx_y_pct"
 else
@@ -419,15 +429,19 @@ if [ "$MULTILINE" != "2" ]; then
   seg "${CTX_DISPLAY}" "$c_bg" "${BOLD}${c_fg}" "$c_arrow"
 fi
 
-COST_TEXT="${COST_FMT}"
-[ -n "$BURN_FMT" ] && COST_TEXT="${COST_TEXT} ${DIM}${BURN_FMT}${RST}${cost_bg}${cost_fg}"
-seg "${COST_TEXT}" "$cost_bg" "$cost_fg" "$cost_arrow"
+# Only show cost segment when there is real cost data (field not in schema yet)
+if [ "$COST" != "0" ] && [ "$(awk "BEGIN{print ($COST > 0) ? 1 : 0}")" = "1" ]; then
+  COST_TEXT="${COST_FMT}"
+  [ -n "$BURN_FMT" ] && COST_TEXT="${COST_TEXT} ${DIM}${BURN_FMT}${RST}${cost_bg}${cost_fg}"
+  seg "${COST_TEXT}" "$cost_bg" "$cost_fg" "$cost_arrow"
+fi
 
-if [ "$MINIMAL" != "1" ] && { [ "$LINES_ADDED" -gt 0 ] || [ "$LINES_REMOVED" -gt 0 ]; }; then
+if [ "$MINIMAL" != "1" ] && { [ "${LINES_ADDED:-0}" -gt 0 ] || [ "${LINES_REMOVED:-0}" -gt 0 ]; }; then
   seg "+${LINES_ADDED} −${LINES_REMOVED}" "$lines_bg" "$lines_fg" "$lines_arrow"
 fi
 
-if [ "$MINIMAL" != "1" ]; then
+# Only show duration when there is real data (field not in schema yet)
+if [ "$MINIMAL" != "1" ] && [ "${DURATION_MS:-0}" -gt 0 ] 2>/dev/null; then
   seg "${DURATION}" "$dur_bg" "$dur_fg" "$dur_arrow"
 fi
 
