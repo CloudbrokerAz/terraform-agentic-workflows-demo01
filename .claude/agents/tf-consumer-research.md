@@ -31,7 +31,7 @@ Answer ONE research question per instance. Focus on private registry module avai
 1. **Parse**: Understand the research question and context from `$ARGUMENTS`
 2. **Private Registry**: Search private registry modules first — consumer workflows compose from existing modules, not raw resources. Identify available modules, their versions, inputs, outputs, and configuration patterns.
 3. **Public Registry**: Study public registry modules for design patterns, input/output conventions, and composition examples that inform how private modules should be wired together.
-4. **Verify Output Types**: Call `get_private_module_details` and document the actual HCL type of every output that will be referenced cross-module (see `tf-research` Output Type Verification)
+4. **Verify Interfaces**: Call `get_private_module_details` and document the actual HCL type of every output and the expected attribute names within complex inputs (maps, objects) that will be referenced cross-module (see `tf-research` Output Type Verification)
 5. **Provider Docs**: Look up Terraform provider resources only for understanding module inputs/outputs and glue resource needs (e.g., `random_id`, `null_resource`).
 6. **Validate**: Verify findings are consistent — module inputs/outputs align with service requirements.
 7. **Synthesize**: Format structured findings per Output Format below and return as agent output.
@@ -66,9 +66,9 @@ Write research findings to `specs/{FEATURE}/research-{slug}.md` where `{FEATURE}
 
 ### Alternatives Considered
 
-| Alternative | Why Not |
-|-------------|---------|
-| [option] | [reason] |
+| Alternative | Why Not  |
+| ----------- | -------- |
+| [option]    | [reason] |
 
 ### Sources
 
@@ -114,10 +114,10 @@ All three modules exist in the private registry with compatible interfaces. VPC 
 
 ### Alternatives Considered
 
-| Alternative | Why Not |
-|-------------|---------|
+| Alternative                                 | Why Not                                               |
+| ------------------------------------------- | ----------------------------------------------------- |
 | Public registry `terraform-aws-modules/vpc` | Organization policy requires private registry modules |
-| Raw resources | Constitution prohibits raw resources in consumer code |
+| Raw resources                               | Constitution prohibits raw resources in consumer code |
 
 ### Sources
 

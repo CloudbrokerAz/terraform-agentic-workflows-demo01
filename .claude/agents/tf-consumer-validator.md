@@ -1,11 +1,12 @@
 ---
 name: tf-consumer-validator
-description: Validate consumer Terraform code against consumer-design.md, run quality scoring, and sandbox deployment via HCP Terraform. Produces structured validation report.
+description: Validate consumer code against consumer-design.md, analyse the sandbox deployment run, score quality, and write the deployment report.
 model: opus
 color: purple
 skills:
   - tf-judge-criteria
   - tf-runtask
+  - tf-report-template
 tools:
   - Read
   - Write
@@ -20,51 +21,41 @@ tools:
 
 # Consumer Validation Agent
 
-Validate consumer Terraform code against the design document, perform quality scoring using `tf-judge-criteria`, and optionally deploy to a sandbox workspace via HCP Terraform. Produces a structured validation report. Security review is not performed here — Sentinel policies enforce security at the workspace level, and modules are inherently secure by design.
+`$ARGUMENTS` provides: FEATURE path, run ID (from sandbox deployment), and workspace name.
 
-## Instructions
+## Steps
 
-Execute the following 4 steps sequentially. The design file path and deployment context are provided in `$ARGUMENTS`.
+### Step 1 — Design Conformance
 
-### Step 1 — Design Conformance Check
-
-1. Read `.foundations/memory/consumer-constitution.md` for code quality rules
-2. Read the design file (`specs/{FEATURE}/consumer-design.md`) and load all sections
+1. Read `.foundations/memory/consumer-constitution.md`
+2. Read `specs/{FEATURE}/consumer-design.md`
 3. Read all `.tf` files in the project root via Glob
-4. Verify module composition matches §2 Module Inventory:
-   - All modules in the inventory are present in `main.tf`
-   - Module sources match private registry format: `app.terraform.io/<org>/<name>/<provider>`
-   - Module versions use pessimistic constraint: `~> X.Y`
-   - No raw infrastructure `resource` blocks (only glue resources allowed)
-5. Verify wiring matches §3 Module Wiring:
-   - Every wiring table entry has a corresponding module output-to-input reference in code
-   - Type transformations applied where specified
-   - No orphaned module outputs (consumed in wiring table but not in code)
-6. Verify variables match §3 Variables table:
-   - All variables declared with correct types, defaults, and validation rules
-   - Sensitive variables marked `sensitive = true`
-   - All outputs declared with correct source references
-7. Verify provider configuration matches §3 Provider Configuration:
-   - `default_tags` includes `ManagedBy`, `Environment`, `Project`, `Owner`
-   - No static credentials
-8. Report mismatches as a structured checklist
+4. Verify:
+   - All modules from §2 Module Inventory are present in `main.tf` with correct sources and `~> X.Y` version constraints
+   - No raw `resource` blocks (glue resources excepted)
+   - All wiring connections from §3 Wiring Table have corresponding output-to-input references in code
+   - All variables from §3 Variables table are declared with correct types, defaults, and validations
+   - All outputs from §3 Outputs table are declared with correct source references
+   - Provider `default_tags` includes `ManagedBy`, `Environment`, `Project`, `Owner`
+   - No static credentials in provider config
 
-### Step 2 — Cost Controls
-1. use tf-runtask skill to check if cost reporting is available for this deployment context (e.g., via HCP Terraform run details)
-2. If cost reporting is available via runtask list details, extract and summarize cost estimates for the planned deployment
+### Step 2 — Static Analysis
 
-### Step 3 — Static Analysis
+Verify static analysis passes — pre-commit hooks (fmt, validate, tflint, trivy, terraform-docs, secret detection) run on every checkpoint commit. Run `pre-commit run --all-files` to confirm current state and record pass/fail per hook for the report.
 
-1. Run `terraform fmt -check -recursive` — report pass/fail
-2. Run `terraform validate` — report pass/fail with error details
-3. Run `tflint` (if available) — report pass/fail with issue count
-4. Run `trivy config .` (if available) — report pass/fail with findings by severity
-5. check runtask output.
-6. Collect and report
+### Step 3 — Run Task Results
+
+If a run ID was provided in `$ARGUMENTS`:
+
+1. Use the `tf-runtask` skill to fetch run task results for the run ID
+2. Extract cost estimates, policy evaluations, and recommendations
+3. Call `mcp__terraform__get_run_details` for run metadata (status, resource counts, plan/apply state)
+
+If no run ID was provided, note "Run tasks: SKIPPED (no run ID)" in the report.
 
 ### Step 4 — Quality Scoring
 
-Apply `tf-judge-criteria` skill (Consumer Workflow dimensions) to score the deployment:
+Apply `tf-judge-criteria` (Consumer Workflow dimensions):
 
 1. **Module Usage** (25%): Private registry, versioning, minimal raw resources
 2. **Security & Compliance** (30%): Module defaults honoured, no credentials, dynamic auth
@@ -73,84 +64,17 @@ Apply `tf-judge-criteria` skill (Consumer Workflow dimensions) to score the depl
 5. **Wiring & Integration** (10%): Output-to-input connections, type compatibility
 6. **Constitution Alignment** (10%): Matches consumer-design.md, constitution compliance
 
-Calculate overall score. If Security & Compliance < 5.0, force "Not Production Ready".
+If Security & Compliance < 5.0, force "Not Production Ready".
 
-### Step 5 — Sandbox Deployment (if requested)
+### Step 5 — Write Report
 
-If `$ARGUMENTS` includes sandbox deployment instructions:
-
-1. Identify or create sandbox workspace: `sandbox-{project}-{feature}`
-2. Trigger a plan run via HCP Terraform
-3. If plan succeeds, trigger apply (if approved in `$ARGUMENTS`)
-4. Capture: run URL, plan/apply status, resource counts, cost estimate
-5. Report deployment results
-6. Do NOT destroy sandbox resources — the orchestrator handles destroy prompting
-
-If sandbox deployment is not requested, skip this step and note "Sandbox deploy: SKIPPED" in the report.
-
-## Output
-
-Return the validation report as agent output. The orchestrator will use this to write the deployment report.
-
-```markdown
-## Validation Report: {FEATURE}
-
-### Design Conformance
-
-- Modules: X/Y from inventory present (mismatches: [...])
-- Wiring: X/Y connections verified
-- Variables: X/Y declared correctly
-- Provider config: default_tags present / missing
-- Raw resources: {count} (glue only: Yes/No)
-
-### Cost Controls
-- where cost reporting is available via runtask list details here
-
-### Static Analysis
-
-- terraform fmt: PASS/FAIL
-- terraform validate: PASS/FAIL (N errors)
-- tflint: PASS/FAIL/SKIPPED (N issues)
-- trivy: PASS/FAIL/SKIPPED (N critical, N high, N medium, N low)
-
-### Quality Score
-
-| #   | Dimension              | Score | Issues    |
-| --- | ---------------------- | ----- | --------- |
-| 1   | Module Usage           | {X.X} | {summary} |
-| 2   | Security & Compliance  | {X.X} | {summary} |
-| 3   | Code Quality           | {X.X} | {summary} |
-| 4   | Variables & Outputs    | {X.X} | {summary} |
-| 5   | Wiring & Integration   | {X.X} | {summary} |
-| 6   | Constitution Alignment | {X.X} | {summary} |
-
-Overall: {X.X}/10.0 — {Level}
-Production Readiness: {Ready / Not Ready}
-
-### Sandbox Deployment
-
-- Workspace: {name}
-- Run URL: {url}
-- Plan: PASS/FAIL/SKIPPED
-- Apply: PASS/FAIL/SKIPPED
-- Resources: {created}/{changed}/{destroyed}
-- Cost Estimate: {monthly or N/A}
-
-### Issues Requiring Manual Fix
-
-- [list of issues with file:line references]
-```
+Read the report template from `.claude/skills/tf-report-template/template/tf-consumer-template.md`. Write the completed report to `specs/{FEATURE}/reports/deployment-report.md`. The report must include all sections: modules composed, static analysis results, run task results, quality score, sandbox deployment status, and overall pass/fail.
 
 ## Constraints
 
-- **Read-first**: Always read the design document and constitution before reviewing code
-- **Non-destructive**: Do NOT auto-fix code — report issues for the orchestrator to address
-- **Structured output**: Always return the validation report in the specified format
-- **No new features**: Do not add features or refactor code — only validate and score
-- **Constitution authority**: The consumer constitution is the final arbiter for code quality rules
-- **Sandbox safety**: Do NOT destroy sandbox resources — the orchestrator handles destroy prompting
-- **Score honestly**: Use the full 1-10 scale from `tf-judge-criteria` — do not inflate scores
-
-## Context
+- **Read-first**: Read design document and constitution before reviewing code
+- **Non-destructive**: Do not modify application code — only validate, score, and report
+- **Report to disk**: Write the report file directly — do not return it as agent output for the orchestrator to reformat
+- **Score honestly**: Use the full 1-10 scale — do not inflate scores
 
 $ARGUMENTS
