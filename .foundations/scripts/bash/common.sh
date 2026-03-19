@@ -29,19 +29,20 @@ get_current_branch() {
 
     # For non-git repos, try to find the latest feature directory
     local repo_root
-    repo_root=$(get_repo_root)
+    repo_root="$(get_repo_root)"
     local specs_dir="$repo_root/specs"
 
     if [[ -d "$specs_dir" ]]; then
         local latest_feature=""
         local highest=0
 
+        shopt -s nullglob
         for dir in "$specs_dir"/*; do
             if [[ -d "$dir" ]]; then
                 local dirname
-                dirname=$(basename "$dir")
+                dirname="$(basename "$dir")"
                 if [[ "$dirname" =~ ^([0-9]{3})- ]]; then
-                    local number=${BASH_REMATCH[1]}
+                    local number="${BASH_REMATCH[1]}"
                     number=$((10#$number))
                     if [[ "$number" -gt "$highest" ]]; then
                         highest=$number
@@ -50,6 +51,7 @@ get_current_branch() {
                 fi
             fi
         done
+        shopt -u nullglob
 
         if [[ -n "$latest_feature" ]]; then
             echo "$latest_feature"
@@ -105,11 +107,13 @@ find_feature_dir_by_prefix() {
     # Search for directories in specs/ that start with this prefix
     local matches=()
     if [[ -d "$specs_dir" ]]; then
+        shopt -s nullglob
         for dir in "$specs_dir"/"$prefix"-*; do
             if [[ -d "$dir" ]]; then
                 matches+=("$(basename "$dir")")
             fi
         done
+        shopt -u nullglob
     fi
 
     # Handle results
@@ -129,9 +133,9 @@ find_feature_dir_by_prefix() {
 
 get_feature_paths() {
     local repo_root
-    repo_root=$(get_repo_root)
+    repo_root="$(get_repo_root)"
     local current_branch
-    current_branch=$(get_current_branch)
+    current_branch="$(get_current_branch)"
     local has_git_repo="false"
 
     if has_git; then
@@ -140,7 +144,7 @@ get_feature_paths() {
 
     # Use prefix-based lookup to support multiple branches per spec
     local feature_dir
-    feature_dir=$(find_feature_dir_by_prefix "$repo_root" "$current_branch")
+    feature_dir="$(find_feature_dir_by_prefix "$repo_root" "$current_branch")"
 
     cat <<EOF
 REPO_ROOT='$repo_root'
@@ -152,4 +156,4 @@ EOF
 }
 
 check_file() { [[ -f "$1" ]] && echo "  ✓ $2" || echo "  ✗ $2"; }
-check_dir() { [[ -d "$1" && -n $(ls -A "$1" 2>/dev/null) ]] && echo "  ✓ $2" || echo "  ✗ $2"; }
+check_dir() { [[ -d "$1" && -n "$(ls -A "$1" 2>/dev/null)" ]] && echo "  ✓ $2" || echo "  ✗ $2"; }

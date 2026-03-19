@@ -105,7 +105,7 @@ if [[ -z "$STEP_NAME" ]]; then
 fi
 
 # --- Resolve feature name from branch ---
-BRANCH=$(get_current_branch)
+BRANCH="$(get_current_branch)"
 
 # Extract feature short-name: strip numeric prefix (e.g., "004-vpc-setup" → "vpc-setup")
 if [[ "$BRANCH" =~ ^[0-9]{3}-(.+)$ ]]; then

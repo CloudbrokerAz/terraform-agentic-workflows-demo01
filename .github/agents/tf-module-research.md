@@ -1,7 +1,7 @@
 ---
 description: Investigate cloud service provider resources via docs, Terraform provider docs, and registry patterns. Each instance answers ONE research question. Use during planning phase to resolve resource behavior and design decisions.
 name: tf-module-research
-tools: ['view', 'create', 'bash', 'grep', 'glob', 'terraform/search_modules', 'terraform/get_module_details', 'terraform/get_latest_module_version', 'terraform/get_latest_provider_version', 'terraform/get_provider_capabilities', 'terraform/search_providers', 'terraform/get_provider_details', 'terraform/search_policies', 'terraform/get_policy_details', 'aws-documentation-mcp-server/search_documentation', 'aws-documentation-mcp-server/read_documentation', 'aws-documentation-mcp-server/recommend']
+tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation', 'terraform/search_modules', 'terraform/get_module_details', 'terraform/get_latest_module_version', 'terraform/get_latest_provider_version', 'terraform/get_provider_capabilities', 'terraform/search_providers', 'terraform/get_provider_details', 'terraform/search_policies', 'terraform/get_policy_details', 'aws-documentation-mcp-server/search_documentation', 'aws-documentation-mcp-server/read_documentation', 'aws-documentation-mcp-server/recommend']
 skills:
   - tf-research
 ---

@@ -7,63 +7,44 @@ SHORT_NAME=""
 BRANCH_NUMBER=""
 WORKFLOW_TYPE="module"
 ARGS=()
-i=1
-while [ $i -le $# ]; do
-    arg="${!i}"
-    case "$arg" in
+while [ "$#" -gt 0 ]; do
+    case "$1" in
         --json)
             JSON_MODE=true
             ;;
         --short-name)
-            if [ $((i + 1)) -gt $# ]; then
+            shift
+            if [ "$#" -eq 0 ] || [[ "$1" == --* ]]; then
                 echo 'Error: --short-name requires a value' >&2
                 exit 1
             fi
-            i=$((i + 1))
-            next_arg="${!i}"
-            # Check if the next argument is another option (starts with --)
-            if [[ "$next_arg" == --* ]]; then
-                echo 'Error: --short-name requires a value' >&2
-                exit 1
-            fi
-            SHORT_NAME="$next_arg"
+            SHORT_NAME="$1"
             ;;
         --number)
-            if [ $((i + 1)) -gt $# ]; then
+            shift
+            if [ "$#" -eq 0 ] || [[ "$1" == --* ]]; then
                 echo 'Error: --number requires a value' >&2
                 exit 1
             fi
-            i=$((i + 1))
-            next_arg="${!i}"
-            if [[ "$next_arg" == --* ]]; then
-                echo 'Error: --number requires a value' >&2
-                exit 1
-            fi
-            BRANCH_NUMBER="$next_arg"
+            BRANCH_NUMBER="$1"
             ;;
         --issue)
-            if [ $((i + 1)) -gt $# ]; then
-                echo 'Error: --issue requires a value' >&2
-                exit 1
-            fi
-            i=$((i + 1))
-            next_arg="${!i}"
-            if [[ "$next_arg" == --* ]]; then
+            shift
+            if [ "$#" -eq 0 ] || [[ "$1" == --* ]]; then
                 echo 'Error: --issue requires a value' >&2
                 exit 1
             fi
             # Use issue number as branch number
-            BRANCH_NUMBER="$next_arg"
+            BRANCH_NUMBER="$1"
             ;;
         --workflow)
-            if [ $((i + 1)) -gt $# ]; then
+            shift
+            if [ "$#" -eq 0 ] || [[ "$1" == --* ]]; then
                 echo 'Error: --workflow requires a value (module, provider, consumer)' >&2
                 exit 1
             fi
-            i=$((i + 1))
-            next_arg="${!i}"
-            case "$next_arg" in
-                module|provider|consumer) WORKFLOW_TYPE="$next_arg" ;;
+            case "$1" in
+                module|provider|consumer) WORKFLOW_TYPE="$1" ;;
                 *) echo "Error: --workflow must be one of: module, provider, consumer" >&2; exit 1 ;;
             esac
             ;;
@@ -90,10 +71,10 @@ while [ $i -le $# ]; do
             exit 0
             ;;
         *)
-            ARGS+=("$arg")
+            ARGS+=("$1")
             ;;
     esac
-    i=$((i + 1))
+    shift
 done
 
 FEATURE_DESCRIPTION="${ARGS[*]}"
@@ -121,15 +102,17 @@ get_highest_from_specs() {
     local highest=0
 
     if [ -d "$specs_dir" ]; then
+        shopt -s nullglob
         for dir in "$specs_dir"/*; do
             [ -d "$dir" ] || continue
-            dirname=$(basename "$dir")
-            number=$(echo "$dirname" | grep -o '^[0-9]\+' || echo "0")
+            dirname="$(basename "$dir")"
+            number="$(echo "$dirname" | grep -o '^[0-9]\+' || echo "0")"
             number=$((10#$number))
             if [ "$number" -gt "$highest" ]; then
                 highest=$number
             fi
         done
+        shopt -u nullglob
     fi
 
     echo "$highest"
@@ -140,16 +123,16 @@ get_highest_from_branches() {
     local highest=0
 
     # Get all branches (local and remote)
-    branches=$(git branch -a 2>/dev/null || echo "")
+    branches="$(git branch -a 2>/dev/null || echo "")"
 
     if [ -n "$branches" ]; then
         while IFS= read -r branch; do
             # Clean branch name: remove leading markers and remote prefixes
-            clean_branch=$(echo "$branch" | sed 's/^[* ]*//; s|^remotes/[^/]*/||')
+            clean_branch="$(echo "$branch" | sed 's/^[* ]*//; s|^remotes/[^/]*/||')"
 
             # Extract feature number if branch matches pattern ###-*
             if echo "$clean_branch" | grep -q '^[0-9]\{3\}-'; then
-                number=$(echo "$clean_branch" | grep -o '^[0-9]\{3\}' || echo "0")
+                number="$(echo "$clean_branch" | grep -o '^[0-9]\{3\}' || echo "0")"
                 number=$((10#$number))
                 if [ "$number" -gt "$highest" ]; then
                     highest=$number
@@ -171,22 +154,33 @@ check_existing_branches() {
 
     # Find all branches matching the pattern using git ls-remote (more reliable)
     local remote_branches
-    remote_branches=$(git ls-remote --heads origin 2>/dev/null | grep -E "refs/heads/[0-9]+-${short_name}$" | sed 's/.*\/\([0-9]*\)-.*/\1/' | sort -n) || true
+    remote_branches="$(git ls-remote --heads origin 2>/dev/null | grep -E "refs/heads/[0-9]+-${short_name}$" | sed 's/.*\/\([0-9]*\)-.*/\1/' | sort -n)" || true
 
     # Also check local branches
     local local_branches
-    local_branches=$(git branch 2>/dev/null | grep -E "^[* ]*[0-9]+-${short_name}$" | sed 's/^[* ]*//' | sed 's/-.*//' | sort -n) || true
+    local_branches="$(git branch 2>/dev/null | grep -E "^[* ]*[0-9]+-${short_name}$" | sed 's/^[* ]*//' | sed 's/-.*//' | sort -n)" || true
 
     # Check specs directory as well
     local spec_dirs=""
     if [ -d "$specs_dir" ]; then
-        spec_dirs=$(find "$specs_dir" -maxdepth 1 -type d -name "[0-9]*-${short_name}" -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's/-.*//' | sort -n)
+        spec_dirs="$(find "$specs_dir" -maxdepth 1 -type d -name "[0-9]*-${short_name}" -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's/-.*//' | sort -n)"
     fi
 
     # Combine all sources and get the highest number
+    local all_nums=()
+    while IFS= read -r num; do
+        [[ -n "$num" ]] && all_nums+=("$num")
+    done <<< "$remote_branches"
+    while IFS= read -r num; do
+        [[ -n "$num" ]] && all_nums+=("$num")
+    done <<< "$local_branches"
+    while IFS= read -r num; do
+        [[ -n "$num" ]] && all_nums+=("$num")
+    done <<< "$spec_dirs"
+
     local max_num=0
-    for num in $remote_branches $local_branches $spec_dirs; do
-        if [ "$num" -gt "$max_num" ]; then
+    for num in "${all_nums[@]}"; do
+        if [ "$num" -gt "$max_num" ] 2>/dev/null; then
             max_num=$num
         fi
     done
@@ -207,7 +201,7 @@ clean_branch_name() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if git rev-parse --show-toplevel >/dev/null 2>&1; then
-    REPO_ROOT=$(git rev-parse --show-toplevel)
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
     HAS_GIT=true
 else
     REPO_ROOT="$(find_repo_root "$SCRIPT_DIR")"
@@ -232,19 +226,20 @@ generate_branch_name() {
 
     # Convert to lowercase and split into words
     local clean_name
-    clean_name=$(echo "$description" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/ /g')
+    clean_name="$(echo "$description" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/ /g')"
 
     # Filter words: remove stop words and words shorter than 3 chars (unless they're uppercase acronyms in original)
     local meaningful_words=()
-    for word in $clean_name; do
+    IFS=' ' read -ra words <<< "$clean_name"
+    for word in "${words[@]}"; do
         # Skip empty words
         [ -z "$word" ] && continue
 
         # Keep words that are NOT stop words AND (length >= 3 OR are potential acronyms)
         if ! echo "$word" | grep -qiE "$stop_words"; then
-            if [ ${#word} -ge 3 ]; then
+            if [ "${#word}" -ge 3 ]; then
                 meaningful_words+=("$word")
-            elif echo "$description" | grep -q "\b${word^^}\b"; then
+            elif word_upper="$(echo "$word" | tr '[:lower:]' '[:upper:]')" && echo "$description" | grep -q "\b${word_upper}\b"; then
                 # Keep short words if they appear as uppercase in original (likely acronyms)
                 meaningful_words+=("$word")
             fi
@@ -252,14 +247,14 @@ generate_branch_name() {
     done
 
     # If we have meaningful words, use first 3-4 of them
-    if [ ${#meaningful_words[@]} -gt 0 ]; then
+    if [ "${#meaningful_words[@]}" -gt 0 ]; then
         local max_words=3
-        if [ ${#meaningful_words[@]} -eq 4 ]; then max_words=4; fi
+        if [ "${#meaningful_words[@]}" -eq 4 ]; then max_words=4; fi
 
         local result=""
         local count=0
         for word in "${meaningful_words[@]}"; do
-            if [ $count -ge $max_words ]; then break; fi
+            if [ "$count" -ge "$max_words" ]; then break; fi
             if [ -n "$result" ]; then result="$result-"; fi
             result="$result$word"
             count=$((count + 1))
@@ -268,7 +263,7 @@ generate_branch_name() {
     else
         # Fallback to original logic if no meaningful words found
         local cleaned
-        cleaned=$(clean_branch_name "$description")
+        cleaned="$(clean_branch_name "$description")"
         echo "$cleaned" | tr '-' '\n' | grep -v '^$' | head -3 | tr '\n' '-' | sed 's/-$//'
     fi
 }
@@ -276,10 +271,10 @@ generate_branch_name() {
 # Generate branch name
 if [ -n "$SHORT_NAME" ]; then
     # Use provided short name, just clean it up
-    BRANCH_SUFFIX=$(clean_branch_name "$SHORT_NAME")
+    BRANCH_SUFFIX="$(clean_branch_name "$SHORT_NAME")"
 else
     # Generate from description with smart filtering
-    BRANCH_SUFFIX=$(generate_branch_name "$FEATURE_DESCRIPTION")
+    BRANCH_SUFFIX="$(generate_branch_name "$FEATURE_DESCRIPTION")"
 fi
 
 # Determine branch number
@@ -288,32 +283,32 @@ if [ -z "$BRANCH_NUMBER" ]; then
         # Use the global maximum across ALL sources to avoid numeric prefix collisions.
         # check_existing_branches only looks for same-suffix matches, which can return
         # a number that collides with an existing spec dir using a different suffix.
-        SUFFIX_NUM=$(check_existing_branches "$BRANCH_SUFFIX" "$SPECS_DIR")
-        SPECS_NUM=$(($(get_highest_from_specs "$SPECS_DIR") + 1))
-        BRANCH_NUM=$(($(get_highest_from_branches) + 1))
+        SUFFIX_NUM="$(check_existing_branches "$BRANCH_SUFFIX" "$SPECS_DIR")"
+        SPECS_NUM="$(($(get_highest_from_specs "$SPECS_DIR") + 1))"
+        BRANCH_NUM="$(($(get_highest_from_branches) + 1))"
         BRANCH_NUMBER=$SUFFIX_NUM
         [ "$SPECS_NUM" -gt "$BRANCH_NUMBER" ] && BRANCH_NUMBER=$SPECS_NUM
         [ "$BRANCH_NUM" -gt "$BRANCH_NUMBER" ] && BRANCH_NUMBER=$BRANCH_NUM
     else
         # Fall back to local directory check
-        HIGHEST=$(get_highest_from_specs "$SPECS_DIR")
+        HIGHEST="$(get_highest_from_specs "$SPECS_DIR")"
         BRANCH_NUMBER=$((HIGHEST + 1))
     fi
 fi
 
-FEATURE_NUM=$(printf "%03d" "$BRANCH_NUMBER")
+FEATURE_NUM="$(printf "%03d" "$BRANCH_NUMBER")"
 BRANCH_NAME="${FEATURE_NUM}-${BRANCH_SUFFIX}"
 
 # GitHub enforces a 244-byte limit on branch names
 # Validate and truncate if necessary
 MAX_BRANCH_LENGTH=244
-if [ ${#BRANCH_NAME} -gt $MAX_BRANCH_LENGTH ]; then
+if [ "${#BRANCH_NAME}" -gt "$MAX_BRANCH_LENGTH" ]; then
     # Calculate how much we need to trim from suffix
     # Account for: feature number (3) + hyphen (1) = 4 chars
     MAX_SUFFIX_LENGTH=$((MAX_BRANCH_LENGTH - 4))
 
     # Truncate suffix at word boundary if possible
-    TRUNCATED_SUFFIX=$(echo "$BRANCH_SUFFIX" | cut -c1-$MAX_SUFFIX_LENGTH)
+    TRUNCATED_SUFFIX="$(echo "$BRANCH_SUFFIX" | cut -c1-"$MAX_SUFFIX_LENGTH")"
     # Remove trailing hyphen if truncation created one
     TRUNCATED_SUFFIX="${TRUNCATED_SUFFIX%-}"
 
@@ -326,7 +321,7 @@ if [ ${#BRANCH_NAME} -gt $MAX_BRANCH_LENGTH ]; then
 fi
 
 if [ "$HAS_GIT" = true ]; then
-    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
     >&2 echo "[specify] Creating feature branch '$BRANCH_NAME' from '$CURRENT_BRANCH'"
     git checkout -b "$BRANCH_NAME"
     # Push with -u to set upstream so checkpoint-commit.sh can `git push` without errors

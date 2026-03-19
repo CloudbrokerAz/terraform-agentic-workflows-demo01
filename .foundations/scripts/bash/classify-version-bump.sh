@@ -36,8 +36,8 @@ classify_semver() {
   local new_version="$2"
 
   # Strip leading 'v' and constraint operators (~>, >=, =, ~)
-  old_version=$(echo "$old_version" | sed 's/^[~>=v ]*//' | sed 's/[" ]//g')
-  new_version=$(echo "$new_version" | sed 's/^[~>=v ]*//' | sed 's/[" ]//g')
+  old_version="$(echo "$old_version" | sed 's/^[~>=v ]*//' | sed 's/[" ]//g')"
+  new_version="$(echo "$new_version" | sed 's/^[~>=v ]*//' | sed 's/[" ]//g')"
 
   IFS='.' read -r old_major old_minor old_patch <<< "$old_version"
   IFS='.' read -r new_major new_minor new_patch <<< "$new_version"
@@ -60,7 +60,7 @@ classify_semver() {
 # Extract module source and version from diff
 parse_module_changes() {
   local diff_output
-  diff_output=$(git diff "${BASE_REF}..${HEAD_REF}" -- '*.tf' 2>/dev/null) || {
+  diff_output="$(git diff "${BASE_REF}..${HEAD_REF}" -- '*.tf' 2>/dev/null)" || {
     echo "Error: Failed to get git diff between ${BASE_REF} and ${HEAD_REF}" >&2
     exit 1
   }
@@ -84,15 +84,15 @@ parse_module_changes() {
       # Flush any pending module change from previous file
       if [[ -n "$old_version" && -n "$new_version" && "$old_version" != "$new_version" ]]; then
         local bump_type
-        bump_type=$(classify_semver "$old_version" "$new_version")
-        modules_json=$(echo "$modules_json" | jq \
+        bump_type="$(classify_semver "$old_version" "$new_version")"
+        modules_json="$(echo "$modules_json" | jq \
           --arg name "${module_name:-unknown}" \
           --arg source "$module_source" \
           --arg old "$old_version" \
           --arg new "$new_version" \
           --arg bump "$bump_type" \
           --arg file "$current_file" \
-          '. += [{"module": $name, "source": $source, "old_version": $old, "new_version": $new, "bump_type": $bump, "file": $file}]')
+          '. += [{"module": $name, "source": $source, "old_version": $old, "new_version": $new, "bump_type": $bump, "file": $file}]')"
       fi
       current_file="${BASH_REMATCH[1]}"
       in_module_block=false
@@ -107,15 +107,15 @@ parse_module_changes() {
     if [[ "$line" =~ ^@@ ]]; then
       if [[ -n "$old_version" && -n "$new_version" && "$old_version" != "$new_version" ]]; then
         local bump_type
-        bump_type=$(classify_semver "$old_version" "$new_version")
-        modules_json=$(echo "$modules_json" | jq \
+        bump_type="$(classify_semver "$old_version" "$new_version")"
+        modules_json="$(echo "$modules_json" | jq \
           --arg name "${module_name:-unknown}" \
           --arg source "$module_source" \
           --arg old "$old_version" \
           --arg new "$new_version" \
           --arg bump "$bump_type" \
           --arg file "$current_file" \
-          '. += [{"module": $name, "source": $source, "old_version": $old, "new_version": $new, "bump_type": $bump, "file": $file}]')
+          '. += [{"module": $name, "source": $source, "old_version": $old, "new_version": $new, "bump_type": $bump, "file": $file}]')"
       fi
       old_version=""
       new_version=""
@@ -165,15 +165,15 @@ parse_module_changes() {
   # Catch the last module if diff ends without a new hunk
   if [[ -n "$old_version" && -n "$new_version" && "$old_version" != "$new_version" ]]; then
     local bump_type
-    bump_type=$(classify_semver "$old_version" "$new_version")
-    modules_json=$(echo "$modules_json" | jq \
+    bump_type="$(classify_semver "$old_version" "$new_version")"
+    modules_json="$(echo "$modules_json" | jq \
       --arg name "${module_name:-unknown}" \
       --arg source "$module_source" \
       --arg old "$old_version" \
       --arg new "$new_version" \
       --arg bump "$bump_type" \
       --arg file "$current_file" \
-      '. += [{"module": $name, "source": $source, "old_version": $old, "new_version": $new, "bump_type": $bump, "file": $file}]')
+      '. += [{"module": $name, "source": $source, "old_version": $old, "new_version": $new, "bump_type": $bump, "file": $file}]')"
   fi
 
   echo "$modules_json"
@@ -182,7 +182,7 @@ parse_module_changes() {
 # Also check for version constraint changes in required_providers and module source URLs
 parse_constraint_changes() {
   local diff_output
-  diff_output=$(git diff "${BASE_REF}..${HEAD_REF}" -- '*.tf' 2>/dev/null) || return 0
+  diff_output="$(git diff "${BASE_REF}..${HEAD_REF}" -- '*.tf' 2>/dev/null)" || return 0
 
   local modules_json="[]"
   local current_file=""
@@ -207,10 +207,10 @@ parse_constraint_changes() {
 # Main execution
 main() {
   local modules_changed
-  modules_changed=$(parse_module_changes)
+  modules_changed="$(parse_module_changes)"
 
   local module_count
-  module_count=$(echo "$modules_changed" | jq 'length')
+  module_count="$(echo "$modules_changed" | jq 'length')"
 
   if [[ "$module_count" -eq 0 ]]; then
     echo "No module version changes detected" >&2
@@ -228,7 +228,7 @@ main() {
   # Detect if this is a Dependabot PR
   local is_dependabot=false
   local branch_name
-  branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  branch_name="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
   if [[ "$branch_name" == dependabot/* ]]; then
     is_dependabot=true
   fi

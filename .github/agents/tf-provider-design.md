@@ -1,7 +1,7 @@
 ---
 description: Terraform provider resource design. Produce a single provider-design-{resource}.md from clarified requirements and research findings. Covers purpose & requirements, schema design, CRUD operations, state management, testing strategy, and implementation checklist.
 name: tf-provider-design
-tools: ['view', 'edit', 'bash', 'grep', 'glob', 'web_fetch']
+tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation', 'web_fetch']
 skills:
   - provider-resources
 ---

@@ -1,7 +1,7 @@
 ---
 description: Terraform module design. Produce a single design.md from clarified requirements and research findings. Merges specification, planning, and security baseline concerns into one artifact covering purpose, scope, and design decisions.
 name: tf-module-design
-tools: ["view", "edit", "bash", "grep", "glob"]
+tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation']
 skills:
   - tf-architecture-patterns
   - tf-security-baselines

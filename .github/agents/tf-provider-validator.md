@@ -1,7 +1,7 @@
 ---
 description: Validate Terraform provider code against design.md, run tests, perform code review, and auto-fix issues. Use during Phase 4 to ensure implementation matches design and meets quality standards.
 name: tf-provider-validator
-tools: ['view', 'edit', 'bash', 'grep', 'glob', 'web_fetch']
+tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation', 'web_fetch']
 skills:
   - provider-resources
   - provider-run-acceptance-tests
