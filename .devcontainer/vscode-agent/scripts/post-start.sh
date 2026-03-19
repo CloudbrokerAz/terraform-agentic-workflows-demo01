@@ -4,7 +4,7 @@ echo "=== Post-Start: Updating Tools ==="
 
 # Update GitHub Copilot CLI
 echo "Updating GitHub Copilot..."
-npm install -g @github/copilot@1.0.4 2>/dev/null || echo "  Copilot update skipped"
+npm install -g @github/copilot@latest 2>/dev/null || echo "  Copilot update skipped"
 
 # Update Terraform
 SCRIPT_DIR="$(dirname "$0")"
