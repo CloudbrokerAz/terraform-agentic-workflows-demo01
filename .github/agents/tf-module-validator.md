@@ -1,7 +1,7 @@
 ---
 description: Validate Terraform module code against design.md, run tests and static analysis, perform quality scoring, and auto-fix unambiguous issues. Produces structured validation report.
 name: tf-module-validator
-tools: ['view', 'edit', 'bash', 'grep', 'glob']
+tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation']
 skills:
   - tf-judge-criteria
 ---

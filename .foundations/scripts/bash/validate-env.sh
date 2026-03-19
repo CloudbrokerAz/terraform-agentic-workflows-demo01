@@ -125,12 +125,12 @@ else
     # Parse version from JSON first (space-tolerant), fallback to text output.
     # NOTE: avoid `head -1` in pipelines — with pipefail, SIGPIPE causes false
     # failures and the || fallback concatenates stdout from multiple commands.
-    TF_VERSION=$(terraform version -json 2>/dev/null | grep -oE '"terraform_version"\s*:\s*"[^"]+"' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+    TF_VERSION="$(terraform version -json 2>/dev/null | grep -oE '"terraform_version"\s*:\s*"[^"]+"' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
     if [[ -z "$TF_VERSION" ]]; then
-        TF_VERSION=$(terraform version 2>/dev/null | grep -oE -m1 '[0-9]+\.[0-9]+\.[0-9]+' || echo "0.0.0")
+        TF_VERSION="$(terraform version 2>/dev/null | grep -oE -m1 '[0-9]+\.[0-9]+\.[0-9]+' || echo "0.0.0")"
     fi
-    TF_MAJOR=$(echo "$TF_VERSION" | cut -d. -f1)
-    TF_MINOR=$(echo "$TF_VERSION" | cut -d. -f2)
+    TF_MAJOR="$(echo "$TF_VERSION" | cut -d. -f1)"
+    TF_MINOR="$(echo "$TF_VERSION" | cut -d. -f2)"
     if [[ "$TF_MAJOR" -gt 1 ]] || { [[ "$TF_MAJOR" -eq 1 ]] && [[ "$TF_MINOR" -ge 14 ]]; }; then
         add_check "TERRAFORM" "GATE" "true" "INSTALLED (v${TF_VERSION})"
     else
@@ -142,7 +142,7 @@ fi
 # NOTE: version extraction uses bash regex instead of piped grep to avoid
 # SIGPIPE under pipefail (see Terraform check comment above for rationale).
 if command -v tflint &> /dev/null; then
-    TFLINT_RAW=$(tflint --version 2>/dev/null || true)
+    TFLINT_RAW="$(tflint --version 2>/dev/null || true)"
     if [[ "$TFLINT_RAW" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
         TFLINT_VERSION="${BASH_REMATCH[1]}"
     else
@@ -155,7 +155,7 @@ fi
 
 # WARN: pre-commit
 if command -v pre-commit &> /dev/null; then
-    PRE_COMMIT_RAW=$(pre-commit --version 2>/dev/null || true)
+    PRE_COMMIT_RAW="$(pre-commit --version 2>/dev/null || true)"
     if [[ "$PRE_COMMIT_RAW" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
         PRE_COMMIT_VERSION="${BASH_REMATCH[1]}"
     else
@@ -168,7 +168,7 @@ fi
 
 # WARN: Trivy
 if command -v trivy &> /dev/null; then
-    TRIVY_RAW=$(trivy --version 2>/dev/null || true)
+    TRIVY_RAW="$(trivy --version 2>/dev/null || true)"
     if [[ "$TRIVY_RAW" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
         TRIVY_VERSION="${BASH_REMATCH[1]}"
     else
@@ -181,7 +181,7 @@ fi
 
 # WARN: terraform-docs
 if command -v terraform-docs &> /dev/null; then
-    TFDOCS_RAW=$(terraform-docs --version 2>/dev/null || true)
+    TFDOCS_RAW="$(terraform-docs --version 2>/dev/null || true)"
     if [[ "$TFDOCS_RAW" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
         TFDOCS_VERSION="${BASH_REMATCH[1]}"
     else
@@ -195,7 +195,7 @@ fi
 # --- Evaluate results ---
 gate_failed=0
 warn_failed=0
-for i in "${!check_names[@]}"; do
+for ((i=0; i<${#check_names[@]}; i++)); do
     if [[ "${check_passed[$i]}" == "false" ]]; then
         if [[ "${check_severities[$i]}" == "GATE" ]]; then
             gate_failed=$((gate_failed + 1))
@@ -206,11 +206,11 @@ for i in "${!check_names[@]}"; do
 done
 
 gate_passed="true"
-[[ $gate_failed -gt 0 ]] && gate_passed="false"
+[[ "$gate_failed" -gt 0 ]] && gate_passed="false"
 
-if [[ $gate_failed -gt 0 ]]; then
+if [[ "$gate_failed" -gt 0 ]]; then
     EXIT_CODE=1
-elif [[ $warn_failed -gt 0 ]]; then
+elif [[ "$warn_failed" -gt 0 ]]; then
     EXIT_CODE=2
 else
     EXIT_CODE=0
@@ -220,10 +220,10 @@ fi
 if $JSON_MODE; then
     # Build checks JSON array
     checks_json=""
-    for i in "${!check_names[@]}"; do
+    for ((i=0; i<${#check_names[@]}; i++)); do
         [[ -n "$checks_json" ]] && checks_json+=","
-        checks_json+=$(printf '{"name":"%s","severity":"%s","passed":%s,"detail":"%s"}' \
-            "${check_names[$i]}" "${check_severities[$i]}" "${check_passed[$i]}" "${check_details[$i]}")
+        checks_json+="$(printf '{"name":"%s","severity":"%s","passed":%s,"detail":"%s"}' \
+            "${check_names[$i]}" "${check_severities[$i]}" "${check_passed[$i]}" "${check_details[$i]}")"
     done
 
     printf '{"gate_passed":%s,"checks":[%s]}\n' "$gate_passed" "$checks_json"
@@ -232,7 +232,7 @@ else
     echo "======================"
     echo ""
 
-    for i in "${!check_names[@]}"; do
+    for ((i=0; i<${#check_names[@]}; i++)); do
         local_severity="${check_severities[$i]}"
         local_name="${check_names[$i]}"
         local_status="Passed"
@@ -243,12 +243,12 @@ else
     echo ""
     echo "Summary"
     echo "-------"
-    if [[ $gate_failed -gt 0 ]]; then
+    if [[ "$gate_failed" -gt 0 ]]; then
         echo "BLOCKED: $gate_failed GATE check(s) failed. Cannot proceed."
         echo ""
         echo "Quick Setup:"
         step=1
-        for i in "${!check_names[@]}"; do
+        for ((i=0; i<${#check_names[@]}; i++)); do
             if [[ "${check_passed[$i]}" == "false" && "${check_severities[$i]}" == "GATE" ]]; then
                 echo "  $step. ${check_names[$i]}: ${check_details[$i]}"
                 step=$((step + 1))
@@ -256,7 +256,7 @@ else
         done
         echo ""
         echo "For permanent setup, add exports to your ~/.bashrc or ~/.zshrc"
-    elif [[ $warn_failed -gt 0 ]]; then
+    elif [[ "$warn_failed" -gt 0 ]]; then
         echo "PASSED (with warnings): All GATE checks passed. $warn_failed WARN check(s) failed."
     else
         echo "ALL PASSED: Environment is fully configured."
@@ -264,7 +264,7 @@ else
 fi
 
 # Initialize tools (idempotent — always run when gates pass)
-if [[ $EXIT_CODE -ne 1 ]]; then
+if [[ "$EXIT_CODE" -ne 1 ]]; then
     if ! $JSON_MODE; then
         echo ""
         echo "Tool Initialization"
@@ -287,4 +287,4 @@ if [[ $EXIT_CODE -ne 1 ]]; then
     fi
 fi
 
-exit $EXIT_CODE
+exit "$EXIT_CODE"

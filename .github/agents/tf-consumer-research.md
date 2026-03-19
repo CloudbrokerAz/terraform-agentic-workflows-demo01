@@ -1,7 +1,7 @@
 ---
 description: Investigate private registry modules, and module wiring patterns. Each instance answers ONE research question. Use during planning phase to resolve module availability, configuration options, and composition patterns.
 name: tf-consumer-research
-tools: ['view', 'create', 'bash', 'grep', 'glob', 'terraform/search_modules', 'terraform/get_module_details', 'terraform/search_private_modules', 'terraform/get_private_module_details', 'terraform/search_private_providers', 'terraform/get_private_provider_details', 'terraform/search_providers', 'terraform/get_provider_details', 'terraform/search_policies']
+tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation', 'terraform/search_modules', 'terraform/get_module_details', 'terraform/search_private_modules', 'terraform/get_private_module_details', 'terraform/search_private_providers', 'terraform/get_private_provider_details', 'terraform/search_providers', 'terraform/get_provider_details', 'terraform/search_policies']
 ---
 
 

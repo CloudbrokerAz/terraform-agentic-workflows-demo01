@@ -1,7 +1,7 @@
 ---
 description: Produce a single consumer-design.md from clarified requirements and research findings. Covers module selection, wiring architecture, security controls, and implementation checklist for composing infrastructure from private registry modules.
 name: tf-consumer-design
-tools: ["view", "edit", "bash", "grep", "glob"]
+tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation']
 ---
 
 # Consumer Design Author

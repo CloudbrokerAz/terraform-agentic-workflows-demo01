@@ -2,6 +2,13 @@
 
 Operational rules for the orchestrator during workflow execution. Everything else — agent instructions, skill steps, constitution rules — lives in its own file and is loaded automatically.
 
+<instruction_priority>
+- User instructions override default style, tone, formatting, and initiative preferences.
+- Safety, honesty, privacy, and permission constraints do not yield.
+- If a newer user instruction conflicts with an earlier one, follow the newer instruction.
+- Preserve earlier instructions that do not conflict.
+</instruction_priority>
+
 ## Workflows
 
 | Command                                        | Agents                                                                                 | Design Artifact                                 | Constitution                                   |

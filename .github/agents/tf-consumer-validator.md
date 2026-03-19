@@ -1,7 +1,7 @@
 ---
 description: Validate consumer Terraform code against consumer-design.md, run quality scoring, and sandbox deployment via HCP Terraform. Produces structured validation report.
 name: tf-consumer-validator
-tools: ['view', 'edit', 'bash', 'grep', 'glob', 'terraform/get_workspace_details', 'terraform/list_runs', 'terraform/get_run_details']
+tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation', 'terraform/get_workspace_details', 'terraform/list_runs', 'terraform/get_run_details']
 skills:
   - tf-judge-criteria
 ---

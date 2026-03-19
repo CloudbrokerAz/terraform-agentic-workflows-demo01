@@ -51,18 +51,18 @@ fi
 tfc_api() {
   local endpoint="$1"
   local response
-  response=$(curl -s -w "\n%{http_code}" \
+  response="$(curl -s -w "\n%{http_code}" \
     -H "Authorization: Bearer ${TFE_TOKEN}" \
     -H "Content-Type: application/vnd.api+json" \
-    "${TFE_API}${endpoint}") || {
+    "${TFE_API}${endpoint}")" || {
     echo "Error: API request failed for ${endpoint}" >&2
     return 1
   }
 
   local http_code
-  http_code=$(echo "$response" | tail -1)
+  http_code="$(echo "$response" | tail -1)"
   local body
-  body=$(echo "$response" | sed '$d')
+  body="$(echo "$response" | sed '$d')"
 
   if [[ "$http_code" -ge 400 ]]; then
     echo "Error: API returned HTTP ${http_code} for ${endpoint}" >&2
@@ -80,23 +80,23 @@ list_registry_modules() {
 
   while true; do
     local response
-    response=$(tfc_api "/organizations/${ORG}/registry-modules?page[number]=${page}&page[size]=100") || return 1
+    response="$(tfc_api "/organizations/${ORG}/registry-modules?page[number]=${page}&page[size]=100")" || return 1
 
     local modules
-    modules=$(echo "$response" | jq '[.data[] | {
+    modules="$(echo "$response" | jq '[.data[] | {
       id: .id,
       name: .attributes.name,
       provider: .attributes.provider,
       namespace: .attributes.namespace,
       status: .attributes.status,
       version: .attributes["version-statuses"][0].version
-    }]')
+    }]')"
 
-    all_modules=$(echo "$all_modules" "$modules" | jq -s '.[0] + .[1]')
+    all_modules="$(echo "$all_modules" "$modules" | jq -s '.[0] + .[1]')"
 
     # Check for next page
     local next_page
-    next_page=$(echo "$response" | jq -r '.meta.pagination["next-page"] // empty')
+    next_page="$(echo "$response" | jq -r '.meta.pagination["next-page"] // empty')"
     if [[ -z "$next_page" ]]; then
       break
     fi
@@ -113,7 +113,7 @@ get_latest_module_version() {
   local provider="$3"
 
   local response
-  response=$(tfc_api "/organizations/${ORG}/registry-modules/private/${namespace}/${name}/${provider}") || return 1
+  response="$(tfc_api "/organizations/${ORG}/registry-modules/private/${namespace}/${name}/${provider}")" || return 1
 
   echo "$response" | jq -r '.data.attributes["version-statuses"][0].version // empty'
 }
@@ -133,12 +133,12 @@ scan_local_modules() {
       if [[ "$line" =~ ^[[:space:]]*module[[:space:]]+\"([^\"]+)\" ]]; then
         # Save previous module if complete
         if [[ "$in_module" == true && -n "$source" && -n "$version" ]]; then
-          modules_json=$(echo "$modules_json" | jq \
+          modules_json="$(echo "$modules_json" | jq \
             --arg name "$module_name" \
             --arg source "$source" \
             --arg version "$version" \
             --arg file "$tf_file" \
-            '. += [{"module": $name, "source": $source, "current_version": $version, "file": $file}]')
+            '. += [{"module": $name, "source": $source, "current_version": $version, "file": $file}]')"
         fi
         module_name="${BASH_REMATCH[1]}"
         in_module=true
@@ -158,12 +158,12 @@ scan_local_modules() {
       # End of block (closing brace at same indentation)
       if [[ "$in_module" == true && "$line" =~ ^[[:space:]]*\}[[:space:]]*$ ]]; then
         if [[ -n "$source" && -n "$version" ]]; then
-          modules_json=$(echo "$modules_json" | jq \
+          modules_json="$(echo "$modules_json" | jq \
             --arg name "$module_name" \
             --arg source "$source" \
             --arg version "$version" \
             --arg file "$tf_file" \
-            '. += [{"module": $name, "source": $source, "current_version": $version, "file": $file}]')
+            '. += [{"module": $name, "source": $source, "current_version": $version, "file": $file}]')"
         fi
         in_module=false
       fi
@@ -179,23 +179,24 @@ check_for_updates() {
   local updates_json="[]"
 
   local module_count
-  module_count=$(echo "$local_modules" | jq 'length')
+  module_count="$(echo "$local_modules" | jq 'length')"
 
-  for i in $(seq 0 $((module_count - 1))); do
+  for ((i = 0; i < module_count; i++)); do
     local module_source module_name current_version file_path
-    module_source=$(echo "$local_modules" | jq -r ".[$i].source")
-    module_name=$(echo "$local_modules" | jq -r ".[$i].module")
-    current_version=$(echo "$local_modules" | jq -r ".[$i].current_version")
-    file_path=$(echo "$local_modules" | jq -r ".[$i].file")
+    module_source="$(echo "$local_modules" | jq -r ".[$i].source")"
+    module_name="$(echo "$local_modules" | jq -r ".[$i].module")"
+    current_version="$(echo "$local_modules" | jq -r ".[$i].current_version")"
+    file_path="$(echo "$local_modules" | jq -r ".[$i].file")"
 
     # Only check private registry modules (app.terraform.io or custom hostname)
-    if [[ ! "$module_source" =~ ${TFE_HOSTNAME} ]] && [[ ! "$module_source" =~ app\.terraform\.io ]]; then
+    if [[ "$module_source" != *"${TFE_HOSTNAME}"* ]] && [[ ! "$module_source" =~ app\.terraform\.io ]]; then
       continue
     fi
 
     # Parse module source: app.terraform.io/org/name/provider
     local source_path
-    source_path=$(echo "$module_source" | sed "s|.*${TFE_HOSTNAME}/||" | sed 's|//.*||')
+    source_path="${module_source#*"${TFE_HOSTNAME}"/}"
+    source_path="${source_path%%//*}"
     IFS='/' read -r namespace name provider <<< "$source_path"
 
     if [[ -z "$name" || -z "$provider" ]]; then
@@ -205,7 +206,7 @@ check_for_updates() {
 
     # Get latest version from registry
     local latest_version
-    latest_version=$(get_latest_module_version "$namespace" "$name" "$provider" 2>/dev/null) || continue
+    latest_version="$(get_latest_module_version "$namespace" "$name" "$provider" 2>/dev/null)" || continue
 
     if [[ -z "$latest_version" ]]; then
       continue
@@ -213,7 +214,7 @@ check_for_updates() {
 
     # Strip constraint operators for comparison
     local clean_current
-    clean_current=$(echo "$current_version" | sed 's/^[~>=v ]*//' | sed 's/[" ]//g')
+    clean_current="$(echo "$current_version" | sed 's/^[~>=v ]*//' | sed 's/[" ]//g')"
 
     if [[ "$clean_current" != "$latest_version" ]]; then
       # Classify bump type
@@ -231,14 +232,14 @@ check_for_updates() {
         bump_type="unknown"
       fi
 
-      updates_json=$(echo "$updates_json" | jq \
+      updates_json="$(echo "$updates_json" | jq \
         --arg module "$module_name" \
         --arg source "$module_source" \
         --arg current "$current_version" \
         --arg latest "$latest_version" \
         --arg bump "$bump_type" \
         --arg file "$file_path" \
-        '. += [{"module": $module, "source": $source, "current_version": $current, "latest_version": $latest, "bump_type": $bump, "file": $file}]')
+        '. += [{"module": $module, "source": $source, "current_version": $current, "latest_version": $latest, "bump_type": $bump, "file": $file}]')"
     fi
   done
 
@@ -267,8 +268,10 @@ create_update_pr() {
 
   # Update version in file
   local escaped_current
-  escaped_current=$(echo "$current_version" | sed 's/[.~>= ]/\\&/g')
-  sed -i "s/version[[:space:]]*=[[:space:]]*\"${escaped_current}\"/version = \"~> ${latest_version}\"/" "$file_path"
+  escaped_current="$(echo "$current_version" | sed 's/[.~>= ]/\\&/g')"
+  local escaped_latest_repl
+  escaped_latest_repl="$(printf '%s\n' "$latest_version" | sed 's/[&\\/]/\\&/g')"
+  sed -i "s/version[[:space:]]*=[[:space:]]*\"${escaped_current}\"/version = \"~> ${escaped_latest_repl}\"/" "$file_path"
 
   # Commit
   git add "$file_path"
@@ -303,10 +306,10 @@ PRBODY
 main() {
   echo "Scanning local .tf files for private registry module references..." >&2
   local local_modules
-  local_modules=$(scan_local_modules)
+  local_modules="$(scan_local_modules)"
 
   local local_count
-  local_count=$(echo "$local_modules" | jq 'length')
+  local_count="$(echo "$local_modules" | jq 'length')"
   echo "Found ${local_count} module reference(s) in local .tf files" >&2
 
   if [[ "$local_count" -eq 0 ]]; then
@@ -316,23 +319,23 @@ main() {
 
   echo "Checking HCP Terraform registry for updates..." >&2
   local updates
-  updates=$(check_for_updates "$local_modules")
+  updates="$(check_for_updates "$local_modules")"
 
   local update_count
-  update_count=$(echo "$updates" | jq 'length')
+  update_count="$(echo "$updates" | jq 'length')"
   echo "Found ${update_count} module(s) with available updates" >&2
 
   # Create PRs if requested
   if [[ "${CREATE_PRS}" == true && "$update_count" -gt 0 ]]; then
     echo "Creating PRs for ${update_count} update(s)..." >&2
-    for i in $(seq 0 $((update_count - 1))); do
+    for ((i = 0; i < update_count; i++)); do
       local mod src cur lat fp bt
-      mod=$(echo "$updates" | jq -r ".[$i].module")
-      src=$(echo "$updates" | jq -r ".[$i].source")
-      cur=$(echo "$updates" | jq -r ".[$i].current_version")
-      lat=$(echo "$updates" | jq -r ".[$i].latest_version")
-      fp=$(echo "$updates" | jq -r ".[$i].file")
-      bt=$(echo "$updates" | jq -r ".[$i].bump_type")
+      mod="$(echo "$updates" | jq -r ".[$i].module")"
+      src="$(echo "$updates" | jq -r ".[$i].source")"
+      cur="$(echo "$updates" | jq -r ".[$i].current_version")"
+      lat="$(echo "$updates" | jq -r ".[$i].latest_version")"
+      fp="$(echo "$updates" | jq -r ".[$i].file")"
+      bt="$(echo "$updates" | jq -r ".[$i].bump_type")"
       create_update_pr "$mod" "$src" "$cur" "$lat" "$fp" "$bt"
     done
   fi

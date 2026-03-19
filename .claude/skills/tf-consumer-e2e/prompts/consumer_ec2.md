@@ -7,10 +7,11 @@ Using the `/tf-consumer-e2e` workflow non-interactively.
 ## Infrastructure Requirements
 
 Compose from private registry modules using Terraform:
+
 - EC2 instance module across 2 AZs
 - ALB module (Application Load Balancer)
 - Security group modules for web traffic
-- HTTPS termination at the ALB
+- HTTPS termination at the ALB with ACM
 - Nginx configuration via user data
 - AWS Region: `ap-southeast-2`
 - Environment: Development (minimal cost)
