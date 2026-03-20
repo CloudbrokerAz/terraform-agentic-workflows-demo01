@@ -26,7 +26,6 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
    - Scope/integration clarification as needed (networking, monitoring, cross-workspace dependencies)
 7. Launch 3-4 concurrent `tf-consumer-research` subagents (run in foreground — they use MCP tools):
    - **Private registry modules**: Available modules, versions, inputs, outputs, secure defaults
-   - **AWS architecture**: Service integration patterns, networking requirements, best practices
    - **Module wiring**: How module outputs connect to inputs, type compatibility, composition patterns
    - **Workspace and deployment**: HCP Terraform workspace configuration, variable sets, dynamic credentials
    Wait for all to complete. Verify research files exist at `specs/{FEATURE}/research-*.md` via Glob.

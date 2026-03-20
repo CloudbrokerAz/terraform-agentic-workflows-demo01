@@ -26,6 +26,7 @@ RUN apt update && apt install -y --no-install-recommends \
     ca-certificates less git procps sudo zsh man-db unzip gnupg2 gh \
     iptables ipset iproute2 dnsutils aggregate \
     python3 python3-pip python3-venv python3-full \
+    libsecret-1-0 gnome-keyring seahorse \
     jq curl locales wget && \
     # Configure locale
     sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
