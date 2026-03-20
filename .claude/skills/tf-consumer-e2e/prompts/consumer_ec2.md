@@ -11,7 +11,7 @@ Compose from private registry modules using Terraform:
 - EC2 instance module across 2 AZs
 - ALB module (Application Load Balancer)
 - Security group modules for web traffic
-- HTTPS termination at the ALB with ACM
+- HTTP listener on the ALB
 - Nginx configuration via user data
 - AWS Region: `ap-southeast-2`
 - Environment: Development (minimal cost)

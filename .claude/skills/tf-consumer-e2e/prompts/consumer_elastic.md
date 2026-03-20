@@ -7,9 +7,9 @@ Using the `/tf-consumer-e2e` workflow non-interactively.
 ## Infrastructure Requirements
 
 Compose from private registry modules using Terraform:
-- ElastiCache Redis module in private subnets
+- ElastiCache Redis module in default VPC subnets
 - ECS module across 2 AZs for application tier
-- ALB module with HTTPS termination
+- ALB module with HTTP health checks
 - Security group modules for network isolation
 - AWS Region: `ap-southeast-2`
 - Environment: Development (minimal cost)

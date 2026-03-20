@@ -9,9 +9,8 @@ Using the `/tf-consumer-e2e` workflow non-interactively.
 Compose from private registry modules using Terraform:
 - S3 bucket module for static content storage
 - CloudFront distribution module with OAI (Origin Access Identity)
-- ACM certificate module for SSL/TLS
 - CloudWatch metrics and alarms
-- AWS Region: `us-east-1` (CloudFront requires ACM certs in us-east-1)
+- AWS Region: `us-east-1`
 - S3 bucket region: `ap-southeast-2`
 - Environment: Development (minimal cost)
 - Use existing default VPC always
