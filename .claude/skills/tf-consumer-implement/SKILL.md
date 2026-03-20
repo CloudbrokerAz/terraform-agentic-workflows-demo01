@@ -33,7 +33,7 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 
 ## Phase 4: Validate & Deploy
 
-9. Deploy to sandbox — trigger `terraform apply -auto-approve` against the HCP Terraform workspace. Capture the run ID and URL.
+9. Deploy to sandbox — trigger `terraform apply -auto-approve` against the HCP Terraform workspace. Capture the run ID and URL. Remediate any issues until deployment succeeds.
 10. Launch `tf-consumer-validator` with `$FEATURE` path, run ID, and workspace name.
 11. Verify report exists via Glob. Read the quality score from it. If score < 7.0:
     - Fix issues with `tf-consumer-developer` subagents
