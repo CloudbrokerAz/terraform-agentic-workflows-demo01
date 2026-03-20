@@ -39,12 +39,13 @@ If `gh auth status` fails, the user needs to either:
 
 ## 1. Creating Issues
 
-Use `gh issue create`. Always include `--title`, `--body`, and `--label`. Add `--assignee "@me"` when the creator is also the owner.
+Use `gh issue create`. Always include `--title`, a body, and `--label`. Add `--assignee "@me"` when the creator is also the owner.
+
+For multi-line markdown, prefer `--body-file` with a temporary file. Avoid nested command substitution like `--body "$(cat <<EOF ...)"` because shell-safety guards may block it.
 
 ```bash
-gh issue create \
-  --title "Bug: S3 module deprecated ACL parameter" \
-  --body "$(cat <<'EOF'
+BODY_FILE="$(mktemp)"
+cat > "$BODY_FILE" <<'EOF'
 ## Summary
 The Terraform plan fails because the S3 bucket module uses a deprecated `acl` parameter.
 
@@ -55,14 +56,22 @@ The Terraform plan fails because the S3 bucket module uses a deprecated `acl` pa
 ## Proposed Fix
 Remove inline `acl` argument, add `aws_s3_bucket_ownership_controls` resource.
 EOF
-)" \
+
+gh issue create \
+  --title "Bug: S3 module deprecated ACL parameter" \
+  --body-file "$BODY_FILE" \
   --label "bug"
+
+rm -f "$BODY_FILE"
 ```
 
 After creation, **capture the issue number** — you need it for branch naming:
 ```bash
-ISSUE_URL=$(gh issue create --title "..." --body "..." --label "bug")
-ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -o '[0-9]*$')
+BODY_FILE="$(mktemp)"
+printf '%s\n' 'Issue body goes here' > "$BODY_FILE"
+ISSUE_URL="$(gh issue create --title "..." --body-file "$BODY_FILE" --label "bug")"
+ISSUE_NUMBER="$(printf '%s\n' "$ISSUE_URL" | grep -o '[0-9]*$')"
+rm -f "$BODY_FILE"
 ```
 
 ### Labels
@@ -110,10 +119,13 @@ git push -u origin "$BRANCH_NAME"
 
 **Example flow** — create issue then branch in one sequence:
 ```bash
-ISSUE_URL=$(gh issue create --title "Add VPC subnets" --body "..." --label "feature")
-ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -o '[0-9]*$')
+BODY_FILE="$(mktemp)"
+printf '%s\n' 'Issue body goes here' > "$BODY_FILE"
+ISSUE_URL="$(gh issue create --title "Add VPC subnets" --body-file "$BODY_FILE" --label "feature")"
+ISSUE_NUMBER="$(printf '%s\n' "$ISSUE_URL" | grep -o '[0-9]*$')"
 PADDED=$(printf "%03d" "$ISSUE_NUMBER")
 gh issue develop "$ISSUE_NUMBER" --name "${PADDED}-vpc-subnets" --checkout
+rm -f "$BODY_FILE"
 ```
 
 ## 3. Committing Code
@@ -154,7 +166,7 @@ commit_with_retry "feat(vpc): configure 3-AZ subnet layout" modules/vpc/main.tf 
 
 ## 4. Commenting on Issues
 
-Use `gh issue comment` for progress updates. Use heredocs when the comment has markdown formatting.
+Use `gh issue comment` for progress updates. For markdown-heavy comments, prefer `--body-file` with a temporary file.
 
 **Simple comment:**
 ```bash
@@ -163,7 +175,8 @@ gh issue comment 42 --body "Starting investigation on the reported problem."
 
 **Structured progress comment** — use this template for workflow updates:
 ```bash
-gh issue comment 42 --body "$(cat <<'EOF'
+BODY_FILE="$(mktemp)"
+cat > "$BODY_FILE" <<'EOF'
 ## ✅ Phase: Implementation
 **Status**: Complete
 **Result**: All modules deployed successfully
@@ -173,7 +186,9 @@ gh issue comment 42 --body "$(cat <<'EOF'
 - Added NAT gateway for private subnet egress
 - All 4 success criteria passing
 EOF
-)"
+
+gh issue comment 42 --body-file "$BODY_FILE"
+rm -f "$BODY_FILE"
 ```
 
 **Status icons:**
@@ -216,7 +231,8 @@ gh issue list --label "bug" --state open
 gh issue view 42
 
 # Create a pull request
-gh pr create --title "feat: add VPC module" --body "$(cat <<'EOF'
+PR_BODY_FILE="$(mktemp)"
+cat > "$PR_BODY_FILE" <<'EOF'
 ## Summary
 - Adds VPC module with 3-AZ subnet layout
 - Includes NAT gateway and route tables
@@ -225,7 +241,8 @@ gh pr create --title "feat: add VPC module" --body "$(cat <<'EOF'
 - [ ] terraform plan shows expected resources
 - [ ] terraform apply succeeds in sandbox
 EOF
-)"
+gh pr create --title "feat: add VPC module" --body-file "$PR_BODY_FILE"
+rm -f "$PR_BODY_FILE"
 
 # Check PR status
 gh pr status
@@ -244,8 +261,9 @@ gh pr checks
 
 1. **All GitHub API interactions use `gh`** — never `curl` or direct REST calls.
 2. **Stage files explicitly** — `git add <file1> <file2>`, never `git add .` or `git add -A`.
-3. **Heredocs for multi-line bodies** — prevents quoting issues, preserves markdown.
+3. **Use `--body-file` for multi-line bodies** — write markdown to a temp file, then pass it to `gh`.
 4. **Check auth first** — `gh auth status` before any operation.
 5. **Capture output** — save issue/PR numbers from creation commands for cross-referencing.
 6. **Apply labels at creation** — always include `--label` when creating issues.
 7. **Close with `--comment`** — use `gh issue close N --comment "..."`, not separate comment + close.
+8. **Avoid nested command substitution in shell examples** — patterns like `--body "$(cat <<EOF ...)"` may trip shell-safety guards.
