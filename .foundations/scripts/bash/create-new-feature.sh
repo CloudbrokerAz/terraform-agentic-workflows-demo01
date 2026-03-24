@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 JSON_MODE=false
 SHORT_NAME=""
@@ -77,7 +77,7 @@ while [ "$#" -gt 0 ]; do
     shift
 done
 
-FEATURE_DESCRIPTION="${ARGS[*]}"
+FEATURE_DESCRIPTION="${ARGS[*]:-}"
 if [ -z "$FEATURE_DESCRIPTION" ]; then
     echo "Usage: $0 [--json] [--short-name <name>] [--number N] <feature_description>" >&2
     exit 1
@@ -264,7 +264,8 @@ generate_branch_name() {
         # Fallback to original logic if no meaningful words found
         local cleaned
         cleaned="$(clean_branch_name "$description")"
-        echo "$cleaned" | tr '-' '\n' | grep -v '^$' | head -3 | tr '\n' '-' | sed 's/-$//'
+        # Use awk instead of head to avoid SIGPIPE under pipefail
+        echo "$cleaned" | tr '-' '\n' | grep -v '^$' | awk 'NR<=3' | tr '\n' '-' | sed 's/-$//'
     fi
 }
 
@@ -326,7 +327,13 @@ if [ "$HAS_GIT" = true ]; then
     git checkout -b "$BRANCH_NAME"
     # Push with -u to set upstream so checkpoint-commit.sh can `git push` without errors
     if git remote get-url origin &>/dev/null; then
-        git push -u origin "$BRANCH_NAME" 2>&1 | sed 's/^/[specify] /' >&2 || >&2 echo "[specify] Warning: initial push failed — will retry on first checkpoint commit"
+        push_output=""
+        if push_output="$(git push -u origin "$BRANCH_NAME" 2>&1)"; then
+            echo "$push_output" | sed 's/^/[specify] /' >&2
+        else
+            echo "$push_output" | sed 's/^/[specify] /' >&2
+            >&2 echo "[specify] Warning: initial push failed — will retry on first checkpoint commit"
+        fi
     fi
 else
     >&2 echo "[specify] Warning: Git repository not detected; skipped branch creation for $BRANCH_NAME"

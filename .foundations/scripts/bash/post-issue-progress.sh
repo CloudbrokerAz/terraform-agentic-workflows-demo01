@@ -20,6 +20,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/common.sh
+[[ -f "${SCRIPT_DIR}/common.sh" ]] && source "${SCRIPT_DIR}/common.sh"
+
 if [[ $# -lt 3 ]]; then
   echo "Usage: post-issue-progress.sh <issue_number> <phase_name> <status> [summary]" >&2
   echo "  status: started | in-progress | complete | failed" >&2
@@ -83,5 +87,6 @@ if [[ -n "$DETAILS" ]]; then
 ${DETAILS}"
 fi
 
-# Post to GitHub issue
-gh issue comment "$ISSUE_NUMBER" --body "$BODY"
+# Post to GitHub issue (non-interactive: prevent gh from hanging on prompts)
+ensure_gh_noninteractive
+gh issue comment "$ISSUE_NUMBER" --body "$BODY" < /dev/null

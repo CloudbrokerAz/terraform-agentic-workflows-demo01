@@ -283,6 +283,7 @@ create_update_pr() {
   git push -u origin "$branch_name" > /dev/null 2>&1
 
   if [[ "${CREATE_PRS}" == true ]] && command -v gh > /dev/null 2>&1; then
+    ensure_gh_noninteractive
     gh pr create \
       --title "build(deps): bump ${module_name} from ${current_version} to ${latest_version}" \
       --body "$(cat <<PRBODY
@@ -295,7 +296,7 @@ Bumps [\`${module_name}\`](${source}) from \`${current_version}\` to \`${latest_
 *This PR was created by \`scan-module-versions.sh\` (fallback scanner) to maintain compatibility with the consumer uplift pipeline.*
 PRBODY
 )" \
-      --label "dependencies" 2>&1
+      --label "dependencies" < /dev/null 2>&1
   fi
 
   # Return to original branch

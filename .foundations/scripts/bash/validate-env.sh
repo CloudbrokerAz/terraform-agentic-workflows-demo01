@@ -39,9 +39,10 @@ Each check has a severity:
 
 GATE CHECKS:
   TFE_TOKEN          Terraform Cloud/Enterprise API token
-  GITHUB_TOKEN       GitHub Personal Access Token (github.com)
+  GITHUB_TOKEN       GitHub Personal Access Token (or GH_TOKEN)
   GH_CLI             GitHub CLI installed and authenticated
                      (Required: issue creation is mandatory audit trail)
+                     (Defaults to github.com; set GH_HOST for GitHub Enterprise)
   TERRAFORM          Terraform CLI installed (>= 1.5)
 
 WARN CHECKS:
@@ -100,22 +101,29 @@ else
     add_check "TFE_TOKEN" "GATE" "true" "SET"
 fi
 
-# GATE: GITHUB_TOKEN
-if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+# GATE: GITHUB_TOKEN (or GH_TOKEN — gh CLI checks GH_TOKEN first)
+if [[ -n "${GH_TOKEN:-}" ]]; then
+    add_check "GITHUB_TOKEN" "GATE" "true" "SET (via GH_TOKEN)"
+elif [[ -n "${GITHUB_TOKEN:-}" ]]; then
     add_check "GITHUB_TOKEN" "GATE" "true" "SET"
 else
-    add_check "GITHUB_TOKEN" "GATE" "false" "NOT SET — export GITHUB_TOKEN"
+    add_check "GITHUB_TOKEN" "GATE" "false" "NOT SET — export GITHUB_TOKEN or GH_TOKEN"
 fi
 
 # GATE: GH_CLI (required for issue creation — audit trail)
+# GH_PROMPT_DISABLED prevents gh auth status from hanging on interactive prompts
+# GH_HOST supports GitHub Enterprise (defaults to github.com)
+GH_HOSTNAME="${GH_HOST:-github.com}"
 if ! command -v gh &> /dev/null; then
     add_check "GH_CLI" "GATE" "false" "NOT INSTALLED — see: https://cli.github.com"
-elif gh auth status --hostname github.com &> /dev/null; then
-    add_check "GH_CLI" "GATE" "true" "AUTHENTICATED (github.com)"
+elif GH_PROMPT_DISABLED=1 gh auth status --hostname "$GH_HOSTNAME" &> /dev/null; then
+    add_check "GH_CLI" "GATE" "true" "AUTHENTICATED (${GH_HOSTNAME})"
+elif [[ -n "${GH_TOKEN:-}" ]]; then
+    add_check "GH_CLI" "GATE" "true" "AUTHENTICATED via GH_TOKEN (${GH_HOSTNAME})"
 elif [[ -n "${GITHUB_TOKEN:-}" ]]; then
-    add_check "GH_CLI" "GATE" "true" "AUTHENTICATED via GITHUB_TOKEN (github.com)"
+    add_check "GH_CLI" "GATE" "true" "AUTHENTICATED via GITHUB_TOKEN (${GH_HOSTNAME})"
 else
-    add_check "GH_CLI" "GATE" "false" "NOT AUTHENTICATED — export GITHUB_TOKEN"
+    add_check "GH_CLI" "GATE" "false" "NOT AUTHENTICATED — export GITHUB_TOKEN or GH_TOKEN"
 fi
 
 # GATE: Terraform CLI (>= 1.5)

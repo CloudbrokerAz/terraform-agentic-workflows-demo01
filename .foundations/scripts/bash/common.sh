@@ -67,6 +67,27 @@ has_git() {
     git rev-parse --show-toplevel >/dev/null 2>&1
 }
 
+# Configure gh CLI for non-interactive (headless) operation.
+# Prevents gh from hanging when it would otherwise prompt for user input
+# (e.g., repo selection, auth refresh). Safe to call multiple times.
+# Supports GitHub Enterprise via GH_HOST env var.
+ensure_gh_noninteractive() {
+    export GH_PROMPT_DISABLED=1
+    if [[ -z "${GH_REPO:-}" ]] && has_git; then
+        local remote_url
+        remote_url="$(git remote get-url origin 2>/dev/null || true)"
+        if [[ -n "$remote_url" ]]; then
+            # Extract OWNER/REPO from SSH or HTTPS URLs for any GitHub hostname
+            # Handles github.com, GitHub Enterprise (e.g., github.ibm.com), etc.
+            local owner_repo
+            owner_repo="$(echo "$remote_url" | sed -E 's|\.git$||; s|^.*[:/]([^/]+/[^/]+)$|\1|')"
+            if [[ "$owner_repo" =~ ^[^/]+/[^/]+$ ]]; then
+                export GH_REPO="$owner_repo"
+            fi
+        fi
+    fi
+}
+
 check_feature_branch() {
     local branch="$1"
     local has_git_repo="$2"
