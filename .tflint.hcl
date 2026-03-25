@@ -18,12 +18,19 @@ config {
 # Enable AWS plugin for AWS-specific rules
 plugin "aws" {
   enabled = true
-  version = "0.44.0"
+  version = "0.46.0"
   source  = "github.com/terraform-linters/tflint-ruleset-aws"
 }
 
+# Enable Azure plugin for Azure-specific rules
+plugin "azurerm" {
+  enabled = true
+  version = "0.31.1"
+  source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
+}
+
 plugin "terraform" {
-    enabled = true
+  enabled = true
 }
 
 # Terraform naming conventions
@@ -115,6 +122,36 @@ rule "terraform_empty_list_equality" {
 
 # Warn against terraform.workspace in remote backend configs
 rule "terraform_workspace_remote" {
+  enabled = true
+}
+
+# Disallow deprecated lookup() with only 2 args (use map[key] instead)
+rule "terraform_deprecated_lookup" {
+  enabled = true
+}
+
+# Enforce valid root object in .tf.json files
+rule "terraform_json_syntax" {
+  enabled = true
+}
+
+# Catch duplicate keys in map literals
+rule "terraform_map_duplicate_keys" {
+  enabled = true
+}
+
+# Require shallow cloning for pinned git module sources
+rule "terraform_module_shallow_clone" {
+  enabled = true
+}
+
+# Ensure registry modules specify a version
+rule "terraform_module_version" {
+  enabled = true
+}
+
+# Flag unused required_providers entries
+rule "terraform_unused_required_providers" {
   enabled = true
 }
 

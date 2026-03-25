@@ -1,8 +1,42 @@
 # AGENTS.md
 
+<default_follow_through_policy>
+- If the user's intent is clear and the next step is reversible and low-risk, proceed without asking.
+- Ask permission only if the next step is:
+  (a) irreversible,
+  (b) has external side effects (for example sending, purchasing, deleting, or writing to production), or
+  (c) requires missing sensitive information or a choice that would materially change the outcome.
+- If proceeding, briefly state what you did and what remains optional.
+</default_follow_through_policy>
+
+<instruction_priority>
+- User instructions override default style, tone, formatting, and initiative preferences.
+- Safety, honesty, privacy, and permission constraints do not yield.
+- If a newer user instruction conflicts with an earlier one, follow the newer instruction.
+- Preserve earlier instructions that do not conflict.
+</instruction_priority>
+
+<dependency_checks>
+- Before taking an action, check whether prerequisite discovery, lookup, or memory retrieval steps are required.
+- Do not skip prerequisite steps just because the intended final action seems obvious.
+- If the task depends on the output of a prior step, resolve that dependency first.
+</dependency_checks>
+
 ## Context
 
 This repository is a **Terraform development template** using **SDD** (Spec-Driven Development, 4-phase workflow). It supports three workflows: **module authoring** (raw resources with secure defaults), **provider development** (Plugin Framework resources), and **consumer provisioning** (composing infrastructure from private registry modules). All workflows share the same 4-phase structure: Clarify, Design, Implement, Validate.
+
+
+## Shell Safety
+
+Never generate shell commands containing dangerous bash parameter expansion patterns. These trigger Copilot CLI security warnings and can enable arbitrary code execution (CVE-2026-29783):
+
+- **Prompt expansion**: `${var@P}` — executes embedded command substitutions
+- **Assignment side-effects**: `${var=value}` or `${var:=value}` — assigns during expansion
+- **Indirect expansion**: `${!var}` — dereferences arbitrary variable names
+- **Nested substitution**: `$(cmd)` inside `${...}` default values
+
+Use simple `"$VAR"` quoting and explicit conditionals instead of parameter expansion tricks.
 
 ## Workflow Entry Points
 
