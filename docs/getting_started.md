@@ -10,7 +10,14 @@ It supports three core use cases:
 - **Provider Development** — Build Terraform Provider resources using HashiCorp's Plugin Framework
 - **Consumer Provisioning** — Compose infrastructure from private registry modules and deploy to HCP Terraform
 
-Each workflow is driven by slash commands in Claude Code (e.g., `/tf-module-plan`) that orchestrate multiple AI agents through the phases.
+Each workflow is driven by slash commands (e.g., `/tf-module-plan`) that orchestrate multiple AI agents through the phases. The template supports two AI coding assistants:
+
+| Assistant | Devcontainer | Skills & agents | MCP config |
+|-----------|-------------|-----------------|------------|
+| **Claude Code** | `.devcontainer/claude-code/` | `.claude/skills/` and `.claude/agents/` | `.mcp.json` |
+| **GitHub Copilot** | `.devcontainer/vscode-agent/` | `.claude/skills/`, `.claude/agents/`, and `.github/agents/` | `devcontainer.json` (`customizations.vscode.mcp`) |
+
+The same slash commands work in both tools. Copilot CLI supports skill and agent lookup from `.claude/` directories in addition to `.github/agents/`. The underlying tool names differ between the two (see [Tool Name Mapping](tool-name-mapping.md)), but the user experience is the same.
 
 ---
 
@@ -34,7 +41,9 @@ Install the **Dev Containers** extension in VS Code (`ms-vscode-remote.remote-co
 - **GitHub** account with a [fine-grained personal access token](#1-github-fine-grained-personal-access-token)
 - **HCP Terraform** account with a [Team API token](#2-hcp-terraform-setup)
 - **AWS** account (you do not need AWS CLI or local credentials — all AWS access flows through HCP Terraform workspace variables)
-- **Claude Code** subscription — authenticate via `claude login` inside the devcontainer, or set `ANTHROPIC_API_KEY` in your shell profile
+- **AI assistant** — one of the following:
+  - **Claude Code** — authenticate via `claude login` inside the devcontainer, or set `ANTHROPIC_API_KEY` in your shell profile
+  - **GitHub Copilot** — requires a Copilot license; run `copilot login` inside the devcontainer or sign in via VS Code's built-in GitHub authentication when prompted
 
 ---
 
@@ -198,7 +207,7 @@ The devcontainer includes all required tools pre-installed:
 | Go | 1.24.x | Provider development |
 | GitHub CLI | Latest | Repository operations |
 | Vault Radar | 0.43.x | Secret detection |
-| Claude Code | Latest | AI agent orchestration |
+| Claude Code | Latest | AI agent orchestration (claude-code variant) |
 | Infracost | 0.10.x | Cost estimation |
 | Checkov | Latest | Policy-as-code scanning |
 | golangci-lint | 2.10.x | Go linting (provider development) |
@@ -262,16 +271,26 @@ Configure [branch protection rules](https://docs.github.com/en/repositories/conf
 
 ### 5. Try Your First Workflow
 
-Once validation passes, open the Claude Code terminal and run your first workflow:
+Once validation passes, open your AI assistant and run your first workflow:
+
+**Claude Code:**
 
 ```bash
-# Start the module authoring workflow — the agent will ask you what to build
+# Open the Claude Code terminal, then type:
 /tf-module-plan
 ```
 
-The agent walks you through clarification questions, researches AWS docs and provider resources, then produces a design document in `specs/`. When you're ready to implement:
+**GitHub Copilot:**
 
-```bash
+Open Copilot Chat in agent mode (`@workspace`) and type:
+
+```
+/tf-module-plan
+```
+
+Both tools will walk you through clarification questions, research AWS docs and provider resources, then produce a design document in `specs/`. When you're ready to implement:
+
+```
 /tf-module-implement
 ```
 
@@ -281,7 +300,7 @@ This writes tests first (TDD), builds the module to pass them, and runs the full
 
 ## Core Workflows
 
-All three workflows follow the same SDD structure. Start any workflow by typing the slash command in Claude Code.
+All three workflows follow the same SDD structure. Start any workflow by typing the slash command in Claude Code or Copilot Chat.
 
 ### Module Authoring
 
@@ -509,13 +528,13 @@ Canonical starting points for Phase 2 design output. Each template defines the r
 
 | Directory | Purpose |
 |-----------|---------|
-| `.claude/skills/` | Workflow orchestrator skills (slash commands) |
-| `.claude/agents/` | Subagent definitions (research, design, validate, remediate) |
+| `.claude/skills/` | Agent skills (slash commands) — used by both Claude Code and Copilot CLI |
+| `.claude/agents/` | Subagent definitions (research, design, validate, remediate) — used by both Claude Code and Copilot CLI |
+| `.github/agents/` | GitHub Copilot agent definitions (same roles, Copilot tool names) |
 | `.foundations/memory/` | Constitutions — non-negotiable code generation rules |
 | `.foundations/templates/` | Design document templates |
 | `.foundations/scripts/bash/` | Automation scripts (validate, checkpoint, progress, classify) |
 | `.github/workflows/` | CI/CD pipelines (validate, apply, release, uplift) |
-| `.github/agents/` | GitHub-triggered agent definitions |
 | `specs/` | Feature design documents (created dynamically per workflow) |
 | `docs/` | Documentation (this guide, reference site, tool mappings) |
 
