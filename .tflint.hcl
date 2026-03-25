@@ -97,6 +97,27 @@ rule "terraform_required_providers" {
   enabled = true
 }
 
+# Enforce pinned module sources with full semantic versioning
+rule "terraform_module_pinned_source" {
+  enabled = true
+  style   = "semver"
+}
+
+# Enforce # comment syntax over // (HashiCorp convention)
+rule "terraform_comment_syntax" {
+  enabled = true
+}
+
+# Catch == [] anti-pattern (use length() instead)
+rule "terraform_empty_list_equality" {
+  enabled = true
+}
+
+# Warn against terraform.workspace in remote backend configs
+rule "terraform_workspace_remote" {
+  enabled = true
+}
+
 # AWS-specific rules
 rule "aws_resource_missing_tags" {
   enabled = true
