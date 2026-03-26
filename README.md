@@ -3,7 +3,15 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.14-purple.svg)](https://www.terraform.io/)
 
-An AI-powered Terraform development template using **Spec-Driven Development (SDD)** — a structured workflow that guides AI agents through building production-ready infrastructure code. Works with both **Claude Code** and **GitHub Copilot** (VS Code agent mode).
+A framework for agentic Infrastructure as Code development workflows using **Spec-Driven Development (SDD)** — a structured approach that guides AI agents through building production-ready Terraform code with guardrails at every phase. Built on industry standards like [agent skills](https://agentskills.io/) and subagents, this framework is designed to be generic and can be customized to work with any AI coding harness that supports these primitives. Validated with **Claude Code** and **GitHub Copilot CLI**. Coming soon Project Bob ...
+
+> **Guardrails matter.** Agentic AI for critical infrastructure requires mature IaC practices and strong operational guardrails to deliver successful outcomes. **HCP Terraform** is a key component of this approach — providing remote execution, policy enforcement, state management, and approval workflows that keep AI-generated infrastructure safe and auditable.
+>
+> ![HCP Terraform Workflow](docs/hcp-terraform-workflow.png)
+>
+> **Note:** This repository is a framework for agentic development workflows for Infrastructure as Code. Customization to a customer's specific requirements, security posture, and best practices should be undertaken as a Resident Solutions Architect (RSA) engagement.
+>
+> **Learn more:** Visit [AI-Powered Infrastructure Engineering at Enterprise Scale](https://pages.github.ibm.com/AdvArch/tfai/) — a structured learning path for platform teams adopting autonomous HCP Terraform development, covering agent architecture, layered guardrails, Specification-Driven Development, and three validated workflow patterns.
 
 ## What is this?
 
@@ -11,7 +19,7 @@ This repository is a development template, not a deployed module. It provides or
 
 ```mermaid
 graph LR
-    A["🔍 Clarify"] --> B["📐 Design"] --> C{"🧑‍💻 Human\nReview"}
+    A["🔍 Clarify"] --> B["📐 Design"] --> C{"🧑‍💻 Human Review"}
     C --> D["🔨 Implement"] --> E["✅ Validate"] --> F["🚀 PR"]
 
     style A fill:#4a90d9,stroke:#2c5f8a,color:#fff,rx:8
@@ -30,6 +38,8 @@ graph LR
 - **PR** — Create a pull request with the implementation for final review
 
 **Why use this?** Writing production-grade Terraform by hand is slow and error-prone — security defaults get missed, tests are skipped, documentation drifts. SDD with AI agents enforces quality at every phase, producing consistent, tested, documented infrastructure code in a fraction of the time.
+
+**Can't I build my own workflows?** Yes — and many teams do. But getting agentic IaC right is harder than it looks. Naive prompting produces code that works in demos but fails in production: no tests, no security defaults, inconsistent structure, and no guardrails to prevent drift. This framework encodes months of iteration into reusable skills, constitutions, and validation pipelines. You get a proven starting point instead of rebuilding the same lessons from scratch — and because it's built on open standards (agent skills, subagents, MCP), you can extend and customize it rather than being locked in.
 
 ## Quick Start
 
@@ -62,6 +72,10 @@ Start any workflow by typing the slash command in your AI assistant's chat (Clau
 | **Consumer Provisioning** | Compose infrastructure from private registry modules | `/tf-consumer-plan` | `/tf-consumer-implement` |
 
 ## Day 2 Operations
+
+| Workflow | Purpose | Trigger | Agent |
+|----------|---------|---------|-------|
+| **Consumer Module Uplift** | Automated module version upgrades with risk assessment, remediation, and post-merge apply | Dependabot PR | `module-upgrade-remediation` |
 
 The **consumer module uplift** pipeline automates dependency management for consumer configurations:
 
