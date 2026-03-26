@@ -404,6 +404,8 @@ Compose infrastructure from private registry modules and deploy to HCP Terraform
 
 An automated pipeline for managing module version upgrades in consumer configurations. No manual version bumping required.
 
+> **Note:** The example in this repo uses `@claude` for agent-assisted remediation of breaking changes. The equivalent is possible with any coding agent that has GitHub PR integration, including Copilot, Gemini, and others.
+
 ### How It Works
 
 ```mermaid
