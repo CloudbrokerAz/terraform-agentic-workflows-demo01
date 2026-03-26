@@ -2,7 +2,20 @@
 
 ## Overview
 
-**Terraform Agentic Workflows** is a development template that uses AI agents to build production-ready Terraform code through **Spec-Driven Development (SDD)** — a structured workflow: Clarify, Design, Review, Implement, Validate, PR.
+**Terraform Agentic Workflows** is a development template that uses AI agents to build production-ready Terraform code through **Spec-Driven Development (SDD)** — a structured workflow:
+
+```mermaid
+graph LR
+    A["🔍 Clarify"] --> B["📐 Design"] --> C{"🧑‍💻 Human Review"}
+    C --> D["🔨 Implement"] --> E["✅ Validate"] --> F["🚀 PR"]
+
+    style A fill:#4a90d9,stroke:#2c5f8a,color:#fff,rx:8
+    style B fill:#6c5ce7,stroke:#4a3db0,color:#fff,rx:8
+    style C fill:#e17055,stroke:#b34a3a,color:#fff
+    style D fill:#00b894,stroke:#008c6e,color:#fff,rx:8
+    style E fill:#fdcb6e,stroke:#c9a224,color:#333,rx:8
+    style F fill:#00cec9,stroke:#009e9a,color:#fff,rx:8
+```
 
 It supports three core use cases:
 
@@ -393,12 +406,25 @@ An automated pipeline for managing module version upgrades in consumer configura
 
 ### How It Works
 
-```text
-Dependabot PR → Classify → Validate → Risk Assessment → Decision
-                                                          ├─ auto-close (no changes)
-                                                          ├─ auto-merge (no impact)
-                                                          ├─ needs-review (medium/high)
-                                                          └─ breaking-change → @claude agent
+```mermaid
+graph LR
+    A["📦 Dependabot PR"] --> B["🏷️ Classify"] --> C["🔍 Validate"] --> D["⚖️ Risk Assessment"] --> E{"Decision"}
+    E -->|no changes| F["🚫 Auto-close"]
+    E -->|no impact| G["✅ Auto-merge"]
+    E -->|medium/high| H["👀 Needs Review"]
+    E -->|breaking| I["🤖 @claude Agent"]
+    I --> J["🔧 Remediate & Re-run"]
+
+    style A fill:#4a90d9,stroke:#2c5f8a,color:#fff,rx:8
+    style B fill:#6c5ce7,stroke:#4a3db0,color:#fff,rx:8
+    style C fill:#fdcb6e,stroke:#c9a224,color:#333,rx:8
+    style D fill:#e17055,stroke:#b34a3a,color:#fff,rx:8
+    style E fill:#636e72,stroke:#2d3436,color:#fff
+    style F fill:#b2bec3,stroke:#636e72,color:#333,rx:8
+    style G fill:#00b894,stroke:#008c6e,color:#fff,rx:8
+    style H fill:#fdcb6e,stroke:#c9a224,color:#333,rx:8
+    style I fill:#e17055,stroke:#b34a3a,color:#fff,rx:8
+    style J fill:#00cec9,stroke:#009e9a,color:#fff,rx:8
 ```
 
 **Step-by-step:**
