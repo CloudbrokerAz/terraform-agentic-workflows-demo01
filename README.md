@@ -1,3 +1,8 @@
+> **Disclaimer:** These workflows are intended for delivery via RTS (Resident Technical Services) as part of a Professional Services engagement. This repository should not be handed over without guided enablement — agentic infrastructure development requires mature IaC practices, layered guardrails, and operational readiness. Without these foundations, autonomous code generation against live infrastructure carries significant risk. Adoption and customization should be guided by a Resident Solutions Architect to ensure alignment with your organization's security posture, operational standards, and infrastructure maturity.
+>
+> **Get Started:** Engage via the **Lighthouse program** or reach out to **Fiona Black** directly.
+> For technical guidance or queries reach out to **Simon Lynch** or **Aaron Evans**.
+
 # Terraform Agentic Workflows
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
