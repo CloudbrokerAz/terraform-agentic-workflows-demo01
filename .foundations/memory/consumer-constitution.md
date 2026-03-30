@@ -16,7 +16,7 @@ Consumers MUST compose infrastructure exclusively from private registry modules 
 
 - ALL infrastructure MUST be provisioned via private registry modules: `source = "app.terraform.io/<org>/<name>/<provider>"`
 - Raw `resource` blocks are PROHIBITED except for glue resources (`random_id`, `random_string`, `null_resource`, `terraform_data`, `time_sleep`)
-- Module versions MUST be pinned with `version = "~> X.Y"` constraints
+- Module versions MUST be pinned with `version = "~> X.Y.Z"` constraints
 - Module selection MUST be justified by research findings — never assumed
 - Consumers do NOT write `.tftest.hcl` files — validation is via `terraform validate` and sandbox deployment
 
