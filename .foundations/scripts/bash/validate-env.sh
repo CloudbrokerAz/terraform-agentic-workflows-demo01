@@ -39,6 +39,9 @@ Each check has a severity:
 
 GATE CHECKS:
   TFE_TOKEN          Terraform Cloud/Enterprise API token
+  TFE_TOKEN_TYPE     Token type (blocks user/org tokens, requires Team Token)
+                     (Calls /api/v2/account/details to introspect token type)
+                     (Set TFE_HOSTNAME for Terraform Enterprise, default: app.terraform.io)
   GITHUB_TOKEN       GitHub Personal Access Token (or GH_TOKEN)
   GH_CLI             GitHub CLI installed and authenticated
                      (Required: issue creation is mandatory audit trail)
@@ -99,6 +102,87 @@ if [[ -z "${TFE_TOKEN:-}" ]]; then
     add_check "TFE_TOKEN" "GATE" "false" "NOT SET — export TFE_TOKEN from https://app.terraform.io/app/settings/tokens"
 else
     add_check "TFE_TOKEN" "GATE" "true" "SET"
+fi
+
+# GATE: TFE_TOKEN_TYPE
+# Detects over-privileged tokens (user/org) — only Team API Tokens are allowed.
+# Uses GET /api/v2/account/details to introspect the token type via:
+#   - is-service-account: false = user token, true = service account (team/org)
+#   - authenticated-resource.data.type: "teams" = team token, "organizations" = org token
+# See: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens
+TOKEN_TYPE_BLOCKED=""       # non-empty when token type guardrail triggers
+TOKEN_TYPE_DETECTED=""      # human-readable token type for banner output
+
+if [[ -n "${TFE_TOKEN:-}" ]]; then
+    TFE_HOSTNAME="${TFE_HOSTNAME:-app.terraform.io}"
+    TFE_HOSTNAME="${TFE_HOSTNAME%/}"  # strip trailing slash
+    TFE_API_BASE="https://${TFE_HOSTNAME}/api/v2"
+    TFE_TMPFILE=$(mktemp "${TMPDIR:-/tmp}/tfe-token-check.XXXXXX")
+    # Ensure temp file cleanup on any exit path (subshell-safe)
+    trap 'rm -f "${TFE_TMPFILE:-}"' EXIT
+
+    if ! command -v jq &> /dev/null; then
+        add_check "TFE_TOKEN_TYPE" "GATE" "true" "SKIPPED — jq not installed (required for token type detection)"
+    else
+
+    ACCOUNT_HTTP_CODE=$(curl -s -o "$TFE_TMPFILE" -w "%{http_code}" --max-time 10 \
+        -H "Authorization: Bearer ${TFE_TOKEN}" \
+        -H "Content-Type: application/vnd.api+json" \
+        "${TFE_API_BASE}/account/details" 2>/dev/null) || ACCOUNT_HTTP_CODE="000"
+
+    if [[ "$ACCOUNT_HTTP_CODE" == "200" ]]; then
+        IS_SERVICE_ACCOUNT=$(jq -r '.data.attributes."is-service-account" | if . == null then "unknown" else tostring end' "$TFE_TMPFILE" 2>/dev/null || echo "unknown")
+        AUTH_RESOURCE_TYPE=$(jq -r '.data.relationships."authenticated-resource".data.type // "unknown"' "$TFE_TMPFILE" 2>/dev/null || echo "unknown")
+        TOKEN_USERNAME=$(jq -r '.data.attributes.username // "unknown"' "$TFE_TMPFILE" 2>/dev/null || echo "unknown")
+        # Sanitize API-sourced values — strip characters that could break JSON output or shell
+        TOKEN_USERNAME="${TOKEN_USERNAME//[^a-zA-Z0-9._@-]/}"
+        AUTH_RESOURCE_TYPE="${AUTH_RESOURCE_TYPE//[^a-zA-Z0-9._-]/}"
+
+        if [[ "$IS_SERVICE_ACCOUNT" == "false" ]]; then
+            TOKEN_TYPE_BLOCKED="user"
+            TOKEN_TYPE_DETECTED="User Token (${TOKEN_USERNAME})"
+            add_check "TFE_TOKEN_TYPE" "GATE" "false" \
+                "USER TOKEN (${TOKEN_USERNAME}) — use a Team API Token instead. User tokens inherit permissions across all orgs. See: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens"
+        elif [[ "$AUTH_RESOURCE_TYPE" == "teams" ]]; then
+            add_check "TFE_TOKEN_TYPE" "GATE" "true" "TEAM TOKEN (${TOKEN_USERNAME})"
+        elif [[ "$AUTH_RESOURCE_TYPE" == "organizations" ]]; then
+            TOKEN_TYPE_BLOCKED="organization"
+            TOKEN_TYPE_DETECTED="Organization Token"
+            add_check "TFE_TOKEN_TYPE" "GATE" "false" \
+                "ORGANIZATION TOKEN — use a Team API Token instead. Org tokens have admin-level access. See: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens"
+        else
+            # Unknown service account subtype — allow but note
+            add_check "TFE_TOKEN_TYPE" "GATE" "true" "SERVICE ACCOUNT (${AUTH_RESOURCE_TYPE})"
+        fi
+    elif [[ "$ACCOUNT_HTTP_CODE" =~ ^(401|403|404)$ ]]; then
+        # /account/details rejected — probe /organizations to distinguish org token from invalid token
+        ORG_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+            -H "Authorization: Bearer ${TFE_TOKEN}" \
+            -H "Content-Type: application/vnd.api+json" \
+            "${TFE_API_BASE}/organizations" 2>/dev/null) || ORG_HTTP_CODE="000"
+
+        if [[ "$ORG_HTTP_CODE" == "200" ]]; then
+            TOKEN_TYPE_BLOCKED="organization"
+            TOKEN_TYPE_DETECTED="Organization Token (inferred)"
+            add_check "TFE_TOKEN_TYPE" "GATE" "false" \
+                "ORGANIZATION TOKEN (inferred) — use a Team API Token instead. See: https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens"
+        else
+            TOKEN_TYPE_BLOCKED="invalid"
+            TOKEN_TYPE_DETECTED="Invalid Token (HTTP ${ACCOUNT_HTTP_CODE})"
+            add_check "TFE_TOKEN_TYPE" "GATE" "false" \
+                "INVALID TOKEN (HTTP ${ACCOUNT_HTTP_CODE}) — verify at https://${TFE_HOSTNAME}/app/settings/tokens"
+        fi
+    elif [[ "$ACCOUNT_HTTP_CODE" == "000" ]]; then
+        # Network error — skip gracefully, do not block
+        add_check "TFE_TOKEN_TYPE" "GATE" "true" "SKIPPED — could not reach ${TFE_HOSTNAME}"
+    else
+        add_check "TFE_TOKEN_TYPE" "GATE" "true" "SKIPPED — unexpected HTTP ${ACCOUNT_HTTP_CODE}"
+    fi
+
+    fi  # end jq guard
+
+    rm -f "$TFE_TMPFILE"
+    trap - EXIT  # clear trap after cleanup
 fi
 
 # GATE: GITHUB_TOKEN (or GH_TOKEN — gh CLI checks GH_TOKEN first)
@@ -236,6 +320,42 @@ if $JSON_MODE; then
 
     printf '{"gate_passed":%s,"checks":[%s]}\n' "$gate_passed" "$checks_json"
 else
+    # --- Token type guardrail banner (printed first for maximum visibility) ---
+    if [[ "$TOKEN_TYPE_BLOCKED" == "user" || "$TOKEN_TYPE_BLOCKED" == "organization" ]]; then
+        echo ""
+        echo "  🚫 ════════════════════════════════════════════════════════════════"
+        echo "  🚫  BLOCKED — Over-privileged token detected"
+        echo "  🚫 ════════════════════════════════════════════════════════════════"
+        echo "  🚫"
+        echo "  🚫  ❌ Detected:  ${TOKEN_TYPE_DETECTED}"
+        echo "  🚫  ✅ Required:  Team API Token"
+        echo "  🚫"
+        echo "  🚫  Only Team API Tokens are supported."
+        echo "  🚫  User tokens and Organization tokens are blocked because"
+        echo "  🚫  they grant more access than the agent needs."
+        echo "  🚫"
+        echo "  🚫  👉 Create a Team API Token:"
+        echo "  🚫     https://${TFE_HOSTNAME}/app/settings/teams"
+        echo "  🚫"
+        echo "  🚫  📖 https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens"
+        echo "  🚫 ════════════════════════════════════════════════════════════════"
+        echo ""
+    elif [[ "$TOKEN_TYPE_BLOCKED" == "invalid" ]]; then
+        echo ""
+        echo "  🔑 ════════════════════════════════════════════════════════════════"
+        echo "  🔑  BLOCKED — TFE_TOKEN is invalid or expired"
+        echo "  🔑 ════════════════════════════════════════════════════════════════"
+        echo "  🔑"
+        echo "  🔑  ❌ ${TOKEN_TYPE_DETECTED}"
+        echo "  🔑"
+        echo "  🔑  The token could not authenticate against ${TFE_HOSTNAME}."
+        echo "  🔑  Generate a new Team API Token and export it as TFE_TOKEN."
+        echo "  🔑"
+        echo "  🔑  👉 https://${TFE_HOSTNAME}/app/settings/tokens"
+        echo "  🔑 ════════════════════════════════════════════════════════════════"
+        echo ""
+    fi
+
     echo "Environment Validation"
     echo "======================"
     echo ""
