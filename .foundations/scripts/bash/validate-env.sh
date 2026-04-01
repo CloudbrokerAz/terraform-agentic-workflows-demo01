@@ -308,20 +308,9 @@ else
     EXIT_CODE=0
 fi
 
-# --- Output ---
-if $JSON_MODE; then
-    # Build checks JSON array
-    checks_json=""
-    for ((i=0; i<${#check_names[@]}; i++)); do
-        [[ -n "$checks_json" ]] && checks_json+=","
-        checks_json+="$(printf '{"name":"%s","severity":"%s","passed":%s,"detail":"%s"}' \
-            "${check_names[$i]}" "${check_severities[$i]}" "${check_passed[$i]}" "${check_details[$i]}")"
-    done
-
-    printf '{"gate_passed":%s,"checks":[%s]}\n' "$gate_passed" "$checks_json"
-else
-    # --- Token type guardrail banner (printed first for maximum visibility) ---
-    if [[ "$TOKEN_TYPE_BLOCKED" == "user" || "$TOKEN_TYPE_BLOCKED" == "organization" ]]; then
+# --- Token type guardrail banner (printed to stderr for visibility in all modes) ---
+if [[ "$TOKEN_TYPE_BLOCKED" == "user" || "$TOKEN_TYPE_BLOCKED" == "organization" ]]; then
+    {
         echo ""
         echo "  🚫 ════════════════════════════════════════════════════════════════"
         echo "  🚫  BLOCKED — Over-privileged token detected"
@@ -340,7 +329,9 @@ else
         echo "  🚫  📖 https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens"
         echo "  🚫 ════════════════════════════════════════════════════════════════"
         echo ""
-    elif [[ "$TOKEN_TYPE_BLOCKED" == "invalid" ]]; then
+    } >&2
+elif [[ "$TOKEN_TYPE_BLOCKED" == "invalid" ]]; then
+    {
         echo ""
         echo "  🔑 ════════════════════════════════════════════════════════════════"
         echo "  🔑  BLOCKED — TFE_TOKEN is invalid or expired"
@@ -354,8 +345,21 @@ else
         echo "  🔑  👉 https://${TFE_HOSTNAME}/app/settings/tokens"
         echo "  🔑 ════════════════════════════════════════════════════════════════"
         echo ""
-    fi
+    } >&2
+fi
 
+# --- Output ---
+if $JSON_MODE; then
+    # Build checks JSON array
+    checks_json=""
+    for ((i=0; i<${#check_names[@]}; i++)); do
+        [[ -n "$checks_json" ]] && checks_json+=","
+        checks_json+="$(printf '{"name":"%s","severity":"%s","passed":%s,"detail":"%s"}' \
+            "${check_names[$i]}" "${check_severities[$i]}" "${check_passed[$i]}" "${check_details[$i]}")"
+    done
+
+    printf '{"gate_passed":%s,"checks":[%s]}\n' "$gate_passed" "$checks_json"
+else
     echo "Environment Validation"
     echo "======================"
     echo ""
