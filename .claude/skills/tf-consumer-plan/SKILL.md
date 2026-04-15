@@ -19,9 +19,10 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 3. Create GitHub issue: read `.foundations/templates/issue-body-template.md`, fill in the placeholders with parsed requirements (adapt for consumer context — modules composed, not resources created), and run `gh issue create --title "Consumer: {project-name}" --body "$FILLED_BODY"`. Capture `$ISSUE_NUMBER`. Update the issue body again after Step 6 (clarification) to include module selections and scope boundaries.
 4. Create feature branch: `bash .foundations/scripts/bash/create-new-feature.sh --json --workflow consumer --issue $ISSUE_NUMBER --short-name "<project-name>" "<feature description>"`. Parse the JSON output to capture `$BRANCH_NAME` as `$FEATURE` and `$DESIGN_FILE`.
 5. Scan requirements against the `tf-domain-category` skill — focus on module composition ambiguity, networking integration, and workspace configuration decisions.
-6. Ask up to 4 clarification questions via `AskUserQuestion`. Must include:
+6. Ask up to 5 clarification questions via `AskUserQuestion`. Must include:
    - **Module selection**: Which private registry modules are required and their approximate versions?
-   - **Environment and workspace**: Target workspace, region, and credential pattern (dynamic credentials, assume_role)?
+   - **HCP Terraform project**: Which HCP Terraform project should the workspace be created in? (e.g., `sandbox`, `production`). This controls workspace isolation and team permissions. Default to `sandbox` for development.
+   - **Environment and workspace**: Target workspace name, region, and credential pattern (dynamic credentials, assume_role)?
    - A security-related question (encryption, public access, IAM)
    - Scope/integration clarification as needed (networking, monitoring, cross-workspace dependencies)
 7. Launch 3-4 concurrent `tf-consumer-research` subagents (run in foreground — they use MCP tools):

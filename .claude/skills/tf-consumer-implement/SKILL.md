@@ -21,25 +21,36 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 
 ## Phase 3: Build
 
-5. Extract checklist items from consumer-design.md Section 5 via Grep.
-6. For each checklist item (sequentially — items depend on prior items):
+5. **Verify `cloud {}` block includes `project`** — Grep for `project` in `backend.tf` (or the file containing the `cloud {}` block). If missing, add the `project` attribute from the design document. The workspace MUST be created in the correct HCP Terraform project (e.g., `sandbox`), not the Default project.
+   ```hcl
+   cloud {
+     organization = "<org>"
+     workspaces {
+       project = "<project>"   # REQUIRED — prevents workspace landing in Default
+       name    = "<workspace>"
+     }
+   }
+   ```
+6. Extract checklist items from consumer-design.md Section 5 via Grep.
+7. For each checklist item (sequentially — items depend on prior items):
    - Launch `tf-consumer-developer` subagent with FEATURE path and item description.
    - When it completes, verify expected files exist via Glob.
    - Run `terraform fmt -check` and `terraform validate` (validate may require `terraform init` first).
    - Checkpoint commit.
      Use concurrent subagents for independent items only when their outputs do not overlap.
-7. After all items: run `terraform validate`. If failures remain, re-launch `tf-consumer-developer` subagents targeted at the specific errors.
-8. Verify all checklist items in consumer-design.md Section 5 are marked `[x]` via Grep. If any remain `[ ]`, either mark them (if the work was done by a prior item) or flag the gap before proceeding.
+8. After all items: run `terraform validate`. If failures remain, re-launch `tf-consumer-developer` subagents targeted at the specific errors.
+9. Verify all checklist items in consumer-design.md Section 5 are marked `[x]` via Grep. If any remain `[ ]`, either mark them (if the work was done by a prior item) or flag the gap before proceeding.
 
 ## Phase 4: Validate & Deploy
 
-9. Deploy to sandbox — trigger `terraform apply -auto-approve` against the HCP Terraform workspace. Capture the run ID and URL. Remediate any issues until deployment succeeds.
-10. Launch `tf-consumer-validator` with `$FEATURE` path, run ID, and workspace name.
-11. Verify report exists via Glob. Read the quality score from it. If score < 7.0:
+10. **Pre-deploy check** — Grep the `cloud {}` block to confirm `project` is set and matches the design document. If missing, add it before deploying. This prevents workspaces from landing in the Default project.
+11. Deploy to sandbox — trigger `terraform apply -auto-approve` against the HCP Terraform workspace. Capture the run ID and URL. Remediate any issues until deployment succeeds.
+12. Launch `tf-consumer-validator` with `$FEATURE` path, run ID, and workspace name.
+13. Verify report exists via Glob. Read the quality score from it. If score < 7.0:
     - Fix issues with `tf-consumer-developer` subagents
     - Destroy sandbox, redeploy, re-launch validator (max 3 rounds)
-12. Checkpoint commit, push branch, create PR linking to `$ISSUE_NUMBER`.
-13. Ask user: "Destroy sandbox resources?" If yes, trigger destroy run and report status.
+14. Checkpoint commit, push branch, create PR linking to `$ISSUE_NUMBER`.
+15. Ask user: "Destroy sandbox resources?" If yes, trigger destroy run and report status.
 
 ## Done
 
