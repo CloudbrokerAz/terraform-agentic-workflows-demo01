@@ -102,10 +102,22 @@ rm -f /tmp/infracost.tar.gz
 # We'll do this in the Dockerfile after switching to node user
 
 echo "Installing Trivy..."
-sudo apt-get update
-sudo apt-get install -y wget apt-transport-https gnupg lsb-release
-wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list > /dev/null
+#sudo apt-get update
+#sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+#wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+#echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list > /dev/null
+#sudo apt-get update
+#sudo apt-get install -y trivy
+sudo rm -f /etc/apt/sources.list.d/trivy.list
+sudo rm -f /usr/share/keyrings/trivy.gpg
+sudo rm -f /etc/apt/keyrings/trivy.gpg
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /etc/apt/keyrings/trivy.gpg > /dev/null
+sudo chmod 0644 /etc/apt/keyrings/trivy.gpg
+gpg --show-keys --with-fingerprint /etc/apt/keyrings/trivy.gpg
+. /etc/os-release
+echo "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb ${VERSION_CODENAME} main" | sudo tee /etc/apt/sources.list.d/trivy.list > /dev/null
+sudo rm -rf /var/lib/apt/lists/*
 sudo apt-get update
 sudo apt-get install -y trivy
 
