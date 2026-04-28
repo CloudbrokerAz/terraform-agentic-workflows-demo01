@@ -169,7 +169,8 @@ terraform {
   cloud {
     organization = "<org>"
     workspaces {
-      name = "<workspace>"
+      project = "<project>"
+      name    = "<workspace>"
     }
   }
 
