@@ -4,6 +4,25 @@ set -euo pipefail
 
 echo "=== Post-Create Setup Starting ==="
 
+# Pin moby-containerd to the last known-good version.
+# containerd 2.3.0's transfer.v1.local plugin pulls in the erofs differ, which
+# requires `mkfs.erofs --tar`. Debian bookworm ships erofs-utils 1.5 (no --tar),
+# so containerd fails to initialize and dockerd exits. Regression introduced by
+# https://github.com/containerd/containerd/pull/13328. Remove this pin once
+# https://github.com/containerd/containerd/issues/13346 is released.
+CONTAINERD_PIN="2.2.3-debian12u1"
+if dpkg-query -W -f='${Status}' moby-containerd 2>/dev/null | grep -q '^install ok installed'; then
+    CURRENT_VERSION="$(dpkg-query -W -f='${Version}' moby-containerd)"
+    if [ "$CURRENT_VERSION" != "$CONTAINERD_PIN" ]; then
+        echo "Downgrading moby-containerd from $CURRENT_VERSION to $CONTAINERD_PIN"
+        sudo apt-get update
+        sudo apt-get install -y --allow-downgrades "moby-containerd=$CONTAINERD_PIN" \
+            2> >(grep -vE 'System has not been booted with systemd|Failed to connect to bus|Host is down' >&2)
+        sudo systemctl restart docker || true
+    fi
+    sudo apt-mark hold moby-containerd
+fi
+
 # Fix permissions for Docker volumes (Docker volumes are root-owned)
 sudo chown -R node:node /commandhistory
 touch /commandhistory/.zsh_history

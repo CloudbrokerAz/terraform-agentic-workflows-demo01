@@ -41,7 +41,7 @@
               "--rm",
               "-e",
               "TFE_TOKEN",
-              "hashicorp/terraform-mcp-server"
+              "hashicorp/terraform-mcp-server:latest"
             ]
           },
           "aws-documentation-mcp-server": {

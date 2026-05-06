@@ -11,7 +11,7 @@
         "-e",
         "TFE_TOKEN",
         "ENABLE_TF_OPERATIONS=true",
-        "hashicorp/terraform-mcp-server:0.4.0",
+        "hashicorp/terraform-mcp-server:latest",
         "--toolsets=all"
       ],
       "env": {
