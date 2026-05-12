@@ -1,0 +1,64 @@
+# Known-bad fixture for validate_yaml.py.
+# Each rule has at least one specific error documented in a comment.
+metadata:
+  framework:
+    name: Test Framework
+    version: "1.0"
+  source: https://example.com/not-aws  # not-aws-domain (caught only under strict-aws-official + allowlist)
+  generated_by: tf-research-policy-aws
+  generated_at: "2026-05-08"
+
+rules:
+  # Rule 1: missing required fields, TODO leftover, bad severity, bad source.type
+  - id: bad-rule-1
+    title: Some title
+    framework_control:
+      requirement: A requirement
+    severity: SUPER_CRITICAL    # not in enum
+    service: s3
+    resource_types:
+      - "TODO: AWS::Service::Resource"   # TODO ok in resource_types but
+      - notavalidcfntype                  # malformed CFN
+    source:
+      type: bogus-source-type   # not in enum
+      identifier: NOT_A_REAL_RULE_IDENTIFIER_AT_ALL
+      documentation_url: https://example.com
+    condition:
+      description: ok
+      logic: "TODO: pseudocode"   # TODO leftover
+    remediation:
+      summary: ok
+    references:
+      - title: ref
+        url: https://example.com/ref
+    test_cases:
+      - name: t
+        expected: COMPLIANT
+
+  # Rule 2: trivial condition.logic ("true"), duplicate id with rule 1 below intentionally avoided
+  - id: bad-rule-2
+    title: Title
+    framework_control:
+      requirement: req
+    severity: HIGH
+    service: s3
+    resource_types:
+      - AWS::S3::Bucket
+    source:
+      type: aws-config-managed-rule
+      identifier: NOT_IN_SNAPSHOT_RULE
+      documentation_url: https://docs.aws.amazon.com/config/latest/developerguide/foo.html
+    condition:
+      description: ok
+      logic: "true"   # too trivial -> warning
+    remediation:
+      summary: ok
+    references:
+      - title: ref
+        url: https://docs.aws.amazon.com/foo
+    test_cases:
+      - name: t
+        expected: COMPLIANT
+    provenance:
+      severity: third-party-prowler   # rejected under strict-aws-official
+      condition.logic: manual-model-synthesised  # rejected unless --allow-model-synthesis

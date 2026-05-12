@@ -6,6 +6,7 @@ color: green
 skills:
   - tf-research
 tools:
+  - Skill
   - Read
   - Write
   - Bash

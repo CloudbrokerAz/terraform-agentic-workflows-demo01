@@ -40,12 +40,12 @@ while [ "$#" -gt 0 ]; do
         --workflow)
             shift
             if [ "$#" -eq 0 ] || [[ "$1" == --* ]]; then
-                echo 'Error: --workflow requires a value (module, provider, consumer)' >&2
+                echo 'Error: --workflow requires a value (module, provider, consumer, policy)' >&2
                 exit 1
             fi
             case "$1" in
-                module|provider|consumer) WORKFLOW_TYPE="$1" ;;
-                *) echo "Error: --workflow must be one of: module, provider, consumer" >&2; exit 1 ;;
+                module|provider|consumer|policy) WORKFLOW_TYPE="$1" ;;
+                *) echo "Error: --workflow must be one of: module, provider, consumer, policy" >&2; exit 1 ;;
             esac
             ;;
         --help|-h)
@@ -56,7 +56,7 @@ while [ "$#" -gt 0 ]; do
             echo "  --short-name <name> Provide a custom short name (2-4 words) for the branch"
             echo "  --number N          Specify branch number manually (overrides auto-detection)"
             echo "  --issue N           Use GitHub issue number as the branch number"
-            echo "  --workflow TYPE     Workflow type: module (default), provider, consumer"
+            echo "  --workflow TYPE     Workflow type: module (default), provider, consumer, policy"
             echo "  --help, -h          Show this help message"
             echo ""
             echo "Creates:"
@@ -354,6 +354,10 @@ case "$WORKFLOW_TYPE" in
     consumer)
         TEMPLATE="$REPO_ROOT/.foundations/templates/consumer-design-template.md"
         DESIGN_FILE="$FEATURE_DIR/consumer-design.md"
+        ;;
+    policy)
+        TEMPLATE="$REPO_ROOT/.foundations/templates/policy-design-template.md"
+        DESIGN_FILE="$FEATURE_DIR/policy-design.md"
         ;;
 esac
 if [ -f "$TEMPLATE" ]; then cp "$TEMPLATE" "$DESIGN_FILE"; else touch "$DESIGN_FILE"; fi

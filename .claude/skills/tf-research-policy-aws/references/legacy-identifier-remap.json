@@ -1,0 +1,11 @@
+{
+  "_comment": "Maps legacy AWS Config managed-rule SourceIdentifier values to their canonical forms. AWS has renamed several rules over time but older conformance pack templates still reference the legacy identifier; without this remap, validate_yaml.py rejects these as 'not in managed-rules.txt'. Refresh: run scripts/refresh_managed_rules.py, then diff every conformance pack's SourceIdentifier against the snapshot and add a remap entry for each unmapped identifier where AWS publishes the canonical form in the Config developer guide.",
+  "_provenance": "manual-human (curated from AWS Config developer guide rename history)",
+  "_format": "legacy-screaming-snake -> canonical-screaming-snake",
+  "CLOUD_TRAIL_ENABLED": "CLOUDTRAIL_ENABLED",
+  "MULTI_REGION_CLOUD_TRAIL_ENABLED": "MULTI_REGION_CLOUDTRAIL_ENABLED",
+  "INCOMING_SSH_DISABLED": "RESTRICTED_SSH",
+  "INSTANCES_IN_VPC": "EC2_INSTANCES_IN_VPC",
+  "RESTRICTED_INCOMING_TRAFFIC": "RESTRICTED_COMMON_PORTS",
+  "EC2_INSTANCE_MANAGED_BY_SSM": "EC2_INSTANCE_MANAGED_BY_SYSTEMS_MANAGER"
+}

@@ -6,6 +6,7 @@ color: blue
 skills:
   - provider-resources
 tools:
+  - Skill
   - Read
   - Write
   - Edit

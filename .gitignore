@@ -52,3 +52,9 @@ notes-during-refactoring/
 
 # Sync skill (root-only, not synced to downstream fork)
 .claude/skills/sync-downstream/
+# eval workspace
+.claude/skills/tf-research-policy-aws-workspace
+
+# Python bytecode
+__pycache__/
+*.pyc

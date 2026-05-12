@@ -6,6 +6,7 @@ color: purple
 skills:
   - tf-judge-criteria
 tools:
+  - Skill
   - Read
   - Write
   - Edit

@@ -24,7 +24,7 @@
 
 ## Context
 
-This repository is a **Terraform development template** using **SDD** (Spec-Driven Development, 4-phase workflow). It supports three workflows: **module authoring** (raw resources with secure defaults), **provider development** (Plugin Framework resources), and **consumer provisioning** (composing infrastructure from private registry modules). All workflows share the same 4-phase structure: Clarify, Design, Implement, Validate.
+This repository is a **Terraform development template** using **SDD** (Spec-Driven Development, 4-phase workflow). It supports four workflows: **module authoring** (raw resources with secure defaults), **provider development** (Plugin Framework resources), **consumer provisioning** (composing infrastructure from private registry modules), and **policy development** (tfpolicy policy-as-code for HCP Terraform). All workflows share the same 4-phase structure: Clarify, Design, Implement, Validate.
 
 
 ## Shell Safety
@@ -48,6 +48,7 @@ Use simple `"$VAR"` quoting and explicit conditionals instead of parameter expan
 | `/tf-provider-implement` | Implementation only — starts from an existing provider `design.md`                    |
 | `/tf-consumer-plan`      | Full 4-phase workflow for consumer provisioning: Clarify, Design, Implement, Validate |
 | `/tf-consumer-implement` | Implementation only — starts from an existing `consumer-design.md`                    |
+| `/tf-policy-plan`        | SDD Phases 1-2 for policy development: Clarify, Design — stops for approval           |
 
 ## Constitutions
 
@@ -56,6 +57,7 @@ Non-negotiable rules for all code generation live in the constitutions. Read the
 - **Module constitution**: `.foundations/memory/module-constitution.md`
 - **Provider constitution**: `.foundations/memory/provider-constitution.md`
 - **Consumer constitution**: `.foundations/memory/consumer-constitution.md`
+- **Policy constitution**: `.foundations/memory/policy-constitution.md`
 
 ## Design Templates
 
@@ -64,6 +66,7 @@ When creating design documents, use the canonical template for the relevant work
 - **Module design**: `.foundations/templates/module-design-template.md`
 - **Provider design**: `.foundations/templates/provider-design-template.md`
 - **Consumer design**: `.foundations/templates/consumer-design-template.md`
+- **Policy design**: `.foundations/templates/policy-design-template.md`
 
 ## Gotchas
 
@@ -84,7 +87,7 @@ When you discover new information that would be helpful for future development w
 
 ## Context Management
 
-These rules apply to ALL three workflows. Replace `{workflow}` with `module`, `provider`, or `consumer` as appropriate.
+These rules apply to ALL four workflows. Replace `{workflow}` with `module`, `provider`, `consumer`, or `policy` as appropriate.
 
 1. **NEVER call TaskOutput** to read subagent results. ALL agents — including research agents — write artifacts to disk. The orchestrator verifies expected files exist after each dispatch.
 2. **Verify file existence with Glob** after each agent completes — do NOT read file contents into the orchestrator.

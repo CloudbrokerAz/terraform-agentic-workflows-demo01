@@ -8,6 +8,7 @@ skills:
   - tf-runtask
   - tf-report-template
 tools:
+  - Skill
   - Read
   - Write
   - Edit

@@ -7,6 +7,7 @@ skills:
   - tf-architecture-patterns
   - tf-security-baselines
 tools:
+  - Skill
   - Read
   - Write
   - Edit
