@@ -4,6 +4,7 @@ description: Investigate cloud service APIs, Terraform Plugin Framework patterns
 model: opus
 color: green
 tools:
+  - Skill
   - Read
   - Write
   - Bash

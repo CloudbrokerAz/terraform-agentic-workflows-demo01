@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Mini conformance pack fixture for parse_conformance_pack tests. Covers:
+    - a normal managed rule
+    - a legacy identifier (CLOUD_TRAIL_ENABLED -> CLOUDTRAIL_ENABLED)
+    - a process-check rule (AWS_CONFIG_PROCESS_CHECK)
+    - a legacy CFN type (AWS::ACM::Certificate -> AWS::CertificateManager::Certificate)
+Resources:
+  S3BucketSseEnabled:
+    Type: AWS::Config::ConfigRule
+    Properties:
+      ConfigRuleName: s3-bucket-server-side-encryption-enabled
+      Description: Checks that S3 buckets have default encryption configured.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_SERVER_SIDE_ENCRYPTION_ENABLED
+      Scope:
+        ComplianceResourceTypes:
+          - AWS::S3::Bucket
+
+  CloudTrailEnabledLegacy:
+    Type: AWS::Config::ConfigRule
+    Properties:
+      ConfigRuleName: cloud-trail-enabled
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_ENABLED
+
+  AcmExpiringLegacyType:
+    Type: AWS::Config::ConfigRule
+    Properties:
+      ConfigRuleName: acm-certificate-expiration-check
+      Source:
+        Owner: AWS
+        SourceIdentifier: ACM_CERTIFICATE_EXPIRATION_CHECK
+      Scope:
+        ComplianceResourceTypes:
+          - AWS::ACM::Certificate
+
+  ProcessCheckExample:
+    Type: AWS::Config::ConfigRule
+    Properties:
+      ConfigRuleName: example-process-check
+      Description: Procedural attestation; no automated evaluation.
+      Source:
+        Owner: AWS
+        SourceIdentifier: AWS_CONFIG_PROCESS_CHECK

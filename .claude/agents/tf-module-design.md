@@ -8,6 +8,7 @@ skills:
   - tf-security-baselines
   - terraform-test
 tools:
+  - Skill
   - Read
   - Write
   - Edit

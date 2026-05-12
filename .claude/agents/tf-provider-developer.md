@@ -8,6 +8,7 @@ skills:
   - provider-actions
   - provider-test-patterns
 tools:
+  - Skill
   - Read
   - Write
   - Edit

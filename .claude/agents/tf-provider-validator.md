@@ -7,6 +7,7 @@ skills:
   - provider-resources
   - provider-run-acceptance-tests
 tools:
+  - Skill
   - Read
   - Write
   - Edit

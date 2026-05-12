@@ -6,6 +6,7 @@ color: yellow
 skills:
   - provider-test-patterns
 tools:
+  - Skill
   - Read
   - Write
   - Edit

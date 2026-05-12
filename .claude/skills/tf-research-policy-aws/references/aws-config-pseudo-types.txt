@@ -1,0 +1,31 @@
+# AWS Config pseudo resource types
+# Refreshed: 2026-05-08
+# Source: AWS Config developer guide ComplianceResourceTypes documentation
+# Format: one AWS::Service::Resource per line; '#' lines are comments.
+#
+# These are synthetic identifiers AWS Config uses for rules that operate at
+# account/region/service-config scope rather than against a discrete CFN
+# resource. They appear in conformance pack ComplianceResourceTypes lists.
+# validate_yaml.py accepts these verbatim instead of rejecting them as
+# malformed CFN types.
+
+AWS::::Account
+AWS::IAM::AccountPasswordPolicy
+AWS::S3::AccountPublicAccessBlock
+AWS::EC2::Snapshot
+AWS::RDS::DBSnapshot
+AWS::RDS::DBClusterSnapshot
+AWS::Backup::RecoveryPoint
+AWS::SSM::AssociationCompliance
+AWS::SSM::PatchCompliance
+AWS::Config::ResourceCompliance
+AWS::Config::ConformancePackCompliance
+AWS::ApiGateway::Stage
+AWS::ApiGatewayV2::Stage
+AWS::Athena::WorkGroup
+AWS::EKS::FargateProfile
+AWS::AppMesh::Mesh
+AWS::AppRunner::Service
+AWS::SSM::ManagedInstanceInventory
+AWS::WAF::RuleGroup
+AWS::WAFRegional::RuleGroup

@@ -1,0 +1,39 @@
+{
+  "standard": {
+    "name": "CIS AWS Foundations Benchmark v3.0.0",
+    "arn": "arn:aws:securityhub:us-east-1::standards/cis-aws-foundations-benchmark/v/3.0.0",
+    "description": "Subscribed-mode fixture",
+    "mode": "subscribed"
+  },
+  "fetched_at": "2026-05-08T00:00:00Z",
+  "controls": [
+    {
+      "control_id": "S3.2",
+      "title": "S3 buckets must not allow public read access",
+      "description": "This control checks whether S3 buckets allow public read access. The control requires the s3-bucket-public-read-prohibited rule to evaluate as compliant.",
+      "severity": "HIGH",
+      "remediation_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html#s3-2",
+      "related_requirements": [
+        "NIST.800-53.r5 AC-3",
+        "PCI DSS v4.0 1.2.1",
+        "CIS AWS Foundations Benchmark v3.0.0/2.1.5.1"
+      ],
+      "current_region_availability": "AVAILABLE",
+      "control_status": "ENABLED"
+    },
+    {
+      "control_id": "S3.4",
+      "title": "S3 buckets must have server-side encryption enabled",
+      "description": "Per the s3-bucket-server-side-encryption-enabled rule, every S3 bucket must have a default encryption configuration.",
+      "severity": "MEDIUM",
+      "remediation_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html#s3-4",
+      "related_requirements": [
+        "NIST.800-53.r5 SC-28",
+        "PCI DSS v4.0 3.5.1",
+        "CIS AWS Foundations Benchmark v3.0.0/2.1.1"
+      ],
+      "current_region_availability": "AVAILABLE",
+      "control_status": "ENABLED"
+    }
+  ]
+}

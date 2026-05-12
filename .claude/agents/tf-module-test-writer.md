@@ -6,6 +6,7 @@ color: green
 skills:
   - terraform-test
 tools:
+  - Skill
   - Read
   - Write
   - Edit

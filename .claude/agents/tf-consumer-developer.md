@@ -6,6 +6,7 @@ color: orange
 skills:
   - terraform-style-guide
 tools:
+  - Skill
   - Read
   - Write
   - Edit

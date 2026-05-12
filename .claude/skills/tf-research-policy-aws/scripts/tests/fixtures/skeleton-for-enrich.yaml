@@ -1,0 +1,68 @@
+# Tiny skeleton produced by parse_conformance_pack-style output. Used to test
+# enrich_yaml against subscribed and unsubscribed SH controls fixtures.
+metadata:
+  framework:
+    name: CIS AWS Foundations Benchmark
+    version: "3.0.0"
+  source: https://docs.aws.amazon.com/securityhub/latest/userguide/cis-aws-foundations-benchmark.html
+  generated_by: tf-research-policy-aws
+  generated_at: "2026-05-08"
+
+rules:
+  - id: s3-bucket-public-read-prohibited
+    title: "TODO: imperative title"
+    framework_control:
+      id: "TODO: framework control id"
+      requirement: "TODO: verbatim requirement"
+    severity: "TODO: severity"
+    service: s3
+    resource_types:
+      - AWS::S3::Bucket
+    source:
+      type: aws-config-managed-rule
+      identifier: S3_BUCKET_PUBLIC_READ_PROHIBITED
+      documentation_url: https://docs.aws.amazon.com/config/latest/developerguide/s3-bucket-public-read-prohibited.html
+      parameters: {}
+    condition:
+      description: ok
+      logic: "TODO: logic"
+    remediation:
+      summary: "TODO: summary"
+    references:
+      - title: AWS Config managed rule
+        url: https://docs.aws.amazon.com/config/latest/developerguide/s3-bucket-public-read-prohibited.html
+    test_cases:
+      - name: t
+        expected: COMPLIANT
+    provenance:
+      framework_control.id: aws-conformance-pack
+      source.identifier: aws-conformance-pack
+
+  - id: s3-bucket-server-side-encryption-enabled
+    title: "TODO: imperative title"
+    framework_control:
+      id: "TODO: framework control id"
+      requirement: "TODO: verbatim requirement"
+    severity: "TODO: severity"
+    service: s3
+    resource_types:
+      - AWS::S3::Bucket
+    source:
+      type: aws-config-managed-rule
+      identifier: S3_BUCKET_SERVER_SIDE_ENCRYPTION_ENABLED
+      documentation_url: https://docs.aws.amazon.com/config/latest/developerguide/s3-bucket-server-side-encryption-enabled.html
+      parameters: {}
+    condition:
+      description: ok
+      logic: "TODO: logic"
+    remediation:
+      summary: "TODO: summary"
+    references:
+      - title: AWS Config managed rule
+        url: https://docs.aws.amazon.com/config/latest/developerguide/s3-bucket-server-side-encryption-enabled.html
+    test_cases:
+      - name: t
+        expected: COMPLIANT
+    provenance:
+      framework_control.id: aws-conformance-pack
+      source.identifier: aws-conformance-pack

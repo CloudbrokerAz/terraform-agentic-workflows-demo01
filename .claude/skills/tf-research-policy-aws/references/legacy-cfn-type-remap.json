@@ -1,0 +1,8 @@
+{
+  "_comment": "Maps legacy CloudFormation resource type names to current names. Conformance packs occasionally ship CFN types AWS has since renamed (notably the OpenSearch/Elasticsearch transition and the AWS::ACM -> AWS::CertificateManager namespace move). Without this remap, validate_yaml.py rejects these as 'not in cfn-resource-types.txt'.",
+  "_provenance": "manual-human",
+  "_format": "legacy AWS::Service::Resource -> canonical AWS::Service::Resource",
+  "AWS::ACM::Certificate": "AWS::CertificateManager::Certificate",
+  "AWS::OpenSearch::Domain": "AWS::OpenSearchService::Domain",
+  "AWS::Elasticsearch::Domain": "AWS::OpenSearchService::Domain"
+}

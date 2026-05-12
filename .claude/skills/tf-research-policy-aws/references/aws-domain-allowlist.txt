@@ -1,0 +1,19 @@
+# AWS-official domain allowlist for URL provenance
+# Refreshed: 2026-05-08
+# Source: hand-curated AWS-owned domains
+# Format: one host suffix per line; '#' lines are comments.
+#
+# When validate_yaml.py runs with --strict-aws-official, every URL in
+# metadata.source and rules[].references[].url must end with one of these
+# hostnames. Add an entry only for AWS-owned content (docs, marketing pages,
+# AWS-org GitHub repos).
+
+docs.aws.amazon.com
+aws.amazon.com
+github.com/awslabs
+github.com/aws-cloudformation
+github.com/aws
+github.com/amazon-archives
+raw.githubusercontent.com/awslabs
+raw.githubusercontent.com/aws-cloudformation
+raw.githubusercontent.com/aws
