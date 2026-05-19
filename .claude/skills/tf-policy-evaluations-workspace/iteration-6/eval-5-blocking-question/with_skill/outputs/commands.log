@@ -1,0 +1,48 @@
+$ tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages -f 'include=policy-evaluations,run' --jq '{
+  run: (.included[]? | select(.type=="runs") | .attributes | {status, trigger: ."trigger-reason"}),
+  stages: [.data[] | {id, stage: .attributes.stage, status: .attributes.status,
+    pe_ids: [.relationships."policy-evaluations".data[]?.id]}],
+  evaluations: [.included[]? | select(.type=="policy-evaluations") | .attributes as $a | {
+    id: .id, kind: $a."policy-kind", status: $a.status, counts: $a."result-count"}]
+}'
+{
+  "evaluations": [
+    {
+      "counts": {
+        "advisory-failed": 26,
+        "errored": 0,
+        "mandatory-failed": 0,
+        "passed": 291
+      },
+      "id": "poleval-qvaFSNdUdasiLqfU",
+      "kind": "sentinel",
+      "status": "passed"
+    }
+  ],
+  "run": {
+    "status": "applied",
+    "trigger": "manual"
+  },
+  "stages": [
+    {
+      "id": "ts-rEt6yNBSjhxDpKMU",
+      "pe_ids": [
+        "poleval-qvaFSNdUdasiLqfU"
+      ],
+      "stage": "post_plan",
+      "status": "passed"
+    }
+  ]
+}
+
+$ tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '.data[] | .attributes as $a | {
+  policy_set: $a."policy-set-name",
+  tool_version: $a."policy-tool-version",
+  overridable: $a.overridable,
+  error: $a.error,
+  counts: $a."result-count",
+  failed: [($a.outcomes // [])[] | select(.status != "passed") | {
+    name: .policy_name, enforcement: .enforcement_level, status: .status
+  }]
+}'
+(see response.md tables; 3 policy sets: CIS (7 advisory-failed), FSBP (19 advisory-failed), hashicorp-sentinel-require-pmr (all passed))

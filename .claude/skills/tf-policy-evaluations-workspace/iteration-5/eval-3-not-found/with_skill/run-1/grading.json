@@ -1,0 +1,12 @@
+{
+  "summary": {"pass_rate": 1.0, "passed": 7, "failed": 0, "total": 7},
+  "expectations": [
+    {"text": "tfctl was called with the invalid run ID run-NONEXISTENT12345", "passed": true, "evidence": "commands.log: tfctl api /runs/run-NONEXISTENT12345 ..."},
+    {"text": "The output clearly communicates that the run was not found or an error occurred", "passed": true, "evidence": "Response line 1: 'Run: run-NONEXISTENT12345 — not found.'"},
+    {"text": "The error message includes the specific run ID 'run-NONEXISTENT12345'", "passed": true, "evidence": "Run ID appears in both header line and tfctl invocation line of response"},
+    {"text": "The response stops at the first failed API call — no follow-up calls to /task-stages or /policy-evaluations are attempted with this invalid ID", "passed": true, "evidence": "commands.log only contains a single /runs/run-NONEXISTENT12345 API call (EXIT: 2)"},
+    {"text": "No fabricated policy evaluations, policy-sets, or outcomes are shown in the response", "passed": true, "evidence": "Response contains no policy tables — only error explanation and recovery suggestions"},
+    {"text": "The response surfaces the actual error wording from tfctl/stderr (e.g. 'Resource not found', 'unauthorized') rather than a generic 'an error occurred' message", "passed": true, "evidence": "Response includes verbatim tfctl error: 'Resource not found or you are unauthorized to this action. Check your account permissions.'"},
+    {"text": "The response offers at least one concrete recovery suggestion (verify the run ID, check active profile, or run tfctl profile display) rather than just reporting failure", "passed": true, "evidence": "Response suggests: 'Verify the run ID, then check the active profile with tfctl auth info (or re-initialise with tfctl profile init) and retry.'"}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "summary": {"pass_rate": 1.0, "passed": 6, "failed": 0, "total": 6},
+  "expectations": [
+    {"text": "The response correctly states that the run was NOT blocked by policies — it applied successfully", "passed": true, "evidence": "Line 1 trails with 'no policies blocked this run'; line 4: 'No policies blocked `run-iURWDL3wVxzefsjo` from applying. The run reached `applied` status.'"},
+    {"text": "The mandatory-failed count is identified as zero", "passed": true, "evidence": "Line 1 'Mandatory-failed: 0'; line 6 '**Mandatory (hard-mandatory) failures**: none'."},
+    {"text": "The response distinguishes between 'advisory failed' (warns only) and 'mandatory failed' (blocks) and/or 'soft-mandatory overridable' (human can override)", "passed": true, "evidence": "Lines 6-8 explicitly enumerate Mandatory, Soft-mandatory overridable, and Errored; advisory failures described as 'informational, non-blocking' (lines 17, 20)."},
+    {"text": "No policy is incorrectly labelled as 'mandatory' or 'errored' — the actual data shows only advisory failures", "passed": true, "evidence": "All advisory failures labelled enforcement=advisory; mandatory and errored counts stated as 0/none."},
+    {"text": "The response does not false-positive about mandatory/errored/overridable statuses that aren't present in the data", "passed": true, "evidence": "Each non-present category is explicitly listed as 'none' rather than fabricated; counts match commands.log totals (0/0/0)."},
+    {"text": "Run lifecycle is referenced (the run was applied) to support the 'did not block' conclusion", "passed": true, "evidence": "Line 2 'status `applied`'; line 4 'The run reached `applied` status'."}
+  ]
+}

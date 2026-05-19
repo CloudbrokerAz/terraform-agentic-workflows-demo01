@@ -1,0 +1,15 @@
+$ RUN_ID=$(echo "run-NONEXISTENT12345" | grep -oE 'run-[A-Za-z0-9]+' | head -1); echo "RUN_ID=$RUN_ID"
+RUN_ID=run-NONEXISTENT12345
+
+$ /Users/simon.lynch/go/bin/tfctl api /runs/run-NONEXISTENT12345/task-stages -f 'include=policy-evaluations,run' --jq '{
+  run: (.included[]? | select(.type=="runs") | .attributes | {status, trigger: ."trigger-reason"}),
+  stages: [.data[] | {id, stage: .attributes.stage, status: .attributes.status,
+    pe_ids: [.relationships."policy-evaluations".data[]?.id]}],
+  evaluations: [.included[]? | select(.type=="policy-evaluations") | .attributes as $a | {
+    id: .id, kind: $a."policy-kind", status: $a.status, counts: $a."result-count"}]
+}'
+ERROR: Resource not found or you are unauthorized to this action. Check your account permissions.
+
+  $ tfctl auth info
+
+(exit code 2)

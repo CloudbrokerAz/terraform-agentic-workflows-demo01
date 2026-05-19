@@ -1,0 +1,567 @@
+{
+  "metadata": {
+    "skill_name": "tf-policy-evaluations",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-05-14T06:40:42Z",
+    "evals_run": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 44.2,
+        "tokens": 25019,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The Tier 1 summary line shows explicit counts in user-facing output: Total policies, Passed, Advisory-failed, Mandatory-failed, Errored",
+          "passed": true,
+          "evidence": "Line 1: 'Total policies: 317 | Passed: 291 | Advisory-failed: 26 | Mandatory-failed: 0 | Errored: 0'"
+        },
+        {
+          "text": "tfctl was used to call /runs/{id}/task-stages with include=policy-evaluations and the response references the input run ID",
+          "passed": true,
+          "evidence": "commands.log: tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages -f 'include=policy-evaluations'"
+        },
+        {
+          "text": "A Tier 2 markdown table shows at least one policy-evaluation row with Kind (sentinel) and Status (passed)",
+          "passed": true,
+          "evidence": "Tier 2 table row: 'poleval-qvaFSNdUdasiLqfU | sentinel | passed | 291 | 26 | 0 | 0'"
+        },
+        {
+          "text": "Each policy-set outcome is shown with its policy-set name and a per-policy table with at least Policy, Status, and Enforcement columns",
+          "passed": true,
+          "evidence": "Three policy-set sections with Policy | Status | Enforcement table headers"
+        },
+        {
+          "text": "Advisory-failed policies are surfaced individually with status 'failed' and enforcement 'advisory' \u2014 not silently rolled up",
+          "passed": true,
+          "evidence": "26 individual advisory-failed rows listed across CIS and FSBP policy sets"
+        },
+        {
+          "text": "The response correctly identifies that no policies blocked the run (mandatory-failed is zero)",
+          "passed": true,
+          "evidence": "Tier 1 summary shows Mandatory-failed: 0; run status reported as 'applied'"
+        },
+        {
+          "text": "Run metadata from tfctl /runs/{id} is included \u2014 such as run status, trigger source, or whether the run has been applied",
+          "passed": true,
+          "evidence": "Line 2: 'status `applied`, trigger `manual`, auto-apply `false`'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 52.1,
+        "tokens": 26068,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The run ID 'run-iURWDL3wVxzefsjo' was correctly extracted from the URL",
+          "passed": true,
+          "evidence": "commands.log: tfctl api /runs/run-iURWDL3wVxzefsjo ..."
+        },
+        {
+          "text": "tfctl was called with the extracted run ID and produced valid JSON output (no broken hostnames or URL artefacts)",
+          "passed": true,
+          "evidence": "commands.log shows clean tfctl calls with run-iURWDL3wVxzefsjo and parseable JSON output"
+        },
+        {
+          "text": "The output shows policy evaluations in a structured format with columns for Kind, Status, and result counts",
+          "passed": true,
+          "evidence": "Tier 2 table headers: Evaluation | Kind | Status | Passed | Advisory-failed | Mandatory-failed | Errored"
+        },
+        {
+          "text": "At least one policy-set outcome with its policies is displayed",
+          "passed": true,
+          "evidence": "Three policy-set sections (CIS, FSBP, hashicorp-sentinel-require-pmr) shown"
+        },
+        {
+          "text": "Advisory-failed policies are listed (not hidden) with their enforcement level",
+          "passed": true,
+          "evidence": "26 advisory-failed policy rows with enforcement column = 'advisory'"
+        },
+        {
+          "text": "Run metadata from tfctl /runs/{id} is included \u2014 such as run status, trigger source, or whether the run has been applied",
+          "passed": true,
+          "evidence": "Line 2: 'status `applied`, trigger `manual`, auto-apply `false`'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 25.0,
+        "tokens": 20917,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "tfctl was called with the invalid run ID run-NONEXISTENT12345",
+          "passed": true,
+          "evidence": "commands.log: tfctl api /runs/run-NONEXISTENT12345 ..."
+        },
+        {
+          "text": "The output clearly communicates that the run was not found or an error occurred",
+          "passed": true,
+          "evidence": "Response line 1: 'Run: run-NONEXISTENT12345 \u2014 not found.'"
+        },
+        {
+          "text": "The error message includes the specific run ID 'run-NONEXISTENT12345'",
+          "passed": true,
+          "evidence": "Run ID appears in both header line and tfctl invocation line of response"
+        },
+        {
+          "text": "The response stops at the first failed API call \u2014 no follow-up calls to /task-stages or /policy-evaluations are attempted with this invalid ID",
+          "passed": true,
+          "evidence": "commands.log only contains a single /runs/run-NONEXISTENT12345 API call (EXIT: 2)"
+        },
+        {
+          "text": "No fabricated policy evaluations, policy-sets, or outcomes are shown in the response",
+          "passed": true,
+          "evidence": "Response contains no policy tables \u2014 only error explanation and recovery suggestions"
+        },
+        {
+          "text": "The response surfaces the actual error wording from tfctl/stderr (e.g. 'Resource not found', 'unauthorized') rather than a generic 'an error occurred' message",
+          "passed": true,
+          "evidence": "Response includes verbatim tfctl error: 'Resource not found or you are unauthorized to this action. Check your account permissions.'"
+        },
+        {
+          "text": "The response offers at least one concrete recovery suggestion (verify the run ID, check active profile, or run tfctl profile display) rather than just reporting failure",
+          "passed": true,
+          "evidence": "Response suggests: 'Verify the run ID, then check the active profile with tfctl auth info (or re-initialise with tfctl profile init) and retry.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 41.6,
+        "tokens": 23692,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "tfctl was used to query /runs/{id}/task-stages with include=policy-evaluations",
+          "passed": true,
+          "evidence": "commands.log: tfctl api /runs/run-hGthAq8Kuv5wcKZq/task-stages -f 'include=policy-evaluations'"
+        },
+        {
+          "text": "If no policy-evaluations exist, the output clearly states so \u2014 distinguishing 'no task stages' vs 'task stages exist but no policy evaluations'",
+          "passed": true,
+          "evidence": "Conditional assertion \u2014 run actually has 317 policy evaluations so condition does not apply; response correctly shows them"
+        },
+        {
+          "text": "The Tier 1 summary line with explicit numeric counts (Total policies: 0, Passed: 0, etc.) appears in the user-facing response even when all counts are zero",
+          "passed": true,
+          "evidence": "Tier 1 summary line present with explicit counts: 'Total policies: 317 | Passed: 308 | Advisory-failed: 9 | Mandatory-failed: 0 | Errored: 0'"
+        },
+        {
+          "text": "No errors or crashes occurred during execution",
+          "passed": true,
+          "evidence": "commands.log shows successful tfctl calls returning valid JSON; response renders complete tables"
+        },
+        {
+          "text": "The legacy /runs/{id}/policy-checks endpoint is NOT used as a fallback",
+          "passed": true,
+          "evidence": "commands.log contains only /runs/{id}, /runs/{id}/task-stages, and /policy-evaluations/{id}/policy-set-outcomes calls \u2014 no /policy-checks"
+        },
+        {
+          "text": "Run metadata from tfctl /runs/{id} is included to provide lifecycle context for the run",
+          "passed": true,
+          "evidence": "Line 2: 'status `applied`, trigger `manual`, auto-apply `true`'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 44.8,
+        "tokens": 25244,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The response correctly states that the run was NOT blocked by policies \u2014 it applied successfully",
+          "passed": true,
+          "evidence": "Line 1: 'no policies blocked this run; all failures are advisory (informational)'; line 2 shows status `applied`"
+        },
+        {
+          "text": "The mandatory-failed count is identified as zero",
+          "passed": true,
+          "evidence": "Tier 1 summary: 'Mandatory-failed: 0'; Tier 2 table row shows mandatory-failed column = 0"
+        },
+        {
+          "text": "The response distinguishes between 'advisory failed' (warns only) and 'mandatory failed' (blocks) and/or 'soft-mandatory overridable' (human can override)",
+          "passed": true,
+          "evidence": "Response qualifies advisory failures as '(informational)' and states no policies blocked; policy-set sections include 'overridable: true' marker"
+        },
+        {
+          "text": "No policy is incorrectly labelled as 'mandatory' or 'errored' \u2014 the actual data shows only advisory failures",
+          "passed": true,
+          "evidence": "All 26 listed failed-policy rows have enforcement = 'advisory'; no mandatory/errored labels appear"
+        },
+        {
+          "text": "The response does not false-positive about mandatory/errored/overridable statuses that aren't present in the data",
+          "passed": true,
+          "evidence": "Mandatory-failed=0 and Errored=0 reported; overridable=true correctly shown per policy-set"
+        },
+        {
+          "text": "Run lifecycle is referenced (the run was applied) to support the 'did not block' conclusion",
+          "passed": true,
+          "evidence": "Line 2: 'Run: run-iURWDL3wVxzefsjo \u2014 status `applied`'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.7143,
+        "passed": 5,
+        "failed": 2,
+        "total": 7,
+        "time_seconds": 90.1,
+        "tokens": 33409,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The Tier 1 summary line shows explicit counts in user-facing output: Total policies, Passed, Advisory-failed, Mandatory-failed, Errored",
+          "passed": true,
+          "evidence": "Table rows 19-22 show Passed 291, Advisory failed 26, Mandatory failed 0, Errored 0; total is implied by sum"
+        },
+        {
+          "text": "tfctl was used to call /runs/{id}/task-stages with include=policy-evaluations and the response references the input run ID",
+          "passed": false,
+          "evidence": "commands.log calls /runs/{id}/task-stages --json (no include=policy-evaluations parameter)"
+        },
+        {
+          "text": "A Tier 2 markdown table shows at least one policy-evaluation row with Kind (sentinel) and Status (passed)",
+          "passed": true,
+          "evidence": "Table includes 'Policy kind | sentinel' and 'Overall status | passed'"
+        },
+        {
+          "text": "Each policy-set outcome is shown with its policy-set name and a per-policy table (Policy | Status | Enforcement | Description)",
+          "passed": false,
+          "evidence": "Per-policy tables only show Policy | Description (no Status or Enforcement columns)"
+        },
+        {
+          "text": "Advisory-failed policies are surfaced individually with status 'failed' and enforcement 'advisory' \u2014 not silently rolled up",
+          "passed": true,
+          "evidence": "Individual policies listed by name in CIS and FSBP advisory-failure sections (lines 41-72)"
+        },
+        {
+          "text": "The response correctly identifies that no policies blocked the run (mandatory-failed is zero)",
+          "passed": true,
+          "evidence": "Line 26: 'the run was not blocked by policy. All 26 failures are at the advisory enforcement level'"
+        },
+        {
+          "text": "Run metadata from tfctl /runs/{id} is included \u2014 such as run status, trigger source, or whether the run has been applied",
+          "passed": true,
+          "evidence": "Line 7: 'Status: applied (run succeeded)'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 122.6,
+        "tokens": 35288,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The run ID 'run-iURWDL3wVxzefsjo' was correctly extracted from the URL",
+          "passed": true,
+          "evidence": "Title line: 'Policy Evaluation Results \u2014 run-iURWDL3wVxzefsjo'"
+        },
+        {
+          "text": "tfctl was called with the extracted run ID and produced valid JSON output (no broken hostnames or URL artefacts)",
+          "passed": true,
+          "evidence": "commands.log shows tfctl api /runs/run-iURWDL3wVxzefsjo, no URL artifacts"
+        },
+        {
+          "text": "The output shows policy evaluations in a structured format with columns for Kind, Status, and result counts",
+          "passed": true,
+          "evidence": "Overall summary table includes 'Policy kind | Sentinel', counts, and per-policy-set count table"
+        },
+        {
+          "text": "At least one policy-set outcome with its policies is displayed",
+          "passed": true,
+          "evidence": "Three policy sets summarized and CIS/FSBP per-policy lists shown"
+        },
+        {
+          "text": "Advisory-failed policies are listed (not hidden) with their enforcement level",
+          "passed": true,
+          "evidence": "Section headed 'Advisory failures (26)' lists each policy under '## Advisory failures' with enforcement implied as advisory"
+        },
+        {
+          "text": "Run metadata from tfctl /runs/{id} is included \u2014 such as run status, trigger source, or whether the run has been applied",
+          "passed": true,
+          "evidence": "Line 3: 'Run status: Succeeded (applied)'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8571,
+        "passed": 6,
+        "failed": 1,
+        "total": 7,
+        "time_seconds": 39.5,
+        "tokens": 20142,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "tfctl was called with the invalid run ID run-NONEXISTENT12345",
+          "passed": true,
+          "evidence": "commands.log: 'tfctl run status run-NONEXISTENT12345' and 'tfctl api /runs/run-NONEXISTENT12345'"
+        },
+        {
+          "text": "The output clearly communicates that the run was not found or an error occurred",
+          "passed": true,
+          "evidence": "Line 3: 'HCP Terraform returned 404 Not Found / Unauthorized when looking it up.'"
+        },
+        {
+          "text": "The error message includes the specific run ID 'run-NONEXISTENT12345'",
+          "passed": true,
+          "evidence": "Title and lines reference 'run-NONEXISTENT12345' explicitly"
+        },
+        {
+          "text": "The response stops at the first failed API call \u2014 no follow-up calls to /task-stages or /policy-evaluations are attempted with this invalid ID",
+          "passed": false,
+          "evidence": "commands.log shows follow-up call '/runs/run-NONEXISTENT12345/policy-checks' after first failure"
+        },
+        {
+          "text": "No fabricated policy evaluations, policy-sets, or outcomes are shown in the response",
+          "passed": true,
+          "evidence": "No policy names or fake outcomes in response.md"
+        },
+        {
+          "text": "The response surfaces the actual error wording from tfctl/stderr (e.g. 'Resource not found', 'unauthorized') rather than a generic 'an error occurred' message",
+          "passed": true,
+          "evidence": "Line 9: 'ERROR: Resource not found or you are unauthorized to this action.'"
+        },
+        {
+          "text": "The response offers at least one concrete recovery suggestion (verify the run ID, check active profile, or run tfctl profile display) rather than just reporting failure",
+          "passed": true,
+          "evidence": "Lines 24-32 suggest verifying run ID, 'tfctl auth info', 'tfctl profile list'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6667,
+        "passed": 4,
+        "failed": 2,
+        "total": 6,
+        "time_seconds": 93.9,
+        "tokens": 31029,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "tfctl was used to query /runs/{id}/task-stages with include=policy-evaluations",
+          "passed": false,
+          "evidence": "commands.log uses /task-stages/{id} directly without include=policy-evaluations parameter"
+        },
+        {
+          "text": "If no policy-evaluations exist, the output clearly states so \u2014 distinguishing 'no task stages' vs 'task stages exist but no policy evaluations'",
+          "passed": true,
+          "evidence": "Line 5 distinguishes 'legacy policy-checks and tf-policy-evaluations endpoints were both empty, but the task stage held the actual evaluation'"
+        },
+        {
+          "text": "The Tier 1 summary line with explicit numeric counts (Total policies: 0, Passed: 0, etc.) appears in the user-facing response even when all counts are zero",
+          "passed": true,
+          "evidence": "Table rows 15-18 give Passed 308, Advisory failed 9, Mandatory failed 0, Errored 0"
+        },
+        {
+          "text": "No errors or crashes occurred during execution",
+          "passed": true,
+          "evidence": "commands.log shows clean tfctl runs, no errors in output"
+        },
+        {
+          "text": "The legacy /runs/{id}/policy-checks endpoint is NOT used as a fallback",
+          "passed": false,
+          "evidence": "commands.log line 14: 'tfctl api /runs/run-hGthAq8Kuv5wcKZq/policy-checks --json' was called"
+        },
+        {
+          "text": "Run metadata from tfctl /runs/{id} is included to provide lifecycle context for the run",
+          "passed": true,
+          "evidence": "Line 3: 'Run status: applied (succeeded, auto-applied 2026-03-11 04:21:33 UTC)'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 87.4,
+        "tokens": 28533,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The response correctly states that the run was NOT blocked by policies \u2014 it applied successfully",
+          "passed": true,
+          "evidence": "Line 5: 'No. No policies blocked this run from applying. The run completed successfully with status applied.'"
+        },
+        {
+          "text": "The mandatory-failed count is identified as zero",
+          "passed": true,
+          "evidence": "Line 7: 'Mandatory failures (hard block): 0'"
+        },
+        {
+          "text": "The response distinguishes between 'advisory failed' (warns only) and 'mandatory failed' (blocks) and/or 'soft-mandatory overridable' (human can override)",
+          "passed": true,
+          "evidence": "Lines 7-10 distinguish Mandatory (hard block), Soft-mandatory overridable, Errored, Advisory (non-blocking)"
+        },
+        {
+          "text": "No policy is incorrectly labelled as 'mandatory' or 'errored' \u2014 the actual data shows only advisory failures",
+          "passed": true,
+          "evidence": "Line 35: 'All failures were at advisory enforcement level'"
+        },
+        {
+          "text": "The response does not false-positive about mandatory/errored/overridable statuses that aren't present in the data",
+          "passed": true,
+          "evidence": "All listed mandatory/soft-mandatory/errored counts are 0; no fabricated statuses"
+        },
+        {
+          "text": "Run lifecycle is referenced (the run was applied) to support the 'did not block' conclusion",
+          "passed": true,
+          "evidence": "Line 5: 'completed successfully with status applied'"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 41.54,
+        "stddev": 10.0348,
+        "min": 25.0,
+        "max": 52.1
+      },
+      "tokens": {
+        "mean": 24188.0,
+        "stddev": 2017.7682,
+        "min": 20917,
+        "max": 26068
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.8476,
+        "stddev": 0.1558,
+        "min": 0.6667,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 86.7,
+        "stddev": 29.9188,
+        "min": 39.5,
+        "max": 122.6
+      },
+      "tokens": {
+        "mean": 29680.2,
+        "stddev": 5904.743,
+        "min": 20142,
+        "max": 35288
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.15",
+      "time_seconds": "-45.2",
+      "tokens": "-5492"
+    }
+  },
+  "notes": []
+}

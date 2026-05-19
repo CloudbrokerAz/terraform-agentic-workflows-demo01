@@ -1,0 +1,32 @@
+# tfctl commands executed for run-iURWDL3wVxzefsjo policy evaluation lookup
+# Profile: active (hashi-demos-apj); workspace terraform-agentic-workflows-demo01
+
+tfctl --help
+tfctl run --help
+tfctl run status --help
+tfctl run status run-iURWDL3wVxzefsjo
+# -> "Run succeeded"
+
+tfctl api --help
+tfctl api schema --help
+tfctl api schema search policy
+tfctl api schema search "policy evaluation"
+
+# Inspect run relationships to find the task-stage (policy-checks was empty -> Sentinel runs under task-stages now)
+tfctl api /runs/run-iURWDL3wVxzefsjo --jq '.data.relationships'
+tfctl api /runs/run-iURWDL3wVxzefsjo --jq '.data.relationships."task-stages"'
+# -> task-stage id: ts-rEt6yNBSjhxDpKMU
+
+# List policy evaluations for the task stage
+tfctl api /task-stages/ts-rEt6yNBSjhxDpKMU/policy-evaluations
+tfctl api /task-stages/ts-rEt6yNBSjhxDpKMU/policy-evaluations --json
+# -> poleval-qvaFSNdUdasiLqfU (sentinel, passed: 291, advisory-failed: 26, mandatory-failed: 0)
+
+# Pull the per-policy-set outcomes (summary + failing policy names)
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --json
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes \
+  --jq '.data[] | {id: .id, policy_set: .attributes."policy-set-name", status: .attributes."result-count"}'
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes \
+  --jq '[.data[].attributes.outcomes[] | select(.status != "passed") | {policy: .policy_name, enforcement: .enforcement_level, status: .status, description: .description}]'
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes \
+  --jq '.data[] | {policy_set: .attributes."policy-set-name", failed: [.attributes.outcomes[] | select(.status != "passed") | .policy_name]}'

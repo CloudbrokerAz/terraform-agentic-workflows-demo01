@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "The run ID 'run-iURWDL3wVxzefsjo' was correctly extracted from the URL",
+      "passed": true,
+      "evidence": "Title line: 'Policy Evaluation Results \u2014 run-iURWDL3wVxzefsjo'"
+    },
+    {
+      "text": "tfctl was called with the extracted run ID and produced valid JSON output (no broken hostnames or URL artefacts)",
+      "passed": true,
+      "evidence": "commands.log shows tfctl api /runs/run-iURWDL3wVxzefsjo, no URL artifacts"
+    },
+    {
+      "text": "The output shows policy evaluations in a structured format with columns for Kind, Status, and result counts",
+      "passed": true,
+      "evidence": "Overall summary table includes 'Policy kind | Sentinel', counts, and per-policy-set count table"
+    },
+    {
+      "text": "At least one policy-set outcome with its policies is displayed",
+      "passed": true,
+      "evidence": "Three policy sets summarized and CIS/FSBP per-policy lists shown"
+    },
+    {
+      "text": "Advisory-failed policies are listed (not hidden) with their enforcement level",
+      "passed": true,
+      "evidence": "Section headed 'Advisory failures (26)' lists each policy under '## Advisory failures' with enforcement implied as advisory"
+    },
+    {
+      "text": "Run metadata from tfctl /runs/{id} is included \u2014 such as run status, trigger source, or whether the run has been applied",
+      "passed": true,
+      "evidence": "Line 3: 'Run status: Succeeded (applied)'"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 6,
+    "failed": 0,
+    "total": 6
+  }
+}

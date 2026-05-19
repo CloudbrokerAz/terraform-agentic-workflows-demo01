@@ -1,0 +1,14 @@
+{
+  "eval_id": 1,
+  "eval_name": "happy-path",
+  "prompt": "Check the policy evaluations for run-iURWDL3wVxzefsjo",
+  "assertions": [
+    "The Tier 1 summary line shows explicit counts in user-facing output: Total policies, Passed, Advisory-failed, Mandatory-failed, Errored",
+    "tfctl was used to call /runs/{id}/task-stages with include=policy-evaluations and the response references the input run ID",
+    "A Tier 2 markdown table shows at least one policy-evaluation row with Kind (sentinel) and Status (passed)",
+    "Each policy-set outcome is shown with its policy-set name and a per-policy table with at least Policy, Status, and Enforcement columns",
+    "Advisory-failed policies are surfaced individually with status 'failed' and enforcement 'advisory' — not silently rolled up",
+    "The response correctly identifies that no policies blocked the run (mandatory-failed is zero)",
+    "Run metadata from tfctl /runs/{id} is included — such as run status, trigger source, or whether the run has been applied"
+  ]
+}

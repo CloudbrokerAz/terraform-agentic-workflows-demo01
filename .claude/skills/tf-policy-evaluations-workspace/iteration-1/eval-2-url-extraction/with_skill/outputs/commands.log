@@ -1,0 +1,32 @@
+$ tfctl profile display
+name         = "hashi_demos_apj"
+organization = "hashi-demos-apj"
+hostname     = "app.terraform.io"
+token        = "(sensitive)"
+
+$ tfctl api /runs/run-iURWDL3wVxzefsjo --jq '.data.attributes | {status, trigger: ."trigger-reason", auto_apply: ."auto-apply"}'
+
+$ tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages -f 'include=policy-evaluations' --jq '{
+  stages: [.data[] | {id, stage: .attributes.stage, status: .attributes.status,
+    pe_ids: [.relationships."policy-evaluations".data[]?.id]}],
+  evaluations: [.included[]? | select(.type=="policy-evaluations") | .attributes as $a | {
+    id: .id, kind: $a."policy-kind", status: $a.status,
+    counts: $a."result-count"}]
+}'
+
+$ tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '.data[] | .attributes as $a | {
+  id: .id,
+  policy_set: $a."policy-set-name",
+  tool_version: $a."policy-tool-version",
+  overridable: $a.overridable,
+  error: $a.error,
+  counts: $a."result-count",
+  failed: [($a.outcomes // [])[] | select(.status != "passed") | {
+    name: .policy_name,
+    description: .description,
+    enforcement: .enforcement_level,
+    status: .status,
+    print: ([.output[]?.print] | join("\n"))
+  }],
+  passed_count: [($a.outcomes // [])[] | select(.status == "passed")] | length
+}'

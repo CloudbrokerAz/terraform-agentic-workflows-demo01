@@ -55,14 +55,14 @@ Frame capabilities in terms of enforcement outcomes, not policy syntax.}
 {Each decision as a paragraph with this structure:}
 
 **{Decision title}**: {What was chosen}.
-*Rationale*: {Why, with MCP research citation if applicable}.
-*Rejected*: {What was considered and why it was rejected}.
+_Rationale_: {Why, with MCP research citation if applicable}.
+_Rejected_: {What was considered and why it was rejected}.
 
 ### Policy Inventory
 
-| Policy File | Policy Type | Target | Policy Name | Enforcement Level | Evaluation Stage | Description |
-|-------------|-------------|--------|-------------|-------------------|------------------|-------------|
-| {file.policy.hcl} | {resource_policy/provider_policy/module_policy} | {resource type or "*"} | {policy_name} | {advisory/mandatory/mandatory-overridable} | {plan-time/apply-time} | {what it enforces} |
+| Policy File       | Policy Type                                     | Target                  | Policy Name   | Enforcement Level                          | Evaluation Stage       | Description        |
+| ----------------- | ----------------------------------------------- | ----------------------- | ------------- | ------------------------------------------ | ---------------------- | ------------------ |
+| {file.policy.hcl} | {resource_policy/provider_policy/module_policy} | {resource type or "\*"} | {policy_name} | {advisory/mandatory/mandatory-overridable} | {plan-time/apply-time} | {what it enforces} |
 
 {This table is the SINGLE SOURCE OF TRUTH for the policy set's policy files.
 Each row maps to exactly one policy block in one .policy.hcl file.
@@ -70,26 +70,26 @@ A single file may contain multiple policy blocks -- list each block as a separat
 
 ### Input Variables
 
-| Input Name | Type | Default | Description |
-|------------|------|---------|-------------|
-| {name} | {string/number/bool/list/map} | {value or --} | {description} |
+| Input Name | Type                          | Default       | Description   |
+| ---------- | ----------------------------- | ------------- | ------------- |
+| {name}     | {string/number/bool/list/map} | {value or --} | {description} |
 
 {Input variables are defined in `input` blocks within .policy.hcl files.
 Only include this table if the policy set uses `input` blocks. Omit if none.}
 
 ### Plugin Inventory
 
-| Plugin Name | Source | Functions Provided | Description |
-|-------------|--------|--------------------|-------------|
-| {name} | {source path} | {function1, function2} | {what it provides} |
+| Plugin Name | Source        | Functions Provided     | Description        |
+| ----------- | ------------- | ---------------------- | ------------------ |
+| {name}      | {source path} | {function1, function2} | {what it provides} |
 
 {Plugins extend policy evaluation with custom functions.
 Only include this table if the policy set uses plugins. Omit if none.}
 
 ### Compliance Rule Mapping
 
-| Policy Name | Rule ID | Framework | Rule Description |
-|-------------|---------|-----------|------------------|
+| Policy Name   | Rule ID   | Framework       | Rule Description                    |
+| ------------- | --------- | --------------- | ----------------------------------- |
 | {policy_name} | {rule-id} | {CIS/WA/custom} | {what the compliance rule requires} |
 
 {If consuming tf-research-policy-aws YAML output, reference the YAML rule IDs here.
@@ -109,16 +109,19 @@ Order must match the inventory table.}
 **Stage**: {plan-time/apply-time}
 
 **Filter logic**:
+
 ```hcl
 {filter block if applicable, or "No filter -- evaluates all targeted resources."}
 ```
 
 **Locals / computed values**:
+
 ```hcl
 {locals block if applicable, or "No locals."}
 ```
 
 **Policy block**:
+
 ```hcl
 resource_policy "{target_type}" "{policy_name}" {
   enforcement_level = "{enforcement_level}"
@@ -142,6 +145,7 @@ Resources from getresources() use top-level attribute access: resource.bucket, N
 Otherwise "None."}
 
 {Rules:
+
 - Error messages must be actionable -- tell the operator what to change, not just what failed.
 - Each enforce block maps 1:1 to a row in the Policy Inventory.
 - If a policy has multiple enforce conditions, list each condition separately.
@@ -172,6 +176,7 @@ Otherwise "None."}
 **Policy Target**: {resource type}
 
 **Mock Resource**:
+
 ```hcl
 resource "{resource_type}" "{test_case_name}" {
   attrs = {
@@ -188,6 +193,7 @@ resource "{resource_type}" "{test_case_name}" {
 **Policy Target**: {resource type}
 
 **Mock Resource**:
+
 ```hcl
 resource "{resource_type}" "{test_case_name}_fails" {
   expect_failure = true
@@ -206,6 +212,7 @@ resource "{resource_type}" "{test_case_name}_fails" {
 **Policy Target**: {resource type}
 
 **Mock Resource**:
+
 ```hcl
 resource "{resource_type}" "{test_case_name}" {
   attrs = {
@@ -215,6 +222,7 @@ resource "{resource_type}" "{test_case_name}" {
 ```
 
 **Helper Resources** (if cross-resource):
+
 ```hcl
 resource "{related_resource_type}" "{helper_name}" {
   skip = true
@@ -227,6 +235,7 @@ resource "{related_resource_type}" "{helper_name}" {
 **Expected Result**: {Pass/Fail}
 
 {Rules:
+
 - Every policy in the inventory must have at least one pass and one fail test case.
 - Each test case maps 1:1 to a run block in a .policytest.hcl file.
 - Edge cases should cover: filter bypass, wildcard behavior, missing attributes,
@@ -239,8 +248,8 @@ resource "{related_resource_type}" "{helper_name}" {
 
 ### Policy Set Organization
 
-| Policy Set Name | Policy Files | Description |
-|-----------------|-------------|-------------|
+| Policy Set Name   | Policy Files                         | Description              |
+| ----------------- | ------------------------------------ | ------------------------ |
 | {policy-set-name} | {file1.policy.hcl, file2.policy.hcl} | {what this set enforces} |
 
 {A policy set groups related policies for deployment to HCP Terraform.
@@ -248,26 +257,27 @@ One design may define one or more policy sets if logical separation is needed.}
 
 ### Workspace Targeting
 
-| Policy Set Name | Targeting Strategy | Selector | Description |
-|-----------------|-------------------|----------|-------------|
+| Policy Set Name   | Targeting Strategy                | Selector                         | Description          |
+| ----------------- | --------------------------------- | -------------------------------- | -------------------- |
 | {policy-set-name} | {tag-based/workspace-list/global} | {tag pattern or workspace names} | {why this targeting} |
 
 {Rules:
+
 - Prefer tag-based targeting for scalability.
 - Document which workspace tags must exist for the policies to apply.
 - If using workspace-list targeting, document the maintenance burden.}
 
 ### Evaluation Stage Decisions
 
-| Policy Name | Stage | Rationale |
-|-------------|-------|-----------|
+| Policy Name   | Stage                  | Rationale                                                                             |
+| ------------- | ---------------------- | ------------------------------------------------------------------------------------- |
 | {policy_name} | {plan-time/apply-time} | {why this stage -- e.g., "needs planned resource values" or "needs apply-time state"} |
 
 ### Override Permissions
 
-| Enforcement Level | Who Can Override | Approval Process |
-|-------------------|-----------------|-----------------|
-| mandatory-overridable | {team or role} | {process -- e.g., "requires comment justification"} |
+| Enforcement Level     | Who Can Override | Approval Process                                    |
+| --------------------- | ---------------- | --------------------------------------------------- |
+| mandatory-overridable | {team or role}   | {process -- e.g., "requires comment justification"} |
 
 {Only include this table if the policy set uses mandatory-overridable enforcement.
 Omit if all policies are advisory or mandatory.}
@@ -276,12 +286,12 @@ Omit if all policies are advisory or mandatory.}
 
 ## 6. Implementation Checklist
 
-- [ ] **A: Scaffold** -- Create file structure, base policy files with empty policy blocks
-- [ ] **B: Core policies** -- Implement single-resource policy logic and enforce conditions
-- [ ] **C: Cross-resource policies** -- Implement policies that use getresources/getdatasource for relationship checks
+- [ ] **A: Scaffold** -- Create `policies/` directory, base `.policy.hcl` files with top-level `input` / `locals` / empty policy block stubs
+- [ ] **B: Core policies** -- Implement single-resource policy logic and `enforce` conditions
+- [ ] **C: Cross-resource policies** -- Implement policies that use `core::getresources()` / `core::getdatasource()` for relationship checks
 - [ ] **D: Plugins** -- Implement custom plugin functions (if any)
-- [ ] **E: Tests** -- Write .policytest.hcl files with pass, fail, and edge-case scenarios
-- [ ] **F: HCP configuration** -- Configure policy sets, workspace targeting, and enforcement levels
+- [ ] **E: HCP configuration** -- Configure policy sets, workspace targeting, and enforcement levels (`README.md` + HCP-side config)
+- [ ] **F: Validation** -- Final `tfpolicy validate` + `tfpolicy test` pass
 
 {Keep this to 4-8 items. Each item = one implementation pass.
 NOT a 34-task breakdown. Each item should be completable in one agent turn.

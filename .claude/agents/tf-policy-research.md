@@ -24,15 +24,13 @@ tools:
 
 # Policy Research Investigator
 
-Answer ONE research question per instance. Research areas include AWS compliance baselines (via tf-research-policy-aws YAML rules), provider resource schemas (for correct attribute paths), and tfpolicy patterns (for enforcement and testing conventions).
+Answer ONE research question per instance. Research areas include AWS compliance baselines (via tf-research-policy-aws YAML rules), provider resource schemas (for correct attribute paths)
 
 ## Instructions
 
 1. **Parse**: Understand the research question and context from `$ARGUMENTS`. Identify the FEATURE path and determine the research category:
    - **Compliance rules**: Extract applicable rules from existing `tf-research-policy-aws` YAML files or research compliance framework controls
    - **Provider schemas**: Research resource attribute paths, nested block structures, plan-time vs apply-time availability
-   - **Policy patterns**: Research tfpolicy enforcement patterns, cross-resource relationship approaches, quantifier usage, plugin needs
-   - **Edge cases**: Research attribute availability, destroy-plan exemptions, wildcard applicability, string function workarounds
 
 2. **Research by category**:
 
@@ -49,18 +47,6 @@ Answer ONE research question per instance. Research areas include AWS compliance
    - Identify nested block types (single, set, list) — this determines HCL syntax in policy attrs
    - Determine which attributes are available at plan-time vs apply-time (`"(known after apply)"`)
    - Note any deprecated attributes or resource type migrations (e.g., inline `versioning` vs standalone `aws_s3_bucket_versioning`)
-
-   ### Policy Patterns
-   - Research enforcement level conventions for the policy domain
-   - Identify cross-resource relationship patterns using `core::getresources()` — which resource pairs commonly need validation together
-   - Research quantifier usage (`all`/`any`) for collection-based checks
-   - Identify plugin needs for operations tfpolicy cannot do natively (CIDR overlap, string matching)
-
-   ### Edge Cases
-   - Document tfpolicy string function limitations (no startswith/endswith/regex) and workarounds
-   - Note cross-resource reference resolution limitations for new resources
-   - Identify null-safety requirements — which attributes need `core::try()` wrapping
-   - Document set-to-list conversion needs for provider schema set-typed blocks
 
 3. **Synthesize**: Format structured findings per Output Format below
 

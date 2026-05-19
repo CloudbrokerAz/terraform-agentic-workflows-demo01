@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "tfctl was called with the invalid run ID run-NONEXISTENT12345",
+      "passed": true,
+      "evidence": "commands.log: 'tfctl api /runs/run-NONEXISTENT12345 ...'"
+    },
+    {
+      "text": "The output clearly communicates that the run was not found or an error occurred",
+      "passed": true,
+      "evidence": "Line 3: 'Could not retrieve policy evaluations for this run.'"
+    },
+    {
+      "text": "The error message includes the specific run ID 'run-NONEXISTENT12345'",
+      "passed": true,
+      "evidence": "Line 12: 'returned a not-found / unauthorized response for run ID run-NONEXISTENT12345'"
+    },
+    {
+      "text": "The response stops at the first failed API call \u2014 no follow-up calls to /task-stages or /policy-evaluations are attempted with this invalid ID",
+      "passed": true,
+      "evidence": "commands.log only contains one /runs/{id} call plus a tfctl auth info recovery \u2014 no /task-stages or /policy-evaluations follow-ups"
+    },
+    {
+      "text": "No fabricated policy evaluations, policy-sets, or outcomes are shown in the response",
+      "passed": true,
+      "evidence": "No policy names or outcomes appear in response.md, only error and recovery guidance"
+    },
+    {
+      "text": "The response surfaces the actual error wording from tfctl/stderr (e.g. 'Resource not found', 'unauthorized') rather than a generic 'an error occurred' message",
+      "passed": true,
+      "evidence": "Line 9: 'ERROR: Resource not found or you are unauthorized to this action.'"
+    },
+    {
+      "text": "The response offers at least one concrete recovery suggestion (verify the run ID, check active profile, or run tfctl profile display) rather than just reporting failure",
+      "passed": true,
+      "evidence": "Lines 22-28 suggest verifying run ID, running 'tfctl profile display' and 'tfctl auth info'"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 7,
+    "failed": 0,
+    "total": 7
+  }
+}

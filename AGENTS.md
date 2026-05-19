@@ -1,31 +1,33 @@
 # AGENTS.md
 
 <default_follow_through_policy>
+
 - If the user's intent is clear and the next step is reversible and low-risk, proceed without asking.
 - Ask permission only if the next step is:
   (a) irreversible,
   (b) has external side effects (for example sending, purchasing, deleting, or writing to production), or
   (c) requires missing sensitive information or a choice that would materially change the outcome.
 - If proceeding, briefly state what you did and what remains optional.
-</default_follow_through_policy>
+  </default_follow_through_policy>
 
 <instruction_priority>
+
 - User instructions override default style, tone, formatting, and initiative preferences.
 - Safety, honesty, privacy, and permission constraints do not yield.
 - If a newer user instruction conflicts with an earlier one, follow the newer instruction.
 - Preserve earlier instructions that do not conflict.
-</instruction_priority>
+  </instruction_priority>
 
 <dependency_checks>
+
 - Before taking an action, check whether prerequisite discovery, lookup, or memory retrieval steps are required.
 - Do not skip prerequisite steps just because the intended final action seems obvious.
 - If the task depends on the output of a prior step, resolve that dependency first.
-</dependency_checks>
+  </dependency_checks>
 
 ## Context
 
 This repository is a **Terraform development template** using **SDD** (Spec-Driven Development, 4-phase workflow). It supports four workflows: **module authoring** (raw resources with secure defaults), **provider development** (Plugin Framework resources), **consumer provisioning** (composing infrastructure from private registry modules), and **policy development** (tfpolicy policy-as-code for HCP Terraform). All workflows share the same 4-phase structure: Clarify, Design, Implement, Validate.
-
 
 ## Shell Safety
 
@@ -49,6 +51,7 @@ Use simple `"$VAR"` quoting and explicit conditionals instead of parameter expan
 | `/tf-consumer-plan`      | Full 4-phase workflow for consumer provisioning: Clarify, Design, Implement, Validate |
 | `/tf-consumer-implement` | Implementation only — starts from an existing `consumer-design.md`                    |
 | `/tf-policy-plan`        | SDD Phases 1-2 for policy development: Clarify, Design — stops for approval           |
+| `/tf-policy-implement`   | SDD Phases 3-4 for policy development: TDD implementation + validation, opens PR      |
 
 ## Constitutions
 
@@ -74,16 +77,8 @@ When creating design documents, use the canonical template for the relevant work
 
 ## Key Conventions
 
-- Workflow conventions are defined in the orchestrator skills (`tf-module-plan`, `tf-module-implement`, `tf-provider-plan`, `tf-provider-implement`, `tf-consumer-plan`, `tf-consumer-implement`). Follow AGENTS.md `## Context Management` for subagent rules.
+- Workflow conventions are defined in the orchestrator skills (`tf-module-plan`, `tf-module-implement`, `tf-provider-plan`, `tf-provider-implement`, `tf-consumer-plan`, `tf-consumer-implement`, `tf-policy-plan`, `tf-policy-implement`). Follow AGENTS.md `## Context Management` for subagent rules.
 - Key scripts: `validate-env.sh` (environment checks), `post-issue-progress.sh` (GitHub updates), `checkpoint-commit.sh` (git automation) — all in `.foundations/scripts/bash/`.
-
-## Updating AGENTS.md Files
-
-When you discover new information that would be helpful for future development work:
-
-- **Update existing AGENTS.md files** when you learn implementation details, debugging insights, or architectural patterns specific to that component
-- **Create new AGENTS.md files** in relevant directories when working with areas that don't yet have documentation
-- **Add valuable insights** such as common pitfalls, debugging techniques, dependency relationships, or implementation patterns
 
 ## Context Management
 

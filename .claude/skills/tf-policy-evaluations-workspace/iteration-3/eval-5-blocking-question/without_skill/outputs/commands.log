@@ -1,0 +1,8 @@
+tfctl run status run-iURWDL3wVxzefsjo --json
+tfctl api /runs/run-iURWDL3wVxzefsjo --jq '.data.relationships | keys'
+tfctl api /runs/run-iURWDL3wVxzefsjo/policy-checks --json
+tfctl api /runs/run-iURWDL3wVxzefsjo/policy-evaluations --json   # 404 (no OPA evaluations)
+tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages --json
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU --json
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '.data[] | {id: .id, policy_set: .attributes."policy-set-name", result_count: .attributes."result-count", error: .attributes.error}'
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '[.data[].attributes.outcomes[] | select(.status != "passed") | {policy: .policy_name, level: .enforcement_level, status: .status}]'

@@ -1,0 +1,102 @@
+$ tfctl api /runs/run-iURWDL3wVxzefsjo --jq '.data.attributes | {status, trigger: ."trigger-reason", auto_apply: ."auto-apply"}'
+{
+  "auto_apply": false,
+  "status": "applied",
+  "trigger": "manual"
+}
+
+$ tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages -f 'include=policy-evaluations' --jq '{
+  stages: [.data[] | {id, stage: .attributes.stage, status: .attributes.status,
+    pe_ids: [.relationships."policy-evaluations".data[]?.id]}],
+  evaluations: [.included[]? | select(.type=="policy-evaluations") | .attributes as $a | {
+    id: .id, kind: $a."policy-kind", status: $a.status, counts: $a."result-count"}]
+}'
+{
+  "evaluations": [
+    {
+      "counts": {
+        "advisory-failed": 26,
+        "errored": 0,
+        "mandatory-failed": 0,
+        "passed": 291
+      },
+      "id": "poleval-qvaFSNdUdasiLqfU",
+      "kind": "sentinel",
+      "status": "passed"
+    }
+  ],
+  "stages": [
+    {
+      "id": "ts-rEt6yNBSjhxDpKMU",
+      "pe_ids": [
+        "poleval-qvaFSNdUdasiLqfU"
+      ],
+      "stage": "post_plan",
+      "status": "passed"
+    }
+  ]
+}
+
+$ tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '.data[] | .attributes as $a | {
+  policy_set: $a."policy-set-name",
+  tool_version: $a."policy-tool-version",
+  overridable: $a.overridable,
+  error: $a.error,
+  counts: $a."result-count",
+  failed: [($a.outcomes // [])[] | select(.status != "passed") | {
+    name: .policy_name, description: .description,
+    enforcement: .enforcement_level, status: .status
+  }]
+}'
+{
+  "counts": {"advisory-failed": 7, "errored": 0, "mandatory-failed": 0, "passed": 28},
+  "error": "",
+  "failed": [
+    {"name": "ec2-vpc-flow-logging-enabled.sentinel", "enforcement": "advisory", "status": "failed", "description": "This policy requires resources of type `aws_vpc` and `aws_default_vpc` to have flow logs enabled."},
+    {"name": "s3-block-public-access-bucket-level.sentinel", "enforcement": "advisory", "status": "failed", "description": "This policy verifies if the attributes of the 'aws_s3_bucket_public_access_block' resource (if present) block public access of an S3 general purpose bucket."},
+    {"name": "s3-enable-object-logging-for-read-events.sentinel", "enforcement": "advisory", "status": "failed", "description": "This policy requires resources of type 'aws_s3_bucket' have object logging enabled for read/write events."},
+    {"name": "s3-enable-object-logging-for-write-events.sentinel", "enforcement": "advisory", "status": "failed", "description": "This policy requires resources of type 'aws_s3_bucket' have object logging enabled for read/write events."},
+    {"name": "s3-require-mfa-delete.sentinel", "enforcement": "advisory", "status": "failed", "description": "This policy verifies that all general purpose S3 buckets should have MFA delete enabled in their versioning configuration"},
+    {"name": "s3-require-ssl.sentinel", "enforcement": "advisory", "status": "failed", "description": "This policy mandates all requests to 'aws_s3_bucket' resources to use SSL using 'aws_s3_bucket_policy' resource."},
+    {"name": "vpc-flow-logging-enabled.sentinel", "enforcement": "advisory", "status": "failed", "description": "This policy requires resources of type `aws_vpc` and `aws_default_vpc` to have flow logs enabled."}
+  ],
+  "overridable": true,
+  "policy_set": "policy-library-CIS-Policy-Set-for-AWS-Terraform",
+  "tool_version": "0.40.0"
+}
+{
+  "counts": {"advisory-failed": 19, "errored": 0, "mandatory-failed": 0, "passed": 262},
+  "error": "",
+  "failed": [
+    {"name": "api-gateway-should-be-associated-with-a-waf-web-acl.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "dynamo-db-tables-delete-protection-enabled.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-attached-ebs-volumes-encrypted-at-rest.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-instance-should-not-have-public-ip.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-instance-virtualization-should-not-be-paravirtual.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-service-vpc-endpoint-enabled.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-vpc-flow-logging-enabled.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-docker-registry.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-ecr-api.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-systems-manager-incident-manager-contacts.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-systems-manager-incident-manager.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-systems-manager.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "elb-ensure-deletion-protection-enabled.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "elb-ensure-http-request-redirection.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "redshift-cluster-unrestricted-port-access-check.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "s3-block-public-access-bucket-level.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "s3-bucket-block-public-read-access.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "s3-bucket-block-public-write-access.sentinel", "enforcement": "advisory", "status": "failed"},
+    {"name": "s3-require-ssl.sentinel", "enforcement": "advisory", "status": "failed"}
+  ],
+  "overridable": true,
+  "policy_set": "policy-library-fsbp-policy-set-for-aws-terraform",
+  "tool_version": "0.40.0"
+}
+{
+  "counts": {"advisory-failed": 0, "errored": 0, "mandatory-failed": 0, "passed": 1},
+  "error": "",
+  "failed": [],
+  "overridable": true,
+  "policy_set": "hashicorp-sentinel-require-pmr",
+  "tool_version": "0.40.0"
+}

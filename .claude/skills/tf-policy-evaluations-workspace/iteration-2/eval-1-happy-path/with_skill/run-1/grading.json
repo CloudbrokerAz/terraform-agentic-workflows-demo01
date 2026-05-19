@@ -1,0 +1,12 @@
+{
+  "summary": {"pass_rate": 1.0, "passed": 7, "failed": 0, "total": 7},
+  "expectations": [
+    {"text": "The Tier 1 summary line shows explicit counts in user-facing output: Total policies, Passed, Advisory-failed, Mandatory-failed, Errored", "passed": true, "evidence": "Line 1: 'Total policies: 317 | Passed: 291 | Advisory-failed: 26 | Mandatory-failed: 0 | Errored: 0'"},
+    {"text": "tfctl was used to call /runs/{id}/task-stages with include=policy-evaluations and the response references the input run ID", "passed": true, "evidence": "commands.log shows tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages -f include=policy-evaluations"},
+    {"text": "A Tier 2 markdown table shows at least one policy-evaluation row with Kind (sentinel) and Status (passed)", "passed": true, "evidence": "Table row: poleval-qvaFSNdUdasiLqfU | sentinel | passed | 291 | 26 | 0 | 0"},
+    {"text": "Each policy-set outcome is shown with its policy-set name and a per-policy table (Policy | Status | Enforcement | Description)", "passed": true, "evidence": "Three #### policy-set headers with per-policy tables (CIS, FSBP, hashicorp-sentinel-require-pmr)"},
+    {"text": "Advisory-failed policies are surfaced individually with status 'failed' and enforcement 'advisory' — not silently rolled up", "passed": true, "evidence": "26 failed/advisory rows enumerated individually across both CIS and FSBP tables"},
+    {"text": "The response correctly identifies that no policies blocked the run (mandatory-failed is zero)", "passed": true, "evidence": "Key findings: 'Run applied successfully — no policies blocked it'; mandatory-failed: 0"},
+    {"text": "Run metadata from tfctl /runs/{id} is included — such as run status, trigger source, or whether the run has been applied", "passed": true, "evidence": "Line 2: status applied, trigger manual, auto-apply false"}
+  ]
+}

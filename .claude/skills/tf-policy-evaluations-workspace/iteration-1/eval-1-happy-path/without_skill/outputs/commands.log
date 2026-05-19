@@ -1,0 +1,12 @@
+tfctl --help
+tfctl run --help
+tfctl run status run-iURWDL3wVxzefsjo --json
+tfctl api --help
+tfctl api /runs/run-iURWDL3wVxzefsjo --json
+tfctl api /runs/run-iURWDL3wVxzefsjo/policy-checks --json
+tfctl api /runs/run-iURWDL3wVxzefsjo/tf-policy-evaluations --json
+tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages --json
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU --json
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --json
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '.data[] | {id, policy_set_name, overall_passed, result_count}'
+tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '.data[] | {policy_set, failed: [.attributes.outcomes[] | select(.status != "passed")]}'

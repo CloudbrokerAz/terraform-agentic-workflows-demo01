@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "The Tier 1 summary line shows explicit counts in user-facing output: Total policies, Passed, Advisory-failed, Mandatory-failed, Errored",
+      "passed": true,
+      "evidence": "Line 3: '**Total policies**: 317 | Passed: 291 | Advisory-failed: 26 | Mandatory-failed: 0 | Errored: 0'"
+    },
+    {
+      "text": "tfctl was used to call /runs/{id}/task-stages with include=policy-evaluations and the response references the input run ID",
+      "passed": true,
+      "evidence": "commands.log: 'tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages -f include=policy-evaluations'"
+    },
+    {
+      "text": "A Tier 2 markdown table shows at least one policy-evaluation row with Kind (sentinel) and Status (passed)",
+      "passed": true,
+      "evidence": "Row: '| poleval-qvaFSNdUdasiLqfU | sentinel | passed | 291 | 26 | 0 | 0 |'"
+    },
+    {
+      "text": "Each policy-set outcome is shown with its policy-set name and a per-policy table (Policy | Status | Enforcement | Description)",
+      "passed": true,
+      "evidence": "Three policy-set headers (CIS, fsbp, require-pmr) each with Policy/Status/Enforcement/Description tables"
+    },
+    {
+      "text": "Advisory-failed policies are surfaced individually with status 'failed' and enforcement 'advisory' \u2014 not silently rolled up",
+      "passed": true,
+      "evidence": "Lines 18-24 list each CIS advisory failure as 'failed | advisory' individually"
+    },
+    {
+      "text": "The response correctly identifies that no policies blocked the run (mandatory-failed is zero)",
+      "passed": true,
+      "evidence": "Line 88: 'Run applied successfully \u2014 no policy blocked it (zero mandatory failures, zero tool errors).'"
+    },
+    {
+      "text": "Run metadata from tfctl /runs/{id} is included \u2014 such as run status, trigger source, or whether the run has been applied",
+      "passed": true,
+      "evidence": "Line 4: 'status `applied`, trigger `manual`, auto-apply `false`'"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 7,
+    "failed": 0,
+    "total": 7
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "eval_id": 4,
+  "eval_name": "no-policies",
+  "prompt": "Check the policy evaluations for run-hGthAq8Kuv5wcKZq. If there are no policies, let me know.",
+  "assertions": [
+    "tfctl was used to query /runs/{id}/task-stages with include=policy-evaluations",
+    "If no policy-evaluations exist, the output clearly states so — distinguishing 'no task stages' vs 'task stages exist but no policy evaluations'",
+    "The Tier 1 summary line with explicit numeric counts (Total policies: 0, Passed: 0, etc.) appears in the user-facing response even when all counts are zero",
+    "No errors or crashes occurred during execution",
+    "The legacy /runs/{id}/policy-checks endpoint is NOT used as a fallback",
+    "Run metadata from tfctl /runs/{id} is included to provide lifecycle context for the run"
+  ]
+}

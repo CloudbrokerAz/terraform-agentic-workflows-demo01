@@ -1,0 +1,52 @@
+$ RUN_ID=$(echo "https://app.terraform.io/app/hashi-demos-apj/workspaces/terraform-agentic-workflows-demo01/runs/run-iURWDL3wVxzefsjo" | grep -oE 'run-[A-Za-z0-9]+' | head -1)
+$ echo "RUN_ID=$RUN_ID"
+RUN_ID=run-iURWDL3wVxzefsjo
+
+$ /Users/simon.lynch/go/bin/tfctl api /runs/$RUN_ID/task-stages -f 'include=policy-evaluations,run' --jq '{
+  run: (.included[]? | select(.type=="runs") | .attributes | {status, trigger: ."trigger-reason"}),
+  stages: [.data[] | {id, stage: .attributes.stage, status: .attributes.status,
+    pe_ids: [.relationships."policy-evaluations".data[]?.id]}],
+  evaluations: [.included[]? | select(.type=="policy-evaluations") | .attributes as $a | {
+    id: .id, kind: $a."policy-kind", status: $a.status, counts: $a."result-count"}]
+}'
+{
+  "evaluations": [
+    {
+      "counts": {
+        "advisory-failed": 26,
+        "errored": 0,
+        "mandatory-failed": 0,
+        "passed": 291
+      },
+      "id": "poleval-qvaFSNdUdasiLqfU",
+      "kind": "sentinel",
+      "status": "passed"
+    }
+  ],
+  "run": {
+    "status": "applied",
+    "trigger": "manual"
+  },
+  "stages": [
+    {
+      "id": "ts-rEt6yNBSjhxDpKMU",
+      "pe_ids": [
+        "poleval-qvaFSNdUdasiLqfU"
+      ],
+      "stage": "post_plan",
+      "status": "passed"
+    }
+  ]
+}
+
+$ /Users/simon.lynch/go/bin/tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '.data[] | .attributes as $a | {
+  policy_set: $a."policy-set-name",
+  tool_version: $a."policy-tool-version",
+  overridable: $a.overridable,
+  error: $a.error,
+  counts: $a."result-count",
+  failed: [($a.outcomes // [])[] | select(.status != "passed") | {
+    name: .policy_name, enforcement: .enforcement_level, status: .status
+  }]
+}'
+(see response.md for failed-policy breakdown — three policy-sets returned: policy-library-CIS-Policy-Set-for-AWS-Terraform [28 passed, 7 advisory-failed], policy-library-fsbp-policy-set-for-aws-terraform [262 passed, 19 advisory-failed], hashicorp-sentinel-require-pmr [1 passed, 0 failed])
