@@ -1,5 +1,5 @@
 ---
-description: Terraform provider test writer. Write Go acceptance test stubs from provider-design-{resource}.md. Converts Section 5 test scenarios into test functions and config functions with t.Skip("not implemented").
+description: Terraform provider test writer. Write Go acceptance test stubs from provider-design-{resource}.md. Converts Section 5 test scenarios into test functions and config functions with t.Skip("not implemented") for TDD workflow. Reads Sections 2 and 5 of the design document.
 name: tf-provider-test-writer
 tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation']
 skills:
