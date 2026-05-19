@@ -18,7 +18,12 @@ if dpkg-query -W -f='${Status}' moby-containerd 2>/dev/null | grep -q '^install 
         sudo apt-get update
         sudo apt-get install -y --allow-downgrades "moby-containerd=$CONTAINERD_PIN" \
             2> >(grep -vE 'System has not been booted with systemd|Failed to connect to bus|Host is down' >&2)
-        sudo systemctl restart docker || true
+        # Only restart via systemd when it's actually PID 1. In the dind
+        # devcontainer there's no systemd; the dind entrypoint re-execs
+        # dockerd on next container start, picking up the new containerd.
+        if [ -d /run/systemd/system ]; then
+            sudo systemctl restart docker || true
+        fi
     fi
     sudo apt-mark hold moby-containerd
 fi
@@ -61,11 +66,22 @@ else
     echo "Skipping Terraform credentials (TFE_TOKEN not set)"
 fi
 
+SCRIPT_DIR="$(dirname "$0")"
+
+# Optionally swap in a beta Terraform from /workspace/reference/.
+# TERRAFORM_BETA=true installs the matching OS/arch zip; unset restores stable.
+if [ "${TERRAFORM_BETA:-false}" = "true" ]; then
+    "${SCRIPT_DIR}/install-terraform-beta.sh" \
+        || echo "TERRAFORM_BETA install failed; keeping current terraform"
+elif [ -f /usr/local/bin/terraform.stable ]; then
+    sudo mv /usr/local/bin/terraform.stable /usr/local/bin/terraform
+    echo "Restored stable terraform from /usr/local/bin/terraform.stable"
+fi
+
 # Setup internal CA certificates (skips cleanly if not on network)
 CERT_NAME="${INTERNAL_CA_CERT_NAME:-internal-ca-chain}"
 CERT_PATH="/usr/local/share/ca-certificates/${CERT_NAME}.crt"
 
-SCRIPT_DIR="$(dirname "$0")"
 "${SCRIPT_DIR}/../../scripts/setup-internal-certs.sh"
 
 # If certs were installed, configure Node.js and OTEL to trust them

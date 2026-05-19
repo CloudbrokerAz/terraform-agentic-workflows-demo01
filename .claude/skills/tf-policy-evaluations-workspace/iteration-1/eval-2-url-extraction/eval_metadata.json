@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "url-extraction",
+  "prompt": "What did the policies say for https://app.terraform.io/app/hashi-demos-apj/workspaces/terraform-agentic-workflows-demo01/runs/run-iURWDL3wVxzefsjo",
+  "assertions": [
+    "The run ID 'run-iURWDL3wVxzefsjo' was correctly extracted from the URL",
+    "tfctl was called with the extracted run ID and produced valid JSON output (no broken hostnames or URL artefacts)",
+    "The output shows policy evaluations in a structured format with columns for Kind, Status, and result counts",
+    "At least one policy-set outcome with its policies is displayed",
+    "Advisory-failed policies are listed (not hidden) with their enforcement level",
+    "Run metadata from tfctl /runs/{id} is included — such as run status, trigger source, or whether the run has been applied"
+  ]
+}

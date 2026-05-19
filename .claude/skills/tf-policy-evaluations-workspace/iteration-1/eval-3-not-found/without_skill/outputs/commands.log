@@ -1,0 +1,14 @@
+$ tfctl run status run-NONEXISTENT12345
+ERROR: Resource not found or you are unauthorized to this action. Check your account permissions.
+
+  $ tfctl auth info
+
+$ tfctl api /runs/run-NONEXISTENT12345/policy-checks
+ERROR: Resource not found or you are unauthorized to this action. Check your account permissions.
+
+  $ tfctl auth info
+
+$ tfctl api /runs/run-NONEXISTENT12345
+ERROR: Resource not found or you are unauthorized to this action. Check your account permissions.
+
+  $ tfctl auth info

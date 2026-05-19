@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "tfctl was called with the invalid run ID run-NONEXISTENT12345",
+      "passed": true,
+      "evidence": "commands.log: 'tfctl run status run-NONEXISTENT12345' and 'tfctl api /runs/run-NONEXISTENT12345'"
+    },
+    {
+      "text": "The output clearly communicates that the run was not found or an error occurred",
+      "passed": true,
+      "evidence": "Line 3: 'HCP Terraform returned 404 Not Found / Unauthorized when looking it up.'"
+    },
+    {
+      "text": "The error message includes the specific run ID 'run-NONEXISTENT12345'",
+      "passed": true,
+      "evidence": "Title and lines reference 'run-NONEXISTENT12345' explicitly"
+    },
+    {
+      "text": "The response stops at the first failed API call \u2014 no follow-up calls to /task-stages or /policy-evaluations are attempted with this invalid ID",
+      "passed": false,
+      "evidence": "commands.log shows follow-up call '/runs/run-NONEXISTENT12345/policy-checks' after first failure"
+    },
+    {
+      "text": "No fabricated policy evaluations, policy-sets, or outcomes are shown in the response",
+      "passed": true,
+      "evidence": "No policy names or fake outcomes in response.md"
+    },
+    {
+      "text": "The response surfaces the actual error wording from tfctl/stderr (e.g. 'Resource not found', 'unauthorized') rather than a generic 'an error occurred' message",
+      "passed": true,
+      "evidence": "Line 9: 'ERROR: Resource not found or you are unauthorized to this action.'"
+    },
+    {
+      "text": "The response offers at least one concrete recovery suggestion (verify the run ID, check active profile, or run tfctl profile display) rather than just reporting failure",
+      "passed": true,
+      "evidence": "Lines 24-32 suggest verifying run ID, 'tfctl auth info', 'tfctl profile list'"
+    }
+  ],
+  "summary": {
+    "pass_rate": 0.8571,
+    "passed": 6,
+    "failed": 1,
+    "total": 7
+  }
+}

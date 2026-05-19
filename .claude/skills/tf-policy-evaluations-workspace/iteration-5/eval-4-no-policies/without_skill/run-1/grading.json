@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "tfctl was used to query /runs/{id}/task-stages with include=policy-evaluations",
+      "passed": false,
+      "evidence": "commands.log uses /task-stages/{id} directly without include=policy-evaluations parameter"
+    },
+    {
+      "text": "If no policy-evaluations exist, the output clearly states so \u2014 distinguishing 'no task stages' vs 'task stages exist but no policy evaluations'",
+      "passed": true,
+      "evidence": "Line 5 distinguishes 'legacy policy-checks and tf-policy-evaluations endpoints were both empty, but the task stage held the actual evaluation'"
+    },
+    {
+      "text": "The Tier 1 summary line with explicit numeric counts (Total policies: 0, Passed: 0, etc.) appears in the user-facing response even when all counts are zero",
+      "passed": true,
+      "evidence": "Table rows 15-18 give Passed 308, Advisory failed 9, Mandatory failed 0, Errored 0"
+    },
+    {
+      "text": "No errors or crashes occurred during execution",
+      "passed": true,
+      "evidence": "commands.log shows clean tfctl runs, no errors in output"
+    },
+    {
+      "text": "The legacy /runs/{id}/policy-checks endpoint is NOT used as a fallback",
+      "passed": false,
+      "evidence": "commands.log line 14: 'tfctl api /runs/run-hGthAq8Kuv5wcKZq/policy-checks --json' was called"
+    },
+    {
+      "text": "Run metadata from tfctl /runs/{id} is included to provide lifecycle context for the run",
+      "passed": true,
+      "evidence": "Line 3: 'Run status: applied (succeeded, auto-applied 2026-03-11 04:21:33 UTC)'"
+    }
+  ],
+  "summary": {
+    "pass_rate": 0.6667,
+    "passed": 4,
+    "failed": 2,
+    "total": 6
+  }
+}

@@ -1,0 +1,37 @@
+tfctl api /runs/run-hGthAq8Kuv5wcKZq --jq '.data.attributes | {status, trigger: ."trigger-reason", auto_apply: ."auto-apply"}'
+
+tfctl api /runs/run-hGthAq8Kuv5wcKZq/task-stages -f 'include=policy-evaluations' --jq '{
+  stages: [.data[] | {id, stage: .attributes.stage, status: .attributes.status,
+    pe_ids: [.relationships."policy-evaluations".data[]?.id]}],
+  evaluations: [.included[]? | select(.type=="policy-evaluations") | .attributes as $a | {
+    id: .id, kind: $a."policy-kind", status: $a.status,
+    counts: $a."result-count"}]
+}'
+
+tfctl api /policy-evaluations/poleval-wSxowX2UuPiDSipZ/policy-set-outcomes --jq '.data[] | .attributes as $a | {
+  id: .id,
+  policy_set: $a."policy-set-name",
+  description: $a."policy-set-description",
+  tool_version: $a."policy-tool-version",
+  overridable: $a.overridable,
+  warnings: $a.warnings,
+  error: $a.error,
+  counts: $a."result-count",
+  policies: [($a.outcomes // [])[] | {
+    name: .policy_name,
+    description: .description,
+    enforcement: .enforcement_level,
+    status: .status,
+    print: ([.output[]?.print] | join("\n"))
+  }]
+}'
+
+tfctl api /policy-evaluations/poleval-wSxowX2UuPiDSipZ/policy-set-outcomes --jq '.data[] | .attributes as $a | {
+  id: .id,
+  policy_set: $a."policy-set-name",
+  tool_version: $a."policy-tool-version",
+  overridable: $a.overridable,
+  error: $a.error,
+  counts: $a."result-count",
+  failed: [($a.outcomes // [])[] | select(.status != "passed") | {name: .policy_name, description: .description, enforcement: .enforcement_level, status: .status}]
+}'

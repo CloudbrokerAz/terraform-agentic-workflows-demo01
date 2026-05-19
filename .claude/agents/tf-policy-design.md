@@ -4,6 +4,7 @@ description: Terraform policy design. Produce a single policy-design.md from cla
 model: opus
 color: blue
 skills:
+  - tf-policy
   - tf-security-baselines
 tools:
   - Skill
@@ -58,14 +59,11 @@ Produce a single `specs/{FEATURE}/policy-design.md` from clarified requirements 
 
    ### Section 3 -- Policy Specifications
 
-   Full HCL pseudocode for every policy listed in Section 2.
+   Full HCL pseudocode for every policy listed in Section 2. Apply tfpolicy language rules from the `tf-policy` skill (block structure, `attrs`/`meta`, `core::` functions, blocks-vs-attributes, performance, cross-resource patterns).
    - Every policy MUST have an `enforce` block with `condition` and `error_message`
    - Error messages MUST be actionable: state the problem AND the fix (e.g., "EBS volume ${meta.address} is not encrypted. Set encrypted = true.")
-   - Use `locals` blocks for cross-resource relationships via `core::getresources()` or `core::getdatasource()`
-   - Document the `attrs` path for each checked attribute, referencing research findings for correct attribute paths and nested block structures
-   - Use `core::try()` for optional or potentially-absent attributes
-   - Use quantifiers (`all v in collection : (condition)`, `any v in collection : (condition)`) for collection iteration
-   - For wildcard policies, document which resource types are expected to match and any known edge cases
+   - Document the `attrs` path for each checked attribute, citing the research finding that confirms the correct attribute path and nested block structure
+   - For wildcard policies (`"*"`), document which resource types are expected to match and any known edge cases
    - If plugins are needed, specify the plugin declaration block and function signatures
 
    ### Section 4 -- Test Scenarios
@@ -93,7 +91,7 @@ Produce a single `specs/{FEATURE}/policy-design.md` from clarified requirements 
 
    Define 4-8 coarse-grained implementation items, ordered by dependency.
    - Each item = one implementation pass, completable in one agent turn
-   - Standard ordering: Scaffold policy directory -> Core policies -> Cross-resource policies -> Plugin development (if needed) -> Tests -> HCP Terraform configuration -> Validation
+   - Standard ordering: Scaffold policy directory -> Core policies -> Cross-resource policies -> Plugin development (if needed) -> HCP Terraform configuration -> Validation
    - NO line references between sections (template rule)
    - NO fine-grained task breakdowns -- keep items at the logical-unit level
    - Each item lists which files it creates or modifies -- no overlap between items
@@ -139,19 +137,9 @@ Produce a single `specs/{FEATURE}/policy-design.md` from clarified requirements 
 ### Policy Specifications (Section 3)
 
 - Every policy MUST have an `enforce` block with `condition` and `error_message`
-- Use `core::` functions correctly: `core::getresources(type, filter_map)`, `core::getdatasource(type, filter_map)`, `core::semverconstraint(version, constraint)`, `core::contains(list, value)`, `core::try(expr, fallback)`, `core::can(expr)`
-- Access resource attributes via `attrs.<path>` and metadata via `meta.<field>`
-- `meta` fields by policy type: resource_policy has `meta.address`, `meta.provider_type`, `meta.tfe_workspace`; provider_policy has `meta.source`, `meta.version`, `meta.type`, `meta.name`; module_policy has `meta.source`, `meta.version`, `meta.address`
-- Nested block attributes use dot notation or index access (e.g., `attrs.encryption_settings[0].enabled`)
-- Error messages must interpolate context using `${}` (e.g., `"${meta.address} is not encrypted"`)
-- **Null safety**: ALWAYS wrap optional attributes with `core::try()` -- e.g., `core::try(attrs.tags["Environment"], "")`. Check block existence with `core::length()` before indexing.
-- **Performance**: `core::getresources()` is O(N) -- MUST cache in top-level `locals`, NEVER inside `resource_policy`. `core::getdatasource()` calls real provider APIs -- avoid inside `resource_policy` blocks.
-- **Attribute access from getresources()**: Resources returned use TOP-LEVEL attribute access -- `resource.bucket`, NOT `resource.attrs.bucket`
-- **String limitations**: No `startswith`, `endswith`, substring matching, or regex in beta. Use exact match, allowlists, or `core::contains()` on lists only.
-- **Set conversion**: Convert sets to lists before indexing: `[for item in set : item][0]`
-- **Single-line expressions**: Keep HCL expressions single-line due to parser limitations in beta.
-- **List comprehensions**: Use `[for rule in attrs.ingress : rule if rule.to_port == 22]` for filtering.
-- **Cross-resource limitations**: New resources with cross-references may not have resolved values at eval time. Cross-resource policies are more reliable for updates than first-time creation.
+- Error messages must interpolate context using `${}` (e.g., `"${meta.address} is not encrypted"`) and state both the problem and the remediation
+- Cite the research finding that confirms every `attrs.<path>` used (including whether the parent is a block or attribute)
+- Defer to the `tf-policy` skill for all tfpolicy language rules (`core::` functions and their performance characteristics, `attrs`/`meta` shape by block type, blocks-vs-attributes, null-safety, string-function limits, single-line expressions, set conversion, quantifiers, list comprehensions, cross-resource caveats)
 
 ### Test Scenarios (Section 4)
 
@@ -159,8 +147,9 @@ Produce a single `specs/{FEATURE}/policy-design.md` from clarified requirements 
 - Use `skip = true` for helper resources in cross-resource relationship tests
 - Provider and module tests MUST include `meta` blocks
 - Test `attrs` values must be realistic and match provider schema expectations
-- Cross-resource reference syntax: `<resource_type>.<test_case_name>.<attribute>`
+- Cross-resource reference syntax: `<resource_type>.<test_case_name>.attrs.<attribute>`
 - Data source mocks for `core::getdatasource()` use `data` blocks with static `attrs`
+- Defer to the `tf-policy` skill for `.policytest.hcl` mechanics (mock shapes per block type, `expect_failure` vs `skip`, omitted-attribute handling, mock-vs-real `meta` differences)
 
 ### HCP Terraform Configuration (Section 5)
 
@@ -184,77 +173,9 @@ Produce a single `specs/{FEATURE}/policy-design.md` from clarified requirements 
 - Maximum 3 `[NEEDS CLARIFICATION]` markers total -- prefer informed assumptions with documented rationale
 - Naming consistency: policy names must be canonical throughout the document
 
-## tfpolicy Quick Reference
+## tfpolicy Reference
 
-### Policy Block Types
-
-| Block Type        | First Label                                                   | `attrs` Contains                               | `meta` Contains                             |
-| ----------------- | ------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------- |
-| `resource_policy` | Resource type (e.g., `aws_ebs_volume`) or `"*"`               | Resource attributes from plan (schema-driven)  | `address`, `provider_type`, `tfe_workspace` |
-| `provider_policy` | Provider name (e.g., `aws`) or `"*"`                          | Provider configuration values (e.g., `region`) | `source`, `version`, `type`, `name`         |
-| `module_policy`   | Module source (e.g., `app.terraform.io/org/vpc/aws`) or `"*"` | Module input variable values                   | `source`, `version`, `address`              |
-
-### Key Functions
-
-| Function                                      | Purpose                                               |
-| --------------------------------------------- | ----------------------------------------------------- |
-| `core::getresources(type, filter_map)`        | Fetch related resources for cross-resource validation |
-| `core::getdatasource(type, filter_map)`       | Fetch data source instances                           |
-| `core::semverconstraint(version, constraint)` | Validate semantic version constraints                 |
-| `core::contains(list, value)`                 | Check list membership                                 |
-| `core::try(expr, fallback)`                   | Safe attribute access with fallback                   |
-| `core::can(expr)`                             | Check if expression evaluates without error           |
-
-### Quantifiers
-
-- `all v in collection : (condition)` -- every element must satisfy condition
-- `any v in collection : (condition)` -- at least one element must satisfy condition
-
-### Testing Patterns
-
-| Pattern            | Mechanism                                                                   |
-| ------------------ | --------------------------------------------------------------------------- |
-| Positive test      | Resource/provider/module with compliant attrs, no `expect_failure`          |
-| Negative test      | Resource/provider/module with non-compliant attrs, `expect_failure = true`  |
-| Helper resource    | Resource with `skip = true`, available via `getresources` but not evaluated |
-| Cross-resource ref | `<type>.<name>.<attr>` syntax in test attrs                                 |
-| Data source mock   | `data` block with static attrs                                              |
-| Provider mock      | `provider` block with `meta` (source/version) and `attrs`                   |
-| Module mock        | `module` block with `meta` (source/version) and `attrs`                     |
-
-### Enforcement Levels
-
-| Level                   | Behavior                                                |
-| ----------------------- | ------------------------------------------------------- |
-| `advisory`              | Warning only; does not block the run                    |
-| `mandatory-overridable` | Blocks apply; users with override permission can bypass |
-| `mandatory`             | Hard gate; blocks apply; must fix configuration         |
-
-### Evaluation Stages
-
-| Stage               | When                     | Use When                                              |
-| ------------------- | ------------------------ | ----------------------------------------------------- |
-| Plan-time (default) | After plan, before apply | Attribute is known at plan time                       |
-| Apply-time          | After apply completes    | Attribute is `"(known after apply)"` (IPs, IDs, ARNs) |
-
-### Policy Complexity Assessment
-
-When designing policies, assess complexity to set realistic expectations:
-
-| Complexity            | Criteria                                                        | Examples                                                        |
-| --------------------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
-| Simple (high success) | Single resource, direct attribute check, no cross-resource deps | EBS encryption, RDS public access, ECS container insights       |
-| Moderate (partial)    | Cross-resource logic via `getresources()`, needs caching        | CloudTrail -> S3 bucket ACL, NIC -> NSG association             |
-| Complex (limited)     | String parsing, resource graph traversal, before/after state    | Reference navigation, data source inspection by address         |
-| Not feasible          | Requires features not in tfpolicy                               | Before/after state diffs, custom imports, cross-workspace state |
-
-### Best Practices from HashiCorp Guidance
-
-- Use descriptive, clear variable names in `locals` (e.g., `scanning_config` not `sc`)
-- Build lookup maps for O(1) access instead of iterating lists repeatedly
-- Handle both legacy and new resource patterns (e.g., inline `versioning` vs standalone `aws_s3_bucket_versioning`)
-- Include compliance framework links (CIS, FSBP) in policy comments when applicable
-- Prefer remediation-focused error messages over address-listing output
+All tfpolicy language details — block structure and targeting, `attrs`/`meta` by block type, `core::` functions and their limits, blocks-vs-attributes, performance (`core::getresources()` caching, `core::getdatasource()` constraints), cross-resource patterns, `.policytest.hcl` mechanics, enforcement levels, evaluation stages, and the complexity-assessment rubric — live in the `tf-policy` skill. Treat it as the single source of truth; do not duplicate its tables here.
 
 ## Output
 

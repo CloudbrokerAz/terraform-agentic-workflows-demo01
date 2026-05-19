@@ -1,0 +1,11 @@
+{
+  "summary": {"pass_rate": 1.0, "passed": 6, "failed": 0, "total": 6},
+  "expectations": [
+    {"text": "tfctl was used to query /runs/{id}/task-stages with include=policy-evaluations", "passed": true, "evidence": "commands.log: tfctl api /runs/run-hGthAq8Kuv5wcKZq/task-stages -f include=policy-evaluations"},
+    {"text": "If no policy-evaluations exist, the output clearly states so — distinguishing 'no task stages' vs 'task stages exist but no policy evaluations'", "passed": true, "evidence": "Conditional: policy-evaluations did exist for this run (9 advisory-failed); the conditional clause does not apply"},
+    {"text": "The Tier 1 summary line with explicit numeric counts (Total policies: 0, Passed: 0, etc.) appears in the user-facing response even when all counts are zero", "passed": true, "evidence": "Line 1: 'Total policies: 317 | Passed: 308 | Advisory-failed: 9 | Mandatory-failed: 0 | Errored: 0'"},
+    {"text": "No errors or crashes occurred during execution", "passed": true, "evidence": "All three tfctl commands returned valid JSON; no error output"},
+    {"text": "The legacy /runs/{id}/policy-checks endpoint is NOT used as a fallback", "passed": true, "evidence": "commands.log shows only /runs/{id}, /runs/{id}/task-stages, /policy-evaluations/{id}/policy-set-outcomes"},
+    {"text": "Run metadata from tfctl /runs/{id} is included to provide lifecycle context for the run", "passed": true, "evidence": "Line 2: status applied, trigger manual, auto-apply true"}
+  ]
+}

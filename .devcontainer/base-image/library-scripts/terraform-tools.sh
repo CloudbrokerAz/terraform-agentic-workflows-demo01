@@ -4,7 +4,7 @@ set -e
 # This script installs Terraform and related tools
 
 # Versions
-TERRAFORM_VERSION=${1:-"1.14.6"}
+TERRAFORM_VERSION=${1:-"1.15.2"}
 TERRAFORM_DOCS_VERSION=${2:-"0.21.0"}
 TFLINT_VERSION=${3:-"0.60.0"}
 TFLINT_AWS_RULESET_VERSION=${4:-"0.45.0"}

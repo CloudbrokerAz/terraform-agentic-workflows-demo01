@@ -1,0 +1,11 @@
+{
+  "summary": {"pass_rate": 1.0, "passed": 6, "failed": 0, "total": 6},
+  "expectations": [
+    {"text": "The run ID 'run-iURWDL3wVxzefsjo' was correctly extracted from the URL", "passed": true, "evidence": "Response line 2 and commands.log JSON both reference run-iURWDL3wVxzefsjo (extracted from app.terraform.io URL)."},
+    {"text": "tfctl was called with the extracted run ID and produced valid JSON output (no broken hostnames or URL artefacts)", "passed": true, "evidence": "commands.log contains clean JSON keyed on '\"run_id\":\"run-iURWDL3wVxzefsjo\"' with no URL fragments."},
+    {"text": "The output shows policy evaluations in a structured format with columns for Kind, Status, and result counts", "passed": true, "evidence": "Lines 6-8: table with columns Evaluation | Kind | Status | Passed | Advisory-failed | Mandatory-failed | Errored."},
+    {"text": "At least one policy-set outcome with its policies is displayed", "passed": true, "evidence": "Three policy-set sections shown (CIS, fsbp, hashicorp-sentinel-require-pmr) with per-policy tables."},
+    {"text": "Advisory-failed policies are listed (not hidden) with their enforcement level", "passed": true, "evidence": "26 advisory-failed policies each enumerated with enforcement=advisory in the per-policy tables."},
+    {"text": "Run metadata from tfctl /runs/{id} is included — such as run status, trigger source, or whether the run has been applied", "passed": true, "evidence": "Line 2: 'status `applied`, trigger `manual`, auto-apply `false`'."}
+  ]
+}

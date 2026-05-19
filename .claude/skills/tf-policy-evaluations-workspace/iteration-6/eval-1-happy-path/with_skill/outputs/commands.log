@@ -1,0 +1,203 @@
+$ /Users/simon.lynch/go/bin/tfctl api /runs/run-iURWDL3wVxzefsjo/task-stages -f 'include=policy-evaluations,run' --jq '...'
+{
+  "evaluations": [
+    {
+      "counts": {
+        "advisory-failed": 26,
+        "errored": 0,
+        "mandatory-failed": 0,
+        "passed": 291
+      },
+      "id": "poleval-qvaFSNdUdasiLqfU",
+      "kind": "sentinel",
+      "status": "passed"
+    }
+  ],
+  "run": {
+    "status": "applied",
+    "trigger": "manual"
+  },
+  "stages": [
+    {
+      "id": "ts-rEt6yNBSjhxDpKMU",
+      "pe_ids": [
+        "poleval-qvaFSNdUdasiLqfU"
+      ],
+      "stage": "post_plan",
+      "status": "passed"
+    }
+  ]
+}
+
+$ /Users/simon.lynch/go/bin/tfctl api /policy-evaluations/poleval-qvaFSNdUdasiLqfU/policy-set-outcomes --jq '...'
+{
+  "counts": {
+    "advisory-failed": 7,
+    "errored": 0,
+    "mandatory-failed": 0,
+    "passed": 28
+  },
+  "error": "",
+  "failed": [
+    {
+      "enforcement": "advisory",
+      "name": "ec2-vpc-flow-logging-enabled.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-block-public-access-bucket-level.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-enable-object-logging-for-read-events.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-enable-object-logging-for-write-events.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-require-mfa-delete.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-require-ssl.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "vpc-flow-logging-enabled.sentinel",
+      "status": "failed"
+    }
+  ],
+  "overridable": true,
+  "policy_set": "policy-library-CIS-Policy-Set-for-AWS-Terraform",
+  "tool_version": "0.40.0"
+}
+{
+  "counts": {
+    "advisory-failed": 19,
+    "errored": 0,
+    "mandatory-failed": 0,
+    "passed": 262
+  },
+  "error": "",
+  "failed": [
+    {
+      "enforcement": "advisory",
+      "name": "api-gateway-should-be-associated-with-a-waf-web-acl.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "dynamo-db-tables-delete-protection-enabled.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-attached-ebs-volumes-encrypted-at-rest.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-instance-should-not-have-public-ip.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-instance-virtualization-should-not-be-paravirtual.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-service-vpc-endpoint-enabled.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-vpc-flow-logging-enabled.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-docker-registry.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-ecr-api.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-systems-manager-incident-manager-contacts.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-systems-manager-incident-manager.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "ec2-vpc-should-be-configured-for-interface-endpoint-for-systems-manager.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "elb-ensure-deletion-protection-enabled.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "elb-ensure-http-request-redirection.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "redshift-cluster-unrestricted-port-access-check.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-block-public-access-bucket-level.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-bucket-block-public-read-access.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-bucket-block-public-write-access.sentinel",
+      "status": "failed"
+    },
+    {
+      "enforcement": "advisory",
+      "name": "s3-require-ssl.sentinel",
+      "status": "failed"
+    }
+  ],
+  "overridable": true,
+  "policy_set": "policy-library-fsbp-policy-set-for-aws-terraform",
+  "tool_version": "0.40.0"
+}
+{
+  "counts": {
+    "advisory-failed": 0,
+    "errored": 0,
+    "mandatory-failed": 0,
+    "passed": 1
+  },
+  "error": "",
+  "failed": [],
+  "overridable": true,
+  "policy_set": "hashicorp-sentinel-require-pmr",
+  "tool_version": "0.40.0"
+}

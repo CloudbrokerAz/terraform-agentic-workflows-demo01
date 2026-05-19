@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "The Tier 1 summary line shows explicit counts in user-facing output: Total policies, Passed, Advisory-failed, Mandatory-failed, Errored",
+      "passed": true,
+      "evidence": "Table rows 19-22 show Passed 291, Advisory failed 26, Mandatory failed 0, Errored 0; total is implied by sum"
+    },
+    {
+      "text": "tfctl was used to call /runs/{id}/task-stages with include=policy-evaluations and the response references the input run ID",
+      "passed": false,
+      "evidence": "commands.log calls /runs/{id}/task-stages --json (no include=policy-evaluations parameter)"
+    },
+    {
+      "text": "A Tier 2 markdown table shows at least one policy-evaluation row with Kind (sentinel) and Status (passed)",
+      "passed": true,
+      "evidence": "Table includes 'Policy kind | sentinel' and 'Overall status | passed'"
+    },
+    {
+      "text": "Each policy-set outcome is shown with its policy-set name and a per-policy table (Policy | Status | Enforcement | Description)",
+      "passed": false,
+      "evidence": "Per-policy tables only show Policy | Description (no Status or Enforcement columns)"
+    },
+    {
+      "text": "Advisory-failed policies are surfaced individually with status 'failed' and enforcement 'advisory' \u2014 not silently rolled up",
+      "passed": true,
+      "evidence": "Individual policies listed by name in CIS and FSBP advisory-failure sections (lines 41-72)"
+    },
+    {
+      "text": "The response correctly identifies that no policies blocked the run (mandatory-failed is zero)",
+      "passed": true,
+      "evidence": "Line 26: 'the run was not blocked by policy. All 26 failures are at the advisory enforcement level'"
+    },
+    {
+      "text": "Run metadata from tfctl /runs/{id} is included \u2014 such as run status, trigger source, or whether the run has been applied",
+      "passed": true,
+      "evidence": "Line 7: 'Status: applied (run succeeded)'"
+    }
+  ],
+  "summary": {
+    "pass_rate": 0.7143,
+    "passed": 5,
+    "failed": 2,
+    "total": 7
+  }
+}

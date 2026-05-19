@@ -1,0 +1,6 @@
+$ tfctl api /runs/run-NONEXISTENT12345
+ERROR: Resource not found or you are unauthorized to this action. Check your account permissions.
+
+  $ tfctl auth info
+
+EXIT: 2

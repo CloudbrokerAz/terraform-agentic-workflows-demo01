@@ -65,6 +65,19 @@ description: Scoring rubrics, severity classification, evaluation methodology, a
 
 **Provider score formula**: `(D1 x 0.25) + (D2 x 0.30) + (D3 x 0.15) + (D4 x 0.10) + (D5 x 0.10) + (D6 x 0.10)`
 
+### Policy Workflow (authoring tfpolicy policy sets)
+
+| #   | Dimension              | Weight | Key Criteria                                                                                                                       |
+| --- | ---------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Policy Design          | 25%    | Correct block type (`resource_policy`/`provider_policy`/`module_policy`), targeting, filter usage, `attrs` paths match schema      |
+| 2   | Security Coverage      | 30%    | Every functional requirement in design Section 1 has a matching policy; security controls (encryption, public access, IAM, transport) covered; enforcement levels match design + constitution. **<5.0 = Not Production Ready** |
+| 3   | Error Message Quality  | 15%    | Every `error_message` is actionable (states problem AND fix), interpolates `${meta.address}`, names the rule/CIS-ID where relevant |
+| 4   | Testing                | 15%    | `.policytest.hcl` per `.policy.hcl`, at least one pass + one fail per policy, edge cases (cross-resource via `skip = true`, plan-time-unknown, filter bypass) covered, `policytest { targets }` declared |
+| 5   | Constitution Alignment | 10%    | Matches policy-design.md, policy-constitution.md MUST compliance (file extensions, naming, `core::try()` null safety, `getresources()` cached in locals, no `getdatasource()` in `resource_policy`, single-line expressions, set-to-list conversion) |
+| 6   | HCP Integration        | 5%     | Workspace targeting strategy explicit, evaluation stages justified, override governance documented if `mandatory_overridable` used |
+
+**Policy score formula**: `(D1 x 0.25) + (D2 x 0.30) + (D3 x 0.15) + (D4 x 0.15) + (D5 x 0.10) + (D6 x 0.05)`
+
 ## Security Override
 
 **Applies to all workflows**: If D2 (Security & Compliance) < 5.0, force "Not Production Ready" regardless of overall score.
@@ -95,6 +108,15 @@ description: Scoring rubrics, severity classification, evaluation methodology, a
 - D4: Missing CRUD operations, incorrect API mappings, import issues
 - D5: Missing test functions, inadequate check functions, config function issues
 - D6: Design deviations with provider-design.md section refs, constitution violations
+
+### Policy Workflow
+
+- D1: Wrong block type, wildcard `"*"` used without justification, `attrs.<path>` doesn't match provider schema (cite research file), `filter` expression non-deterministic
+- D2: Functional requirement from design Section 1 has no implementing policy; enforcement level too weak vs constitution defaults (e.g., encryption advisory); missing cross-resource correlation where design requires it
+- D3: `error_message` is generic ("Encryption is not enabled.") or missing the fix; no `${meta.address}` interpolation; no compliance rule ID cited where the design maps to one
+- D4: Missing pass test, missing fail test, missing `policytest { targets }`, helper resources not marked `skip = true`, `expect_failure` placed wrong
+- D5: `.policy.hcl`/`.policytest.hcl` extensions wrong, files not under `policies/`/`tests/`, `core::getresources()` called inside `resource_policy` (not cached in locals), `core::getdatasource()` used inside `resource_policy`, missing `core::try()` on optional attrs, multi-line condition expressions, set indexed without conversion
+- D6: Workspace targeting absent or unbounded, apply-time evaluation chosen where plan-time would suffice, `mandatory_overridable` used without documented override process
 
 ## Refinement Options (when score < 8.0)
 

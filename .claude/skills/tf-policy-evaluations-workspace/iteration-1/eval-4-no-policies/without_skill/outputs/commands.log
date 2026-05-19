@@ -1,0 +1,24 @@
+# tfctl commands executed for run-hGthAq8Kuv5wcKZq policy evaluations
+
+tfctl --help
+tfctl run --help
+tfctl run status --help
+tfctl run status run-hGthAq8Kuv5wcKZq --json
+tfctl api --help
+
+# Inspect run relationships (policy-checks, tf-policy-evaluations, task-stages)
+tfctl api /runs/run-hGthAq8Kuv5wcKZq --json
+tfctl api /runs/run-hGthAq8Kuv5wcKZq --jq '.data.relationships."policy-checks", .data.relationships."tf-policy-evaluations", .data.relationships."task-stages"'
+
+# Both legacy policy-checks and new tf-policy-evaluations endpoints returned empty
+tfctl api /runs/run-hGthAq8Kuv5wcKZq/policy-checks --json
+tfctl api /runs/run-hGthAq8Kuv5wcKZq/tf-policy-evaluations --json
+
+# Task stage actually carries the Sentinel policy-evaluation
+tfctl api /task-stages/ts-typfk8e6VteKbnXG --jq '.data.attributes.stage, .data.attributes.status, .data.relationships."policy-evaluations", .data.relationships."tf-policy-evaluations"'
+
+# Fetch the policy-evaluation and its policy-set outcomes
+tfctl api /policy-evaluations/poleval-wSxowX2UuPiDSipZ --json
+tfctl api /policy-evaluations/poleval-wSxowX2UuPiDSipZ/policy-set-outcomes --json
+tfctl api /policy-evaluations/poleval-wSxowX2UuPiDSipZ/policy-set-outcomes --jq '.data[] | {id: .id, policy_set: .attributes."policy-set-name", overall: .attributes."result-count", error: .attributes.error}'
+tfctl api /policy-evaluations/poleval-wSxowX2UuPiDSipZ/policy-set-outcomes --jq '.data[] | .attributes.outcomes[] | select(.status != "passed") | {policy: .policy_name, status: .status, enforcement: .enforcement_level, description: .description}'

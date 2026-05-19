@@ -1,6 +1,6 @@
 ---
 name: tf-policy-plan
-description: SDD Phases 1-2. Clarify requirements, research, produce tf-policy-design.md, and await human approval before any code is written. Strictly for tf-policy not Sentinel or OPA/Rego.
+description: SDD Phases 1-2. Clarify requirements, research, produce tf-policy-design.md, and await human approval before any code is written. The policy engine is tfpolicy.
 user-invocable: true
 argument-hint: "[compliance-rule-or-policy-set] [provider] - Compliance rule, framework control, or policy category (e.g., 'cis-aws-3.0-encryption aws', 'nist-800-53-ac aws', 'aws-s3-security aws')"
 ---
@@ -9,7 +9,7 @@ argument-hint: "[compliance-rule-or-policy-set] [provider] - Compliance rule, fr
 
 Produces `specs/{FEATURE}/tf-policy-design.md` from requirements. Stops for human approval before any code is written.
 
-Do not use Sentinel or OPA/Rego as policy engines. If the user asks for a different engine, point them to the constitution and the exception process rather than treating it as a clarification slot.
+The policy engine is tfpolicy. If the user asks for a different engine, point them to the constitution and the exception process rather than treating it as a clarification slot.
 
 Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`.
 Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.sh "<step_name>"`. The `<step_name>` must be a short hyphenated identifier (e.g., `"clarify"`, `"research-and-design"`, `"design-approved"`) — NOT a sentence or file path.
@@ -30,7 +30,7 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
    - **Scope**: Which resource types, providers, or modules should the policies target? Are cross-resource relationship checks needed (e.g., CloudTrail -> S3 bucket ACL)?
 7. Launch 3-4 concurrent `tf-policy-research` subagents (parallel foreground, NOT `run_in_background`). Each answers ONE question and writes to `specs/{FEATURE}/research-{slug}.md`. Key research areas:
    - **Compliance rules** (`research-compliance-rules`): If a compliance framework was specified and YAML rules exist at `policy-research/{framework-slug}*.yaml`, the agent reads and summarizes the applicable rules — extracting rule IDs, descriptions, resource types, and attribute paths. Include the YAML file path in the agent prompt.
-   - **Provider schemas** (`research-provider-schemas`): Research the target provider's resource schemas to identify correct attribute paths for policy conditions (e.g., `attrs.encrypted`, `attrs.encryption_settings_collection[0].enabled`). Identify nested block types (single/set/list) and plan-time vs apply-time availability.
+   - **Provider schemas** (`research-provider-schemas`): Research the target provider's resource schemas to identify correct attribute paths for policy conditions and whether each parent is a block (list-shaped, needs `[0]` indexing) or a direct attribute. Note plan-time vs apply-time availability. See the `tf-policy` skill for the blocks-vs-attributes rule.
 
    Wait for all to complete. Verify research files exist at `specs/{FEATURE}/research-*.md` via Glob.
 

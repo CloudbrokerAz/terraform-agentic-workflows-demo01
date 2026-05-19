@@ -1,0 +1,11 @@
+{
+  "summary": {"pass_rate": 1.0, "passed": 6, "failed": 0, "total": 6},
+  "expectations": [
+    {"text": "The run ID 'run-iURWDL3wVxzefsjo' was correctly extracted from the URL", "passed": true, "evidence": "Response references run-iURWDL3wVxzefsjo and tfctl was called with that ID"},
+    {"text": "tfctl was called with the extracted run ID and produced valid JSON output (no broken hostnames or URL artefacts)", "passed": true, "evidence": "commands.log shows clean tfctl api /runs/run-iURWDL3wVxzefsjo calls returning valid JSON"},
+    {"text": "The output shows policy evaluations in a structured format with columns for Kind, Status, and result counts", "passed": true, "evidence": "Tier 2 table with Evaluation | Kind | Status | Passed | Advisory-failed | Mandatory-failed | Errored"},
+    {"text": "At least one policy-set outcome with its policies is displayed", "passed": true, "evidence": "Three policy-set outcomes shown (CIS, FSBP, hashicorp-sentinel-require-pmr)"},
+    {"text": "Advisory-failed policies are listed (not hidden) with their enforcement level", "passed": true, "evidence": "26 advisory-failed policies enumerated with enforcement column 'advisory'"},
+    {"text": "Run metadata from tfctl /runs/{id} is included — such as run status, trigger source, or whether the run has been applied", "passed": true, "evidence": "Line 2: status applied, trigger manual, auto-apply false"}
+  ]
+}
