@@ -6,6 +6,7 @@ color: purple
 skills:
   - provider-resources
   - provider-run-acceptance-tests
+  - tf-report-template
 tools:
   - Skill
   - Read
