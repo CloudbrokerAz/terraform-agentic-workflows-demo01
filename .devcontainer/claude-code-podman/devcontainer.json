@@ -1,0 +1,118 @@
+{
+  "name": "${localWorkspaceFolderBasename} - Claude Code (Podman)",
+  "build": {
+    // Local Dockerfile: shared base image + Claude Code, plus a rootless
+    // podman-in-podman runtime. Build context is ../claude-code so the shared
+    // scripts/ (claude-statusline.sh) are available to COPY.
+    "dockerfile": "Dockerfile",
+    "context": "../claude-code",
+    "args": {
+      "TZ": "${localEnv:TZ:Australia/Sydney}"
+    }
+  },
+
+  // Rootless Podman tuning:
+  //   --userns=keep-id    maps the host user onto the in-container `node`
+  //                       (uid/gid 1000) so bind-mounted /workspace files keep
+  //                       correct ownership instead of being remapped into the
+  //                       subuid range.
+  //   --security-opt=label=disable  avoids SELinux relabel denials on the
+  //                       /workspace bind mount on Fedora/RHEL hosts.
+  //   --security-opt=seccomp=unconfined  lets the nested rootless podman run
+  //                       containers (the Terraform MCP's `docker run` via the
+  //                       podman-docker shim).
+  //   --security-opt=unmask=ALL  unmasks /proc so the nested container can mount
+  //                       its own /proc (otherwise crun fails: "mount proc ...
+  //                       Operation not permitted").
+  //   --device=/dev/net/tun  required by slirp4netns so the nested container
+  //                       gets outbound networking (the MCP fetches registry data).
+  //   NET_ADMIN/NET_RAW   retained for parity with the Docker variant.
+  "runArgs": [
+    "--userns=keep-id:uid=1000,gid=1000",
+    "--security-opt=label=disable",
+    "--security-opt=seccomp=unconfined",
+    "--security-opt=unmask=ALL",
+    "--device=/dev/net/tun",
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW"
+  ],
+
+  // No docker-in-docker feature: the Docker variant uses Docker's DinD, which is
+  // high-friction under a rootless Podman host. Instead the image ships rootless
+  // podman-in-podman + the podman-docker shim, so the shared, unmodified
+  // .mcp.json `docker run hashicorp/terraform-mcp-server` resolves to podman.
+
+  // keep-id already aligns UIDs, so don't let the devcontainer CLI try to
+  // chown/rebuild the user (which fails under rootless Podman).
+  "updateRemoteUserUID": false,
+
+  "postCreateCommand": "bash /workspace/.devcontainer/claude-code/scripts/post-create.sh",
+  "postStartCommand": "bash /workspace/.devcontainer/claude-code/scripts/post-start.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "hashicorp.terraform",
+        "Anthropic.claude-code",
+        "redhat.vscode-yaml",
+        "HashiCorp.HCL"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        }
+      }
+    }
+  },
+  "remoteUser": "node",
+  "mounts": [
+    "source=claude-code-podman-bashhistory,target=/commandhistory,type=volume",
+    "source=claude-code-podman-config,target=/home/node/.claude,type=volume"
+  ],
+  "remoteEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "CLAUDE_GITHUB_MCP_ENABLED": "true",
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "GH_ENTERPRISE_TOKEN": "${localEnv:GH_ENTERPRISE_TOKEN}",
+    "TFE_TOKEN": "${localEnv:TEAM_TFE_TOKEN}",
+    "AWS_ACCESS_KEY_ID": "${localEnv:AWS_ACCESS_KEY_ID}",
+    "AWS_SECRET_ACCESS_KEY": "${localEnv:AWS_SECRET_ACCESS_KEY}",
+    "AWS_SESSION_TOKEN": "${localEnv:AWS_SESSION_TOKEN}",
+    "AWS_SESSION_EXPIRATION": "${localEnv:AWS_SESSION_EXPIRATION}",
+    "VAULT_RADAR_LICENSE": "${localEnv:VAULT_RADAR_LICENSE:}",
+    "CLAUDE_CODE_AGENT_SWARMS": "true",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_ENABLE_TASKS": "true",
+    "CLAUDE_CODE_TEAM_NAME": "${localEnv:CLAUDE_CODE_TEAM_NAME}",
+    "INTERNAL_CA_HOST": "${localEnv:INTERNAL_CA_HOST}",
+    "INTERNAL_CA_IP": "${localEnv:INTERNAL_CA_IP}",
+    "INTERNAL_CA_CERT_NAME": "${localEnv:INTERNAL_CA_CERT_NAME}",
+    "INTERNAL_CA_ADDITIONAL_HOSTS": "${localEnv:INTERNAL_CA_ADDITIONAL_HOSTS}",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "${localEnv:CLAUDE_CODE_ENABLE_TELEMETRY}",
+    "OTEL_METRICS_EXPORTER": "${localEnv:OTEL_METRICS_EXPORTER}",
+    "OTEL_LOGS_EXPORTER": "${localEnv:OTEL_LOGS_EXPORTER}",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "${localEnv:OTEL_EXPORTER_OTLP_PROTOCOL}",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "${localEnv:OTEL_EXPORTER_OTLP_ENDPOINT}",
+    "OTEL_METRIC_EXPORT_INTERVAL": "${localEnv:OTEL_METRIC_EXPORT_INTERVAL}",
+    "OTEL_LOGS_EXPORT_INTERVAL": "${localEnv:OTEL_LOGS_EXPORT_INTERVAL}",
+    "OTEL_RESOURCE_ATTRIBUTES": "session.id=${localWorkspaceFolderBasename},job.name=terraform-eval"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace"
+}

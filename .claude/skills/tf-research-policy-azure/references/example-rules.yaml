@@ -1,0 +1,136 @@
+# Worked example — CIS Microsoft Azure Foundations Benchmark, Storage slice.
+# Mixed provenance: skeleton from the built-in initiative, control text from
+# Defender regulatory compliance, remediation hand-authored from Microsoft Learn.
+# Use this as a shape reference when producing larger outputs.
+metadata:
+  framework:
+    name: CIS Microsoft Azure Foundations Benchmark
+    version: "3.0.0"
+    scope: storage
+  source: https://learn.microsoft.com/azure/governance/policy/samples/cis-azure-2-0-0
+  initiative:
+    display_name: CIS Microsoft Azure Foundations Benchmark v3.0.0
+    definition_id: /providers/Microsoft.Authorization/policySetDefinitions/470a962c-86a0-433b-803a-3c176b5ce79c
+    definition_name: 470a962c-86a0-433b-803a-3c176b5ce79c
+    version: "1.3.0"
+  generated_by: tf-research-policy-azure
+  generated_at: 2026-05-19
+  notes: >-
+    Control titles/requirements sourced from Defender for Cloud regulatory
+    compliance (subscription had the standard assigned). Remediation snippets
+    hand-authored from the cited Microsoft Learn pages.
+
+rules:
+  - id: storage-secure-transfer-required
+    title: Storage accounts must require secure transfer (HTTPS)
+    description: >-
+      Secure transfer forces a storage account to accept requests only from
+      secure (HTTPS) connections, protecting data in transit from eavesdropping.
+    framework_control:
+      id: CIS Azure 3.1
+      title: Ensure that 'Secure transfer required' is set to 'Enabled'
+      requirement: >-
+        Enable data encryption in transit. The secure transfer option enhances
+        the security of a storage account by only allowing requests to the
+        account from secure connections (HTTPS).
+    related_controls:
+      - framework: Microsoft cloud security benchmark
+        version: v1
+        id: DP-3
+      - framework: NIST SP 800-53 Rev. 5
+        version: Rev. 5
+        id: SC-8
+    severity: HIGH
+    service: storage
+    resource_types:
+      - Microsoft.Storage/storageAccounts
+    source:
+      type: azure-policy-builtin
+      policy_definition_name: 404c3081-a854-4457-ae30-26a93ef643f9
+      policy_definition_id: /providers/Microsoft.Authorization/policyDefinitions/404c3081-a854-4457-ae30-26a93ef643f9
+      display_name: Secure transfer to storage accounts should be enabled
+      effect: Audit
+      mode: Indexed
+      parameters:
+        effect: Audit
+      documentation_url: https://learn.microsoft.com/azure/storage/common/storage-require-secure-transfer
+    initiative:
+      display_name: CIS Microsoft Azure Foundations Benchmark v3.0.0
+      definition_id: /providers/Microsoft.Authorization/policySetDefinitions/470a962c-86a0-433b-803a-3c176b5ce79c
+      definition_name: 470a962c-86a0-433b-803a-3c176b5ce79c
+      group_name: CIS_Azure_Foundations_v3.0.0_3.1
+    defender_for_cloud:
+      standard: Azure-CIS-3.0.0
+      control_id: "3.1"
+      assessment_id: 404c3081-a854-4457-ae30-26a93ef643f9
+      documentation_url: https://learn.microsoft.com/azure/defender-for-cloud/concept-regulatory-compliance
+    condition:
+      description: >-
+        The storage account must report supportsHttpsTrafficOnly = true.
+      parameters: {}
+      policy_rule: |
+        {
+          "if": {
+            "allOf": [
+              { "field": "type", "equals": "Microsoft.Storage/storageAccounts" },
+              { "field": "Microsoft.Storage/storageAccounts/supportsHttpsTrafficOnly", "equals": "false" }
+            ]
+          },
+          "then": { "effect": "[parameters('effect')]" }
+        }
+      aliases:
+        - Microsoft.Storage/storageAccounts/supportsHttpsTrafficOnly
+    remediation:
+      summary: >-
+        Set supportsHttpsTrafficOnly = true on the storage account. This is
+        safe to enable on existing accounts and takes effect immediately.
+      terraform_snippet: |
+        resource "azurerm_storage_account" "example" {
+          # ...
+          https_traffic_only_enabled = true
+          min_tls_version            = "TLS1_2"
+        }
+      azure_cli_snippet: |
+        az storage account update --name <acct> --resource-group <rg> --https-only true
+      portal_steps:
+        - "Storage account → Configuration"
+        - "Set 'Secure transfer required' to Enabled, then Save"
+      notes: >-
+        Legacy SDKs/tools that hardcode http:// endpoints will need updating.
+    references:
+      - title: Require secure transfer to ensure secure connections
+        url: https://learn.microsoft.com/azure/storage/common/storage-require-secure-transfer
+      - title: CIS Microsoft Azure Foundations Benchmark — Regulatory Compliance details
+        url: https://learn.microsoft.com/azure/governance/policy/samples/cis-azure-2-0-0
+    test_cases:
+      - name: storage account with HTTPS-only enabled passes
+        input:
+          resource_type: Microsoft.Storage/storageAccounts
+          properties:
+            supportsHttpsTrafficOnly: true
+        expected: COMPLIANT
+      - name: storage account allowing HTTP fails
+        input:
+          resource_type: Microsoft.Storage/storageAccounts
+          properties:
+            supportsHttpsTrafficOnly: false
+        expected: NON_COMPLIANT
+    provenance:
+      framework_control.id: azure-policy-initiative
+      framework_control.title: defender-regulatory-compliance
+      framework_control.requirement: defender-regulatory-compliance
+      severity: defender-regulatory-compliance
+      source.policy_definition_name: azure-policy-initiative
+      source.effect: azure-policy-builtin
+      source.mode: azure-policy-builtin
+      source.documentation_url: azure-policy-builtin
+      resource_types: azure-policy-builtin
+      condition.policy_rule: azure-policy-builtin
+      condition.description: manual-human
+      remediation.summary: manual-human
+      test_cases: manual-human
+      references: [azure-policy-initiative, microsoft-learn]
+    tags:
+      - encryption-in-transit
+      - data-protection
+      - storage

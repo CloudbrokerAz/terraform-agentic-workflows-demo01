@@ -58,7 +58,7 @@ git clone https://github.com/YOUR_ORG/your-new-repo.git
 code your-new-repo
 
 # 2. When VS Code prompts, click "Reopen in Container"
-#    Choose claude-code or vscode-agent variant depending on your AI assistant
+#    Choose claude-code or copilot-cli variant depending on your AI assistant
 
 # 3. Validate your environment
 bash .foundations/scripts/bash/validate-env.sh
@@ -106,7 +106,7 @@ Configured in `.mcp.json` and available automatically in the devcontainer.
 
 ## What's Included
 
-- **Devcontainer** — Two variants: `claude-code` (Claude Code CLI) and `vscode-agent` (GitHub Copilot), both with Terraform 1.14, TFLint, terraform-docs, Trivy, Go 1.24, GitHub CLI, Vault Radar, Infracost, Checkov, golangci-lint, and pre-commit
+- **Devcontainer** — One per assistant: `claude-code` (Claude Code CLI) and `copilot-cli` (GitHub Copilot), each with a Docker variant and a rootless-Podman variant (`*-podman`). All ship Terraform 1.14, TFLint, terraform-docs, Trivy, Go 1.24, GitHub CLI, Vault Radar, Infracost, Checkov, golangci-lint, and pre-commit
 - **Pre-commit hooks** — fmt, validate, docs, tflint, trivy, secret detection, Vault Radar (requires optional `VAULT_RADAR_LICENSE`)
 - **TFLint** — AWS (0.46.0), Azure (0.31.1), and Terraform plugins with all 20 rules configured
 - **Constitutions** — Non-negotiable rules for module, provider, and consumer code generation

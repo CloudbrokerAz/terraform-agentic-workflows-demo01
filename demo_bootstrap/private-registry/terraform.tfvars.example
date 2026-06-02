@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and fill in.
+organization = "hashi-demos-apj"
+github_org   = "hashi-demos-apj"
+
+# Set exactly ONE of these (your HCP VCS connection):
+oauth_token_id = "ot-xxxxxxxxxxxx"
+# github_app_installation_id = "ghain-xxxxxxxxxxxx"
+
+# Optional overrides (defaults shown):
+# hostname        = "app.terraform.io"
+# branch          = "main"
+# initial_version = "0.0.0"
+# module_repos    = [ ... ]   # see variables.tf for the default minimum set

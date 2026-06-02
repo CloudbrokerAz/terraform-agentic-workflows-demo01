@@ -1,0 +1,65 @@
+# Seed list of ARM resource provider types accepted by validate_yaml.py.
+# Format: ProviderNamespace/resourceType (case-insensitive match; nested types
+# like Microsoft.Storage/storageAccounts/blobServices are valid too — the
+# validator accepts any entry whose first two segments match a line here, so
+# child types of a listed parent pass without being enumerated).
+#
+# This is a SEED, not exhaustive. Refresh/extend with:
+#   az provider list --query "[].{ns:namespace,t:resourceTypes[].resourceType}" -o json
+# then append "<ns>/<t>" lines. validate_yaml.py --add-resource-type <T> also
+# appends here. Unknown types are a WARNING by default, an ERROR with --strict.
+Microsoft.Storage/storageAccounts
+Microsoft.Compute/virtualMachines
+Microsoft.Compute/disks
+Microsoft.Compute/virtualMachineScaleSets
+Microsoft.Network/virtualNetworks
+Microsoft.Network/networkSecurityGroups
+Microsoft.Network/publicIPAddresses
+Microsoft.Network/networkInterfaces
+Microsoft.Network/applicationGateways
+Microsoft.Network/azureFirewalls
+Microsoft.Network/frontDoors
+Microsoft.KeyVault/vaults
+Microsoft.KeyVault/vaults/keys
+Microsoft.KeyVault/vaults/secrets
+Microsoft.Sql/servers
+Microsoft.Sql/servers/databases
+Microsoft.DBforPostgreSQL/servers
+Microsoft.DBforPostgreSQL/flexibleServers
+Microsoft.DBforMySQL/servers
+Microsoft.DBforMySQL/flexibleServers
+Microsoft.DocumentDB/databaseAccounts
+Microsoft.Web/sites
+Microsoft.Web/serverfarms
+Microsoft.ContainerService/managedClusters
+Microsoft.ContainerRegistry/registries
+Microsoft.Kubernetes/connectedClusters
+Microsoft.Insights/components
+Microsoft.Insights/activityLogAlerts
+Microsoft.Insights/diagnosticSettings
+Microsoft.OperationalInsights/workspaces
+Microsoft.Authorization/roleAssignments
+Microsoft.Authorization/policyAssignments
+Microsoft.ManagedIdentity/userAssignedIdentities
+Microsoft.AAD/domainServices
+Microsoft.Security/pricings
+Microsoft.Security/securityContacts
+Microsoft.Security/autoProvisioningSettings
+Microsoft.RecoveryServices/vaults
+Microsoft.Cache/redis
+Microsoft.ServiceBus/namespaces
+Microsoft.EventHub/namespaces
+Microsoft.ApiManagement/service
+Microsoft.CognitiveServices/accounts
+Microsoft.MachineLearningServices/workspaces
+Microsoft.DataFactory/factories
+Microsoft.Subscription/subscriptions
+Microsoft.Resources/subscriptions
+Microsoft.Resources/subscriptions/resourceGroups
+Microsoft.Sql/managedInstances
+Microsoft.Security/assessments
+Microsoft.HybridCompute/machines
+Microsoft.ClassicCompute/virtualMachines
+Microsoft.KeyVault.Data/vaults
+Microsoft.KeyVault.Data/vaults/keys
+Microsoft.KeyVault.Data/vaults/secrets

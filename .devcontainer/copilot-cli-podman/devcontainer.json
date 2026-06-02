@@ -1,0 +1,88 @@
+// For format details, see https://aka.ms/devcontainer.json.
+// Podman variant of ../copilot-cli/devcontainer.json — same Copilot setup,
+// retuned to run under a rootless Podman host. The Docker variant is untouched.
+{
+  "name": "${localWorkspaceFolderBasename} - Copilot (Podman)",
+  "build": {
+    // Local Dockerfile: shared base + Copilot CLI + rootless podman-in-podman.
+    "dockerfile": "Dockerfile",
+    "context": "../copilot-cli"
+  },
+
+  // No docker-in-docker feature: the image ships rootless podman-in-podman + the
+  // podman-docker shim, so the unmodified Terraform MCP config below (and the
+  // `docker image pull` in post-start.sh) resolve to podman.
+
+  // Rootless Podman tuning (see ../claude-code-podman/readme.md for rationale):
+  //   keep-id            host UID -> in-container `node` (uid/gid 1000)
+  //   label=disable      avoid SELinux relabel denials on the bind mount
+  //   seccomp=unconfined  let nested podman run containers
+  //   unmask=ALL         unmask /proc so the nested container can mount its own
+  //                      /proc (else crun: "mount proc ... Operation not permitted")
+  //   /dev/net/tun       required by slirp4netns for nested outbound networking
+  "runArgs": [
+    "--userns=keep-id:uid=1000,gid=1000",
+    "--security-opt=label=disable",
+    "--security-opt=seccomp=unconfined",
+    "--security-opt=unmask=ALL",
+    "--device=/dev/net/tun"
+  ],
+
+  // keep-id already aligns UIDs; don't let the CLI try to chown/rebuild the user.
+  "updateRemoteUserUID": false,
+
+  "postCreateCommand": "bash .devcontainer/copilot-cli/scripts/post-create.sh",
+  "postStartCommand": "bash .devcontainer/copilot-cli/scripts/post-start.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "hashicorp.terraform",
+        "HashiCorp.HCL"
+      ],
+      "mcp": {
+        "servers": {
+          "terraform-mcp": {
+            "command": "docker",
+            "args": [
+              "run",
+              "-i",
+              "--rm",
+              "-e",
+              "TFE_TOKEN",
+              "hashicorp/terraform-mcp-server:latest"
+            ]
+          },
+          "aws-documentation-mcp-server": {
+            "command": "uvx",
+            "args": ["awslabs.aws-documentation-mcp-server@latest"],
+            "env": {
+              "FASTMCP_LOG_LEVEL": "ERROR",
+              "AWS_DOCUMENTATION_PARTITION": "aws",
+              "MCP_USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            }
+          }
+        }
+      }
+    }
+  },
+  "containerEnv": {
+    "XDG_CONFIG_HOME": "/workspace"
+  },
+  "remoteEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "GH_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "TFE_TOKEN": "${localEnv:TEAM_TFE_TOKEN}",
+    "TF_TOKEN_app_terraform_io": "${localEnv:TEAM_TFE_TOKEN}",
+    "AWS_ACCESS_KEY_ID": "${localEnv:AWS_ACCESS_KEY_ID}",
+    "AWS_SECRET_ACCESS_KEY": "${localEnv:AWS_SECRET_ACCESS_KEY}",
+    "AWS_SESSION_TOKEN": "${localEnv:AWS_SESSION_TOKEN}",
+    "AWS_SESSION_EXPIRATION": "${localEnv:AWS_SESSION_EXPIRATION}",
+    "VAULT_RADAR_LICENSE": "${localEnv:VAULT_RADAR_LICENSE:}",
+    "COPILOT_AUTO_UPDATE": "false"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace"
+}

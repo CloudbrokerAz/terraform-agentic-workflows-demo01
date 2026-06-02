@@ -28,8 +28,14 @@ if [ "$CURRENT" = "$LATEST" ]; then
 fi
 
 echo "  Updating Terraform: v${CURRENT} -> v${LATEST}..."
-curl -sSL -o /tmp/terraform.zip "https://releases.hashicorp.com/terraform/${LATEST}/terraform_${LATEST}_linux_${TF_ARCH}.zip"
-unzip -qq -o /tmp/terraform.zip -d /tmp
-sudo mv /tmp/terraform /usr/local/bin/terraform
-rm -f /tmp/terraform.zip
+# Extract into a fresh temp dir, not /tmp directly: the terraform zip ships a
+# LICENSE.txt, and a root-owned /tmp/LICENSE.txt left over from the base image
+# build cannot be overwritten by the unprivileged `node` user (notably under
+# Podman's --userns=keep-id), which would fail the whole update with
+# "cannot delete old /tmp/LICENSE.txt: Operation not permitted".
+TMP_TF_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_TF_DIR"' EXIT
+curl -sSL -o "${TMP_TF_DIR}/terraform.zip" "https://releases.hashicorp.com/terraform/${LATEST}/terraform_${LATEST}_linux_${TF_ARCH}.zip"
+unzip -qq -o "${TMP_TF_DIR}/terraform.zip" -d "${TMP_TF_DIR}"
+sudo mv "${TMP_TF_DIR}/terraform" /usr/local/bin/terraform
 echo "  Terraform updated to v${LATEST}"

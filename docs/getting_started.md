@@ -28,7 +28,7 @@ Each workflow is driven by slash commands (e.g., `/tf-module-plan`) that orchest
 | Assistant | Devcontainer | Skills & agents | MCP config |
 |-----------|-------------|-----------------|------------|
 | **Claude Code** | `.devcontainer/claude-code/` | `.claude/skills/` and `.claude/agents/` | `.mcp.json` |
-| **GitHub Copilot** | `.devcontainer/vscode-agent/` | `.claude/skills/`, `.claude/agents/`, and `.github/agents/` | `devcontainer.json` (`customizations.vscode.mcp`) |
+| **GitHub Copilot** | `.devcontainer/copilot-cli/` | `.claude/skills/`, `.claude/agents/`, and `.github/agents/` | `devcontainer.json` (`customizations.vscode.mcp`) |
 
 The same slash commands work in both tools. Copilot CLI supports skill and agent lookup from `.claude/` directories in addition to `.github/agents/`. The underlying tool names differ between the two (see [Tool Name Mapping](tool-name-mapping.md)), but the user experience is the same.
 
@@ -42,10 +42,18 @@ Install these on your **host machine** — everything else is provided by the de
 
 | Tool | Purpose |
 |------|---------|
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Run the devcontainer |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) **or** [Podman](https://podman.io/) | Run the devcontainer |
 | [VS Code](https://code.visualstudio.com/) | IDE with Dev Containers extension |
 
 Install the **Dev Containers** extension in VS Code (`ms-vscode-remote.remote-containers`).
+
+> **Using Podman instead of Docker?** Open the Podman-tuned variant for your
+> assistant — `.devcontainer/claude-code-podman/` (Claude Code) or
+> `.devcontainer/copilot-cli-podman/` (Copilot). Both use rootless
+> podman-in-podman so the Terraform MCP still works. See each variant's
+> `readme.md` for the one-time `dev.containers.dockerPath: podman` setup. The
+> default Docker variants (`.devcontainer/claude-code/`,
+> `.devcontainer/copilot-cli/`) are unchanged and remain Docker-only.
 
 > All other tools (Terraform, TFLint, terraform-docs, Trivy, Go, GitHub CLI, Vault Radar, Claude Code CLI) are pre-installed inside the devcontainer.
 
@@ -122,8 +130,8 @@ The template uses HCP Terraform for remote execution, state management, and work
 | Read Variables | Yes | Inspect workspace configuration |
 | Read State | Yes | Access state for planning and validation |
 | Write State | Yes | Apply changes to workspace state |
+| Apply Runs | Yes | Queue and apply runs to deploy sandbox workspaces |
 | Download Sentinel Mocks | Yes | Policy testing support |
-| Manage Workspace Run Tasks | Yes | Configure run task integrations |
 | Lock/Unlock Workspaces | Yes | Prevent concurrent modifications during runs |
 
 #### Generate Team API Token
@@ -207,7 +215,7 @@ When VS Code opens, it will detect the devcontainer configuration and prompt you
 | Variant | Path | Use when |
 |---------|------|----------|
 | `claude-code` | `.devcontainer/claude-code/` | You have a Claude Code subscription (recommended for this template) |
-| `vscode-agent` | `.devcontainer/vscode-agent/` | You use GitHub Copilot as your AI coding assistant |
+| `copilot-cli` | `.devcontainer/copilot-cli/` | You use GitHub Copilot as your AI coding assistant |
 
 The devcontainer includes all required tools pre-installed:
 
