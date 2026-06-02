@@ -6,6 +6,12 @@ RUN npm install -g @github/copilot && \
 # Install pre-commit (base image has uv but not pre-commit)
 RUN uv tool install pre-commit --with pre-commit-uv
 
-# Add yolo aliases for unattended mode
+# Add unattended-mode aliases:
+#   copiloty = full bypass (yolo).
+#   copilota = autopilot with a safe allowlist -- runs write/edit + git/terraform
+#     and read-only shell unattended; everything else still needs approval.
+#     (Copilot has no safety-classifier "auto" mode like Claude, so we scope it
+#     explicitly. Deny rules always beat allow rules if you add --deny-tool.)
 RUN echo 'alias copiloty="copilot --yolo --disable-builtin-mcps"' >> /home/node/.zshrc && \
+    echo "alias copilota='copilot --autopilot --allow-tool=\"write,edit,shell(git:*),shell(terraform:*),shell(ls),shell(cat),shell(grep)\" --disable-builtin-mcps'" >> /home/node/.zshrc && \
     chown node:node /home/node/.zshrc

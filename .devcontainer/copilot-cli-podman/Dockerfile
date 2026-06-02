@@ -16,6 +16,7 @@ RUN npm install -g @github/copilot && \
 RUN uv tool install pre-commit --with pre-commit-uv
 
 RUN echo 'alias copiloty="copilot --yolo --disable-builtin-mcps"' >> /home/node/.zshrc && \
+    echo "alias copilota='copilot --autopilot --allow-tool=\"write,edit,shell(git:*),shell(terraform:*),shell(ls),shell(cat),shell(grep)\" --disable-builtin-mcps'" >> /home/node/.zshrc && \
     chown node:node /home/node/.zshrc
 
 # --- Rootless podman-in-podman -----------------------------------------------

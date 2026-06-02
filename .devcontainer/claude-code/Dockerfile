@@ -15,6 +15,7 @@ RUN curl -fsSL https://bun.sh/install | bash && \
 COPY scripts/claude-statusline.sh /usr/local/bin/claude-statusline.sh
 RUN chmod +x /usr/local/bin/claude-statusline.sh && \
     echo 'alias clauded="claude --dangerously-skip-permissions"' >> /home/node/.zshrc && \
+    echo 'alias claudea="claude --permission-mode auto"' >> /home/node/.zshrc && \
     chown node:node /home/node/.zshrc
 
 USER node
