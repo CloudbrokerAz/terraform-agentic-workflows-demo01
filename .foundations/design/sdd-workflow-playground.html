@@ -6729,6 +6729,40 @@ OUTCOME:  Agent review (score &#x2265; 8.5) | Human review (7.0&#x2013;8.5) | Bl
   </div></div>
 </div>
 
+<!-- Policy Plan (compact accordion) -->
+<div class="subsection" id="workflows-policy-plan" data-sub="Policy Plan">
+  <h3 class="subsection-title">/tf-policy-plan</h3>
+  <p class="subsection-desc">Phases 1 &amp; 2 — Requirements + Design (tfpolicy). Agents research compliance baselines and provider schemas, then produce a policy-design.md mapping framework rules to enforceable policies.</p>
+  <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Phase 1: Requirements <span class="accordion-arrow">&#x25BC;</span></div><div class="accordion-body">
+    <div class="node-row"><div class="node node-agent" data-id="tf-policy-research" data-type="agent">tf-policy-research<span class="pref">x3-4</span></div><div class="node node-skill" data-id="tf-research" data-type="skill">tf-research</div><div class="node node-skill" data-id="tf-policy" data-type="skill">tf-policy</div></div>
+    <div class="node-row" style="margin-top:4px"><div class="node node-mcp" data-id="mcp-terraform" data-type="mcp">terraform-mcp<span class="pref">schemas</span></div><div class="node node-artifact" data-id="policy-yaml-rules" data-type="artifact">compliance YAML rules</div></div>
+  </div></div>
+  <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Phase 2: Design <span class="accordion-arrow">&#x25BC;</span></div><div class="accordion-body">
+    <div class="node-row"><div class="node node-agent" data-id="tf-policy-design" data-type="agent">tf-policy-design</div><div class="node node-skill" data-id="tf-security-baselines" data-type="skill">tf-security-baselines</div></div>
+    <div class="node-row" style="margin-top:4px"><div class="node node-template" data-id="policy-design-template" data-type="template">policy-design-template.md</div><div class="node node-ref" data-id="policy-constitution" data-type="ref">policy-constitution.md</div></div>
+    <div class="artifacts-label">Output</div>
+    <div class="node-row"><div class="node node-artifact" data-id="policy-design-md" data-type="artifact">policy-design.md</div></div>
+  </div></div>
+</div>
+
+<!-- Policy Impl (compact accordion) -->
+<div class="subsection" id="workflows-policy-impl" data-sub="Policy Impl">
+  <h3 class="subsection-title">/tf-policy-implement</h3>
+  <p class="subsection-desc">Phases 3 &amp; 4 — Build + Validate (TDD with tfpolicy). Tests are written first, policies are built per checklist item, then validated against the Policy Workflow rubric before a PR.</p>
+  <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Phase 3: Build + Test <span class="accordion-arrow">&#x25BC;</span></div><div class="accordion-body">
+    <div class="node-row"><div class="node node-agent" data-id="tf-policy-test-writer" data-type="agent">tf-policy-test-writer</div><div class="node node-agent" data-id="tf-policy-developer" data-type="agent">tf-policy-developer</div><div class="node node-skill" data-id="tf-policy" data-type="skill">tf-policy</div></div>
+    <div class="node-row" style="margin-top:4px"><div class="node node-cmd" data-id="tfpolicy-validate" data-type="cmd">tfpolicy validate</div><div class="node node-cmd" data-id="tfpolicy-test" data-type="cmd">tfpolicy test</div></div>
+    <div class="artifacts-label">Outputs</div>
+    <div class="node-row"><div class="node node-artifact" data-id="policytest-hcl" data-type="artifact">*.policytest.hcl</div><div class="node node-artifact" data-id="policy-hcl-code" data-type="artifact">*.policy.hcl</div></div>
+  </div></div>
+  <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Phase 4: Validate <span class="accordion-arrow">&#x25BC;</span></div><div class="accordion-body">
+    <div class="node-row"><div class="node node-agent" data-id="tf-policy-validator" data-type="agent">tf-policy-validator</div><div class="node node-skill" data-id="tf-judge-criteria" data-type="skill">tf-judge-criteria</div></div>
+    <div class="node-row" style="margin-top:4px"><div class="node node-cmd" data-id="tfpolicy-validate-final" data-type="cmd">tfpolicy validate</div><div class="node node-cmd" data-id="tfpolicy-test-final" data-type="cmd">tfpolicy test</div><div class="node node-cmd" data-id="gh-pr-create" data-type="cmd">gh pr create</div></div>
+    <div class="artifacts-label">Outputs</div>
+    <div class="node-row"><div class="node node-artifact" data-id="validation-report" data-type="artifact">validation report</div><div class="node node-artifact" data-id="quality-score" data-type="artifact">quality score</div><div class="node node-artifact" data-id="pr" data-type="artifact">Pull Request</div></div>
+  </div></div>
+</div>
+
 <!-- Day 2: Module Upgrade -->
 <div class="subsection" id="workflows-consumer-day2" data-sub="Day 2 Ops">
   <h3 class="subsection-title">Day 2: Module Upgrade</h3>
@@ -7429,7 +7463,7 @@ WARN: TFLINT, PRE_COMMIT, TRIVY, TERRAFORM_DOCS
       <ul>
         <li>Key directories created: <code>.claude/skills/</code>, <code>.claude/agents/</code>, <code>.foundations/</code>, <code>.devcontainer/</code></li>
         <li>Three constitutions pre-loaded: module, provider, and consumer</li>
-        <li>Six workflow skills ready to use: tf-module-plan/implement, tf-provider-plan/implement, tf-consumer-plan/implement</li>
+        <li>Eight workflow skills ready to use: tf-module-plan/implement, tf-provider-plan/implement, tf-consumer-plan/implement, tf-policy-plan/implement</li>
         <li>Pre-commit config with 11 hooks (Terraform fmt, validate, tflint, trivy, vault-radar, etc.)</li>
       </ul>
       <div class="expand-ref">Source: CLAUDE.md (Workflow Entry Points)</div>
@@ -7482,8 +7516,10 @@ code your-new-repo</pre></summary>
 /tf-module-plan        # Module authoring (raw resources)
 /tf-provider-plan      # Provider development (Plugin Framework)
 /tf-consumer-plan      # Consumer provisioning (registry modules)
+/tf-policy-plan        # Policy authoring (tfpolicy compliance)
 /tf-module-implement   # Skip to Phase 3 from existing design.md
-/tf-consumer-implement # Skip to Phase 3 from existing consumer-design.md</pre>
+/tf-consumer-implement # Skip to Phase 3 from existing consumer-design.md
+/tf-policy-implement   # Skip to Phase 3 from existing policy-design.md</pre>
       <div class="expand-ref">Source: .claude/CLAUDE.md (Workflow Entry Points)</div>
     </div>
   </details>
@@ -7653,7 +7689,26 @@ const nodeDesc = {
   'tf-consumer-implement': 'SDD Phases 3-4 for consumer provisioning. Compose modules from private registry, validate, deploy to sandbox, create PR.',
   'tf-consumer-e2e': 'Non-interactive test harness for end-to-end consumer workflow testing. Runs full /tf-consumer-plan → /tf-consumer-implement cycle with test defaults.',
   'provider-new-terraform-provider': 'Scaffolds a new Terraform provider with Plugin Framework boilerplate, directory structure, and initial resource/data-source stubs.',
-  'azure-verified-modules': 'Azure Verified Modules (AVM) requirements and best practices for developing certified Azure Terraform modules.'
+  'azure-verified-modules': 'Azure Verified Modules (AVM) requirements and best practices for developing certified Azure Terraform modules.',
+  'tf-policy-plan': 'SDD Phases 1-2 for tfpolicy. Clarify compliance requirements, research baselines and provider schemas, produce policy-design.md, await human approval.',
+  'tf-policy-implement': 'SDD Phases 3-4 for tfpolicy. TDD: write .policytest.hcl first, build .policy.hcl per checklist item, validate with tfpolicy, create PR.',
+  'tf-policy': 'Source of truth for tfpolicy — block structure, attrs/prior_attrs/meta model, core:: functions, targeting, .policytest.hcl testing, enforcement levels.',
+  'tf-policy-research': 'Investigates ONE question per instance: compliance YAML rules (from tf-research-policy-aws) and provider schema attribute paths (blocks vs attrs, plan/apply availability). Writes specs/{FEATURE}/research-*.md.',
+  'tf-policy-design': 'Produces policy-design.md (7 sections): purpose, policy inventory, specifications, test scenarios, HCP config, checklist, open questions. Maps YAML rule IDs to policy specs.',
+  'tf-policy-test-writer': 'TDD — runs first. Converts policy-design.md Section 4 test scenarios into .policytest.hcl mock blocks, one test file per .policy.hcl.',
+  'tf-policy-developer': 'Executes one Section 6 checklist item. Writes .policy.hcl, runs tfpolicy validate/test, marks the item [x].',
+  'tf-policy-validator': 'Validates policy code: design conformance, tfpolicy validate + test, Policy Workflow quality scoring (tf-judge-criteria), conservative auto-fix. Writes validation report.',
+  'policy-design-md': 'Policy design artifact (policy-design.md). 7 sections: purpose, policy inventory, specifications, test scenarios, HCP Terraform config, implementation checklist, open questions.',
+  'policy-design-template': 'Canonical template for policy-design.md.',
+  'policy-constitution': 'Policy code standards: tfpolicy block structure, attribute-path correctness, enforcement-level rules, test coverage. Final arbiter enforced by tf-policy-validator.',
+  'policy-yaml-rules': 'Structured YAML compliance rule set produced by tf-research-policy-aws (e.g. CIS/NIST/PCI). Consumed by tf-policy-research and mapped to policy specs by tf-policy-design.',
+  'policy-hcl-code': 'tfpolicy policy files (.policy.hcl) authored per checklist item by tf-policy-developer.',
+  'policytest-hcl': 'tfpolicy test files (.policytest.hcl) with mock blocks. Written first (TDD) by tf-policy-test-writer.',
+  'tfpolicy-validate': 'tfpolicy validate --policies=policies/ — checks policy syntax and structure.',
+  'tfpolicy-test': 'tfpolicy test --policies=policies/ --tests=tests/ — runs policy assertions against mock blocks.',
+  'tfpolicy-validate-baseline': 'tfpolicy validate at the TDD baseline (policies/ may be empty — captured, not blocking).',
+  'tfpolicy-validate-final': 'tfpolicy validate in the Phase 4 quality assessment.',
+  'tfpolicy-test-final': 'tfpolicy test in the Phase 4 quality assessment.'
 };
 
 // ============================================================
@@ -7665,7 +7720,9 @@ const agentIO = {
   'provider-plan': { 'tf-provider-research': { reads: [], writes: [] }, 'tf-provider-design': { reads: [], writes: ['provider-design-md'] } },
   'provider-impl': { 'tf-provider-test-writer': { reads: ['provider-design-md'], writes: ['go-test-stubs'] }, 'tf-provider-developer': { reads: ['provider-design-md'], writes: ['go-source'] }, 'tf-provider-validator': { reads: ['go-source','go-test-stubs','provider-design-md'], writes: ['validation-report'] } },
   'consumer-plan': { 'tf-consumer-research': { reads: [], writes: ['research-md'] }, 'tf-consumer-design': { reads: ['research-md'], writes: ['consumer-design-md'] } },
-  'consumer-impl': { 'tf-consumer-developer': { reads: ['consumer-design-md'], writes: ['consumer-tf-code'] }, 'tf-consumer-validator': { reads: ['consumer-tf-code','consumer-design-md'], writes: ['validation-report','cost-estimate','quality-score'] } }
+  'consumer-impl': { 'tf-consumer-developer': { reads: ['consumer-design-md'], writes: ['consumer-tf-code'] }, 'tf-consumer-validator': { reads: ['consumer-tf-code','consumer-design-md'], writes: ['validation-report','cost-estimate','quality-score'] } },
+  'policy-plan': { 'tf-policy-research': { reads: [], writes: ['research-md'] }, 'tf-policy-design': { reads: ['research-md'], writes: ['policy-design-md'] } },
+  'policy-impl': { 'tf-policy-test-writer': { reads: ['policy-design-md'], writes: ['policytest-hcl'] }, 'tf-policy-developer': { reads: ['policy-design-md'], writes: ['policy-hcl-code'] }, 'tf-policy-validator': { reads: ['policy-hcl-code','policytest-hcl','policy-design-md'], writes: ['validation-report','quality-score'] } }
 };
 
 const connections = {
@@ -7674,7 +7731,9 @@ const connections = {
   'provider-plan': { 'validate-env':[],'create-feature':[],'post-issue':['gh-issue'],'gh-issue-create':['gh-issue','issue-body-template'],'issue-body-template':['gh-issue-create'],'tf-domain-category':['tf-provider-research'],'tf-provider-research':['tf-provider-design'],'tf-provider-design':['provider-resources','provider-design-template','provider-constitution','provider-design-md','tf-provider-research'],'provider-resources':['tf-provider-design'],'provider-design-template':['tf-provider-design'],'provider-constitution':['tf-provider-design'],'gh-issue':['gh-issue-create','post-issue'],'provider-design-md':['tf-provider-design'] },
   'provider-impl': { 'validate-env':[],'post-issue':['gh-issue-updated'],'checkpoint-commit':[],'provider-design-md':['tf-provider-test-writer','tf-provider-developer','tf-provider-validator'],'tf-provider-test-writer':['provider-test-patterns','provider-design-md','go-test-stubs'],'provider-test-patterns':['tf-provider-test-writer','tf-provider-developer'],'tf-provider-developer':['provider-resources','provider-actions','provider-test-patterns-dev','provider-design-md','go-source'],'provider-resources':['tf-provider-developer','tf-provider-validator'],'provider-actions':['tf-provider-developer'],'provider-test-patterns-dev':['tf-provider-developer'],'provider-resources-val':['tf-provider-validator'],'provider-run-acc-tests':['tf-provider-validator'],'go-build':['go-source'],'go-test-c':['go-source','go-test-stubs'],'go-vet':['go-source'],'go-test-stubs':['tf-provider-test-writer','go-test-c','tf-provider-validator'],'go-source':['tf-provider-developer','go-build','go-test-c','go-vet','tf-provider-validator','go-test-acc'],'tf-provider-validator':['provider-resources-val','provider-run-acc-tests','go-source','go-test-stubs','provider-design-md','validation-report'],'go-test-acc':['go-source'],'tf-report-template':['validation-report'],'gh-pr-create':['pr','gh-issue-updated'],'validation-report':['tf-provider-validator','tf-report-template'],'pr':['gh-pr-create'],'gh-issue-updated':['gh-pr-create','post-issue'] },
   'consumer-plan': { 'validate-env':[],'create-feature':[],'post-issue':['gh-issue'],'gh-issue-create':['gh-issue','issue-body-template'],'issue-body-template':['gh-issue-create'],'tf-domain-category':['tf-consumer-research'],'tf-consumer-research':['tf-research','mcp-aws-docs','mcp-terraform','research-md'],'tf-research':['tf-consumer-research'],'tf-security-baselines':['tf-consumer-design'],'mcp-aws-docs':['tf-consumer-research'],'mcp-terraform':['tf-consumer-research'],'research-md':['tf-consumer-research','tf-consumer-design'],'tf-consumer-design':['tf-architecture-patterns','tf-security-baselines','consumer-design-template','consumer-constitution','consumer-design-md','research-md'],'tf-architecture-patterns':['tf-consumer-design'],'consumer-design-template':['tf-consumer-design'],'consumer-constitution':['tf-consumer-design'],'gh-issue':['gh-issue-create','post-issue'],'consumer-design-md':['tf-consumer-design'] },
-  'consumer-impl': { 'validate-env':[],'post-issue':['gh-issue-updated'],'checkpoint-commit':[],'consumer-design-md':['tf-consumer-developer','tf-consumer-validator'],'tf-consumer-developer':['terraform-style-guide','tf-implementation-patterns','mcp-terraform','mcp-aws-docs','consumer-design-md','consumer-tf-code'],'terraform-style-guide':['tf-consumer-developer'],'tf-implementation-patterns':['tf-consumer-developer'],'mcp-terraform':['tf-consumer-developer'],'mcp-aws-docs':['tf-consumer-developer'],'tf-init':[],'tf-validate':['consumer-tf-code'],'tf-plan':['consumer-tf-code'],'consumer-tf-code':['tf-consumer-developer','tf-validate','tf-plan','tf-consumer-validator','tf-validate-final','tf-plan-final'],'tf-consumer-validator':['tf-judge-criteria','tf-runtask','consumer-tf-code','consumer-design-md','validation-report','cost-estimate','quality-score'],'tf-judge-criteria':['tf-consumer-validator'],'tf-runtask':['tf-consumer-validator'],'cost-estimate':['tf-consumer-validator'],'tf-validate-final':['consumer-tf-code'],'tf-plan-final':['consumer-tf-code'],'tf-report-template':['validation-report'],'gh-pr-create':['pr','gh-issue-updated'],'validation-report':['tf-consumer-validator','tf-report-template'],'quality-score':['tf-consumer-validator'],'pr':['gh-pr-create'],'gh-issue-updated':['gh-pr-create','post-issue'] }
+  'consumer-impl': { 'validate-env':[],'post-issue':['gh-issue-updated'],'checkpoint-commit':[],'consumer-design-md':['tf-consumer-developer','tf-consumer-validator'],'tf-consumer-developer':['terraform-style-guide','tf-implementation-patterns','mcp-terraform','mcp-aws-docs','consumer-design-md','consumer-tf-code'],'terraform-style-guide':['tf-consumer-developer'],'tf-implementation-patterns':['tf-consumer-developer'],'mcp-terraform':['tf-consumer-developer'],'mcp-aws-docs':['tf-consumer-developer'],'tf-init':[],'tf-validate':['consumer-tf-code'],'tf-plan':['consumer-tf-code'],'consumer-tf-code':['tf-consumer-developer','tf-validate','tf-plan','tf-consumer-validator','tf-validate-final','tf-plan-final'],'tf-consumer-validator':['tf-judge-criteria','tf-runtask','consumer-tf-code','consumer-design-md','validation-report','cost-estimate','quality-score'],'tf-judge-criteria':['tf-consumer-validator'],'tf-runtask':['tf-consumer-validator'],'cost-estimate':['tf-consumer-validator'],'tf-validate-final':['consumer-tf-code'],'tf-plan-final':['consumer-tf-code'],'tf-report-template':['validation-report'],'gh-pr-create':['pr','gh-issue-updated'],'validation-report':['tf-consumer-validator','tf-report-template'],'quality-score':['tf-consumer-validator'],'pr':['gh-pr-create'],'gh-issue-updated':['gh-pr-create','post-issue'] },
+  'policy-plan': { 'validate-env':[],'create-feature':[],'post-issue':['gh-issue'],'gh-issue-create':['gh-issue','issue-body-template'],'issue-body-template':['gh-issue-create'],'tf-domain-category':['tf-policy-research'],'tf-policy-research':['tf-research','mcp-terraform','policy-yaml-rules','research-md'],'tf-research':['tf-policy-research'],'mcp-terraform':['tf-policy-research'],'policy-yaml-rules':['tf-policy-research','tf-policy-design'],'research-md':['tf-policy-research','tf-policy-design'],'tf-policy-design':['tf-policy','tf-security-baselines','policy-design-template','policy-constitution','policy-design-md','research-md'],'tf-policy':['tf-policy-design'],'tf-security-baselines':['tf-policy-design'],'policy-design-template':['tf-policy-design'],'policy-constitution':['tf-policy-design'],'gh-issue':['gh-issue-create','post-issue'],'policy-design-md':['tf-policy-design'] },
+  'policy-impl': { 'validate-env':[],'post-issue':['gh-issue-updated'],'checkpoint-commit':[],'policy-design-md':['tf-policy-test-writer','tf-policy-developer','tf-policy-validator'],'tf-policy-test-writer':['tf-policy','policy-design-md','policytest-hcl'],'tf-policy':['tf-policy-test-writer','tf-policy-developer','tf-policy-validator'],'tfpolicy-validate-baseline':['policy-hcl-code'],'tf-policy-developer':['tf-policy','policy-design-md','policy-hcl-code'],'tfpolicy-validate':['policy-hcl-code'],'tfpolicy-test':['policy-hcl-code','policytest-hcl'],'policytest-hcl':['tf-policy-test-writer','tfpolicy-test','tfpolicy-test-final','tf-policy-validator'],'policy-hcl-code':['tf-policy-developer','tfpolicy-validate','tfpolicy-test','tf-policy-validator','tfpolicy-validate-final','tfpolicy-test-final'],'tf-policy-validator':['tf-judge-criteria','policy-hcl-code','policytest-hcl','policy-design-md','validation-report','quality-score'],'tf-judge-criteria':['tf-policy-validator'],'tfpolicy-validate-final':['policy-hcl-code'],'tfpolicy-test-final':['policy-hcl-code','policytest-hcl'],'tf-report-template':['validation-report'],'gh-pr-create':['pr','gh-issue-updated'],'validation-report':['tf-policy-validator','tf-report-template'],'quality-score':['tf-policy-validator'],'pr':['gh-pr-create'],'gh-issue-updated':['gh-pr-create','post-issue'] }
 };
 
 // ============================================================
@@ -7688,7 +7747,7 @@ function buildArtifactIO(m) {
   }
   return r;
 }
-const workflowViewKeys = ['module-plan','module-impl','provider-plan','provider-impl','consumer-plan','consumer-impl'];
+const workflowViewKeys = ['module-plan','module-impl','provider-plan','provider-impl','consumer-plan','consumer-impl','policy-plan','policy-impl'];
 const viewConfig = {};
 workflowViewKeys.forEach(k => {
   const aIO = agentIO[k] || {};

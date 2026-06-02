@@ -1,0 +1,21 @@
+# Microsoft-owned domains accepted by validate_yaml.py --strict-ms-official for
+# reference/documentation URLs. One host (or host suffix) per line; '#' comments.
+# A URL passes if its host equals, or ends with '.'+, an entry below.
+learn.microsoft.com
+docs.microsoft.com
+microsoft.com
+azure.microsoft.com
+azure.com
+github.com/Azure
+github.com/MicrosoftDocs
+raw.githubusercontent.com/Azure
+raw.githubusercontent.com/MicrosoftDocs
+api.github.com/repos/Azure
+api.github.com/repos/MicrosoftDocs
+management.azure.com
+# Framework-owner verbatim text is permitted under manual-human provenance even
+# though these are not Microsoft-owned; the validator allows them only when the
+# field's provenance is manual-human / microsoft-learn (not as a strict host).
+www.cisecurity.org
+csrc.nist.gov
+www.pcisecuritystandards.org

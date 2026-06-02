@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and set your organization.
+organization = "your-hcp-tf-org"
+
+# Optional overrides (defaults shown):
+# hostname     = "app.terraform.io"
+# project_name = "sandbox"
+# team_name    = "agent_sandbox_team"

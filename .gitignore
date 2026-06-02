@@ -61,3 +61,4 @@ __pycache__/
 reference/terraform_1.15.0-policy20261002_darwin_amd64.zip
 reference/terraform_1.15.0-policy20261002_darwin_arm64 (1).zip
 .claude/skills/tf-policy-evaluations-workspace/
+.claude/skills/tf-research-policy-azure-workspace/
