@@ -5,6 +5,7 @@ model: opus
 color: purple
 skills:
   - tf-judge-criteria
+  - tf-report-template
 tools:
   - Skill
   - Read
