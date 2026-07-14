@@ -39,7 +39,6 @@
       "Bash(git log:*)",
       "Bash(echo:*)",
       "Skill(tf-e2e-tester)",
-
       "Skill(terraform-test)",
       "Skill(terraform-stacks)",
       "Bash(find:*)",
@@ -65,7 +64,11 @@
       "Bash(gh issue view:*)",
       "Bash(GH_HOST=github.ibm.com gh issue view:*)",
       "Bash(gh api:*)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "WebFetch(domain:docs.github.com)",
+      "WebSearch",
+      "WebFetch(domain:developer.hashicorp.com)",
+      "Bash(git checkout *)"
     ],
     "deny": [
       "Write(.gitignore)",
@@ -89,5 +92,5 @@
     "terraform",
     "aws-knowledge-mcp-server"
   ],
-  "disableAllHooks": true
+  "disableAllHooks": false
 }
