@@ -3,13 +3,16 @@
   "hooks": {
     "postToolUse": [
       {
-        "match": { "tool": "edit|write" },
-        "command": "scripts/hooks/tf-guard.sh fix"
+        "type": "command",
+        "bash": "bash scripts/hooks/tf-guard.sh fix",
+        "timeoutSec": 60
       }
     ],
     "agentStop": [
       {
-        "command": "scripts/hooks/tf-guard.sh verify"
+        "type": "command",
+        "bash": "bash scripts/hooks/tf-guard.sh verify",
+        "timeoutSec": 120
       }
     ]
   }

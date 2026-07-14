@@ -175,12 +175,23 @@ exits `2` on a parse error so it's fed back. `verify` → `validate` + `tflint` 
 
 ### 6b. Copilot (`.github/hooks/tf-guard.json`, checked in)
 
+Copilot **auto-discovers** any `.github/hooks/*.json` in the repo — no explicit
+registration; file presence is the wiring, and the cloud agent reads only this path.
+Each entry uses `type: "command"` with a `bash` command (add `powershell` for Windows);
+the payload arrives on **stdin**. Note there is **no tool matcher** — `postToolUse`
+fires for every tool, so the script self-gates (`fix` exits 0 when the payload has no
+edited file path, e.g. for a `bash` tool call).
+
 ```jsonc
 {
   "version": 1,
   "hooks": {
-    "postToolUse": [ { "match": { "tool": "edit|write" }, "command": "scripts/hooks/tf-guard.sh fix" } ],
-    "agentStop":   [ { "command": "scripts/hooks/tf-guard.sh verify" } ]
+    "postToolUse": [
+      { "type": "command", "bash": "bash scripts/hooks/tf-guard.sh fix", "timeoutSec": 60 }
+    ],
+    "agentStop": [
+      { "type": "command", "bash": "bash scripts/hooks/tf-guard.sh verify", "timeoutSec": 120 }
+    ]
   }
 }
 ```
