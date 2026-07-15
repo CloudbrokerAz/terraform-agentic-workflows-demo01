@@ -17,12 +17,12 @@ Follow `/tf-module-plan` skill phases with these E2E-specific differences:
 
 ## PART 2: IMPLEMENTATION
 
-Follow `/tf-module-implement` skill phases (reads module-design.md) with these E2E-specific differences:
+Follow `/tf-module-implement` skill phases (reads design.md) with these E2E-specific differences:
 
 ### Implementation Validation Expectations
 
 After implementation completes, verify:
 
-- All checklist items from module-design.md Section 5 are marked `[x]`
+- All checklist items from design.md Section 6 are marked `[x]`
 
 Display: > E2E module test complete. Status: [PASSED|FAILED]. See issue #<number> for details.

@@ -1,0 +1,51 @@
+{
+  "id": "consumer-elastic",
+  "track": "consumer",
+  "description": "ElastiCache Redis + ECS application tier across 2 AZs + ALB + security-group isolation",
+  "prompt_file": ".claude/skills/tf-consumer-e2e/prompts/consumer_elastic.md",
+  "tags": [
+    "consumer",
+    "deploy",
+    "aws",
+    "extended"
+  ],
+  "timeout_minutes": 150,
+  "runtime": {
+    "adapter": "claude-code",
+    "model": "",
+    "max_turns": 300
+  },
+  "sandbox": {
+    "deploy": true,
+    "hcp_org": "hashi-demos-apj",
+    "workspace_pattern": "sandbox_consumer_elastic{SUFFIX}"
+  },
+  "expected_artifacts": [
+    "specs/*/consumer-design.md",
+    "specs/*/research-*.md",
+    "specs/*/reports/deployment-report.md",
+    "*.tf"
+  ],
+  "deterministic_checks": [
+    "artifacts",
+    "terraform_fmt",
+    "terraform_validate",
+    "tflint",
+    "trivy",
+    "issue_created",
+    "pr_created",
+    "checklist_complete",
+    "destroy_clean"
+  ],
+  "judge": {
+    "rubric": "consumer",
+    "min_score": 7.0,
+    "assertions": [
+      "ElastiCache Redis runs in default-VPC subnets via a private registry module",
+      "ECS application tier spans 2 availability zones",
+      "ALB performs HTTP health checks against the application tier",
+      "Security groups isolate Redis from everything except the application tier",
+      "Region is ap-southeast-2"
+    ]
+  }
+}

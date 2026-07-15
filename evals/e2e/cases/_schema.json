@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "E2E eval case",
+  "type": "object",
+  "required": ["id", "track", "prompt_file", "timeout_minutes", "runtime", "sandbox", "expected_artifacts", "deterministic_checks", "judge"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "track": { "type": "string", "enum": ["module", "consumer", "policy", "provider"] },
+    "description": { "type": "string" },
+    "prompt_file": { "type": "string", "description": "Repo-relative path to the prompt fixture" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "timeout_minutes": { "type": "integer", "minimum": 1 },
+    "runtime": {
+      "type": "object",
+      "required": ["adapter"],
+      "additionalProperties": false,
+      "properties": {
+        "adapter": { "type": "string" },
+        "model": { "type": "string" },
+        "max_turns": { "type": "integer" }
+      }
+    },
+    "sandbox": {
+      "type": "object",
+      "required": ["deploy"],
+      "additionalProperties": false,
+      "properties": {
+        "deploy": { "type": "boolean" },
+        "hcp_org": { "type": "string" },
+        "workspace_pattern": { "type": "string", "description": "{SUFFIX} is replaced with the run-unique suffix; must match the <GITHUB_REPO_NAME> substitution in the prompt. Destroy is unconditional for deploy cases." }
+      }
+    },
+    "expected_artifacts": { "type": "array", "items": { "type": "string" }, "description": "Globs relative to the workdir; each must match >=1 file" },
+    "deterministic_checks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["artifacts", "terraform_fmt", "terraform_validate", "terraform_test", "tflint", "trivy", "issue_created", "pr_created", "checklist_complete", "destroy_clean"]
+      },
+      "description": "Checks required for the grade; other cheap checks still run informationally"
+    },
+    "judge": {
+      "type": "object",
+      "required": ["rubric", "min_score", "assertions"],
+      "additionalProperties": false,
+      "properties": {
+        "rubric": { "type": "string", "enum": ["module", "consumer", "policy", "provider"] },
+        "min_score": { "type": "number", "minimum": 0, "maximum": 10 },
+        "assertions": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

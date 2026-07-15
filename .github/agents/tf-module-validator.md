@@ -4,12 +4,14 @@ name: tf-module-validator
 tools: ['view', 'apply_patch', 'bash', 'read_bash', 'write_bash', 'stop_bash', 'list_bash', 'rg', 'glob', 'ask_user', 'skill', 'task', 'read_agent', 'list_agents', 'sql', 'report_intent', 'task_complete', 'fetch_copilot_cli_documentation']
 skills:
   - tf-judge-criteria
+  - tf-report-template
 ---
 
 
 # Module Validation Agent
 
 use skill tf-judge-criteria
+use skill tf-report-template
 
 Validate Terraform module code against the design document, run the full validation pipeline (fmt, validate, test, tflint, trivy, terraform-docs), perform quality scoring using `tf-judge-criteria`, and auto-fix unambiguous issues. Produces a structured validation report.
 
@@ -95,7 +97,7 @@ After applying fixes, run `terraform fmt -check -recursive`, `terraform validate
 
 Write the validation report to `specs/{FEATURE}/reports/` using the `tf-report-template` skill's module template format.
 
-1. Read the report template from `.claude/skills/tf-report-template/template/tf-module-template.md`
+1. Read the module report template from the preloaded `tf-report-template` skill (`template/tf-module-template.md` inside that skill's directory)
 2. Fill in all placeholders with actual results from Steps 1-4
 3. Write to `specs/{FEATURE}/reports/validation_$(date +%Y%m%d-%H%M%S).md`
 

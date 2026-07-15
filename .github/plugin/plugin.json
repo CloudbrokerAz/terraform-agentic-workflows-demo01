@@ -1,0 +1,13 @@
+{
+  "name": "tf-workflows",
+  "description": "Spec-driven plan/implement workflows, skills, and subagents for Terraform module, consumer, policy, and provider development on AWS/Azure with HCP Terraform.",
+  "version": "0.1.0",
+  "author": {
+    "name": "hashi-demo-lab",
+    "email": "srlynch@gmail.com"
+  },
+  "repository": "https://github.com/hashi-demo-lab/terraform-agentic-workflows",
+  "keywords": ["terraform", "sdd", "aws", "azure", "hcp-terraform", "iac"],
+  "skills": ".claude/skills",
+  "agents": ".github/agents"
+}

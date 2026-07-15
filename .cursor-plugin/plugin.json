@@ -1,0 +1,43 @@
+{
+  "name": "tf-workflows",
+  "displayName": "Terraform Agentic Workflows",
+  "description": "Spec-driven plan/implement workflows, skills, and subagents for Terraform module, consumer, policy, and provider development on AWS/Azure with HCP Terraform.",
+  "version": "0.1.0",
+  "author": {
+    "name": "hashi-demo-lab",
+    "email": "srlynch@gmail.com"
+  },
+  "repository": "https://github.com/hashi-demo-lab/terraform-agentic-workflows",
+  "keywords": [
+    "terraform",
+    "sdd",
+    "aws",
+    "azure",
+    "hcp-terraform",
+    "iac"
+  ],
+  "skills": "./.claude/skills/",
+  "agents": [
+    "./.claude/agents/module-upgrade-remediation.md",
+    "./.claude/agents/tf-consumer-design.md",
+    "./.claude/agents/tf-consumer-developer.md",
+    "./.claude/agents/tf-consumer-research.md",
+    "./.claude/agents/tf-consumer-validator.md",
+    "./.claude/agents/tf-e2e-judge.md",
+    "./.claude/agents/tf-module-design.md",
+    "./.claude/agents/tf-module-developer.md",
+    "./.claude/agents/tf-module-research.md",
+    "./.claude/agents/tf-module-test-writer.md",
+    "./.claude/agents/tf-module-validator.md",
+    "./.claude/agents/tf-policy-design.md",
+    "./.claude/agents/tf-policy-developer.md",
+    "./.claude/agents/tf-policy-research.md",
+    "./.claude/agents/tf-policy-test-writer.md",
+    "./.claude/agents/tf-policy-validator.md",
+    "./.claude/agents/tf-provider-design.md",
+    "./.claude/agents/tf-provider-developer.md",
+    "./.claude/agents/tf-provider-research.md",
+    "./.claude/agents/tf-provider-test-writer.md",
+    "./.claude/agents/tf-provider-validator.md"
+  ]
+}

@@ -116,7 +116,7 @@ After applying any fix, re-run `tfpolicy validate` and `tfpolicy test`. If a fix
 
 ### Step 5 — Write Validation Report
 
-1. Read `/workspace/.claude/skills/tf-report-template/template/tf-policy-template.md`.
+1. Read the policy report template from the preloaded `tf-report-template` skill (`template/tf-policy-template.md` inside that skill's directory).
 2. Fill every `{{PLACEHOLDER}}` with real results from Steps 1-4. Use "N/A" if data is genuinely unavailable.
 3. Verify no `{{` remains in the rendered output.
 4. Write to `specs/{FEATURE}/reports/validation_$(date +%Y%m%d-%H%M%S).md`. Create the `reports/` directory if absent.

@@ -53,6 +53,34 @@ Use simple `"$VAR"` quoting and explicit conditionals instead of parameter expan
 | `/tf-policy-plan`        | SDD Phases 1-2 for policy development: Clarify, Design — stops for approval           |
 | `/tf-policy-implement`   | SDD Phases 3-4 for policy development: TDD implementation + validation, opens PR      |
 
+## Component Inventory
+
+**Agents** — 21 in `.claude/agents/` (Claude Code dialect) with Copilot-dialect
+counterparts in `.github/agents/`:
+
+| Role | Module | Provider | Consumer | Policy |
+| ---- | ------ | -------- | -------- | ------ |
+| Research | `tf-module-research` | `tf-provider-research` | `tf-consumer-research` | `tf-policy-research` |
+| Design | `tf-module-design` | `tf-provider-design` | `tf-consumer-design` | `tf-policy-design` |
+| Test writer | `tf-module-test-writer` | `tf-provider-test-writer` | — | `tf-policy-test-writer` |
+| Developer | `tf-module-developer` | `tf-provider-developer` | `tf-consumer-developer` | `tf-policy-developer` |
+| Validator | `tf-module-validator` | `tf-provider-validator` | `tf-consumer-validator` | `tf-policy-validator` |
+
+Cross-cutting: `module-upgrade-remediation` (CI `@claude` fixer for consumer
+module upgrades) and `tf-e2e-judge` (independent scorer for `evals/e2e/` runs).
+
+**Skills** — 32 in `.claude/skills/`: the 8 workflow orchestrators above, the
+2 e2e harnesses (`tf-module-e2e`, `tf-consumer-e2e`), and knowledge packs
+(architecture patterns, security baselines, judge criteria, report templates,
+tfpolicy reference, provider development, research strategies, style guides,
+`tf-runtask`, `gh-workflow`, and the AWS/Azure policy-research scaffolds).
+Run `claude plugin details tf-workflows` for the live list with descriptions.
+
+**Evals & plugin**: `evals/e2e/` runs full plan→implement cycles headlessly and
+scores them (see `evals/e2e/README.md`); the repo installs as the
+`tf-workflows` plugin for Claude Code, Copilot CLI, and Cursor (see
+"Install as a plugin" in README.md).
+
 ## Constitutions
 
 Non-negotiable rules for all code generation live in the constitutions. Read the relevant one before generating code.
@@ -92,7 +120,7 @@ These rules apply to ALL four workflows. Replace `{workflow}` with `module`, `pr
 
 ### Consumer-Specific Rules
 
-7. **Sandbox destroy is orchestrator-controlled**: The orchestrator (not the validator) prompts the user about destroying sandbox resources after PR creation.
+6. **Sandbox destroy is orchestrator-controlled**: The orchestrator (not the validator) prompts the user about destroying sandbox resources after PR creation.
 
 ### Agent Output Persistence
 

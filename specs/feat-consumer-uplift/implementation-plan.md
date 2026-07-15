@@ -194,7 +194,7 @@ The agent prompt defines the analysis capabilities for interactive `@claude` fol
 | File | Purpose |
 |------|---------|
 | `.github/dependabot.yml` | Private registry module scanning (monthly schedule) |
-| `.mcp-ci.json` | MCP server config for CI (`npx`, no Docker) |
+| `.mcp-ci.json` | MCP server config for CI (docker image, same as local) |
 
 **Dependabot config:**
 ```yaml
@@ -213,13 +213,13 @@ updates:
       - terraform-private
 ```
 
-**MCP CI config** (npx for faster cold start, no Docker dependency):
+**MCP CI config** (docker image — the previously referenced npm package does not exist on the public registry):
 ```json
 {
   "mcpServers": {
     "terraform": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/terraform-mcp-server@latest", "--toolsets=all"],
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "TFE_TOKEN", "hashicorp/terraform-mcp-server:latest", "--toolsets=all"],
       "env": { "TFE_TOKEN": "${TFE_TOKEN}" }
     }
   }

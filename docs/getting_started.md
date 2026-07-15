@@ -17,11 +17,12 @@ graph LR
     style F fill:#00cec9,stroke:#009e9a,color:#fff,rx:8
 ```
 
-It supports three core use cases:
+It supports four core use cases:
 
 - **Module Authoring** — Create reusable Terraform modules with raw resources and secure defaults
 - **Provider Development** — Build Terraform Provider resources using HashiCorp's Plugin Framework
 - **Consumer Provisioning** — Compose infrastructure from private registry modules and deploy to HCP Terraform
+- **Policy Authoring** — Write tfpolicy compliance policies with TDD (`/tf-policy-plan`, `/tf-policy-implement`)
 
 Each workflow is driven by slash commands (e.g., `/tf-module-plan`) that orchestrate multiple AI agents through the phases. The template supports two AI coding assistants:
 
@@ -31,6 +32,8 @@ Each workflow is driven by slash commands (e.g., `/tf-module-plan`) that orchest
 | **GitHub Copilot** | `.devcontainer/copilot-cli/` | `.claude/skills/`, `.claude/agents/`, and `.github/agents/` | `devcontainer.json` (`customizations.vscode.mcp`) |
 
 The same slash commands work in both tools. Copilot CLI supports skill and agent lookup from `.claude/` directories in addition to `.github/agents/`. The underlying tool names differ between the two (see [Tool Name Mapping](tool-name-mapping.md)), but the user experience is the same.
+
+> **Alternative: install as a plugin.** Instead of using this repo as a template, the workflows can be installed as a plugin into any repository — for Claude Code, GitHub Copilot CLI, or (experimentally) Cursor. See [Install as a plugin](../README.md#install-as-a-plugin) in the README.
 
 ---
 
@@ -210,12 +213,14 @@ git clone https://github.com/YOUR_ORG/your-new-repo.git
 code your-new-repo
 ```
 
-When VS Code opens, it will detect the devcontainer configuration and prompt you to **Reopen in Container**. The repository includes two devcontainer variants:
+When VS Code opens, it will detect the devcontainer configuration and prompt you to **Reopen in Container**. The repository includes four devcontainer variants (two assistants × two container engines):
 
 | Variant | Path | Use when |
 |---------|------|----------|
 | `claude-code` | `.devcontainer/claude-code/` | You have a Claude Code subscription (recommended for this template) |
 | `copilot-cli` | `.devcontainer/copilot-cli/` | You use GitHub Copilot as your AI coding assistant |
+| `claude-code-podman` | `.devcontainer/claude-code-podman/` | Claude Code with rootless Podman instead of Docker Desktop |
+| `copilot-cli-podman` | `.devcontainer/copilot-cli-podman/` | Copilot CLI with rootless Podman instead of Docker Desktop |
 
 The devcontainer includes all required tools pre-installed:
 
@@ -265,22 +270,12 @@ Configure [branch protection rules](https://docs.github.com/en/repositories/conf
 | Block force pushes | Yes | Protect audit trail |
 | Block branch deletion | Yes | Prevent accidental deletion |
 
-**Required status checks** (from `.github/workflows/validate.yml`):
+**Required status checks** (from `.github/workflows/module_validate.yml`, which runs fmt, validate, tflint, trivy, and terraform test — the status-check contexts are the job names):
 
-- `Terraform Format Check`
-- `Terraform Validate`
-- `TFLint`
-- `Trivy IaC Security Scan`
-- `Validate Examples`
+- `Validate Module`
+- `Validate Examples (<example>)` — one check per example in the matrix
 
-> **Important:** The template ships `validate.yml` with a `workflow_dispatch` trigger only. You must add a `pull_request` trigger for these to run automatically on PRs and appear as required status checks. Add this to the `on:` block:
->
-> ```yaml
-> on:
->   pull_request:
->     branches: [main]
->   workflow_dispatch:
-> ```
+> **Note:** `module_validate.yml` already triggers on `pull_request` (path-filtered to `**.tf`, `**.tfvars`, and `**.tftest.hcl` changes) as well as `workflow_dispatch`, so the checks appear on PRs automatically — no trigger changes are needed. Because the trigger is path-filtered, PRs that touch no Terraform files won't produce these checks; keep that in mind when marking them required.
 >
 > The `no-commit-to-branch` pre-commit hook (included in the template's `.pre-commit-config.yaml`) provides additional local protection against direct commits to `main`.
 >
@@ -321,7 +316,7 @@ This writes tests first (TDD), builds the module to pass them, and runs the full
 
 ## Core Workflows
 
-All three workflows follow the same SDD structure. Start any workflow by typing the slash command in Claude Code or Copilot Chat.
+All four workflows follow the same SDD structure. Start any workflow by typing the slash command in Claude Code or Copilot Chat.
 
 ### Module Authoring
 
