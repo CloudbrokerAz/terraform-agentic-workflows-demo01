@@ -1,0 +1,50 @@
+{
+  "id": "consumer-cloudfront",
+  "track": "consumer",
+  "description": "CloudFront distribution with OAI over an S3 static-content bucket + CloudWatch alarms",
+  "prompt_file": ".claude/skills/tf-consumer-e2e/prompts/consumer_cloudfront.md",
+  "tags": [
+    "consumer",
+    "deploy",
+    "aws",
+    "standard"
+  ],
+  "timeout_minutes": 150,
+  "runtime": {
+    "adapter": "claude-code",
+    "model": "",
+    "max_turns": 300
+  },
+  "sandbox": {
+    "deploy": true,
+    "hcp_org": "hashi-demos-apj",
+    "workspace_pattern": "sandbox_consumer_cloudfront{SUFFIX}"
+  },
+  "expected_artifacts": [
+    "specs/*/consumer-design.md",
+    "specs/*/research-*.md",
+    "specs/*/reports/deployment-report.md",
+    "*.tf"
+  ],
+  "deterministic_checks": [
+    "artifacts",
+    "terraform_fmt",
+    "terraform_validate",
+    "tflint",
+    "trivy",
+    "issue_created",
+    "pr_created",
+    "checklist_complete",
+    "destroy_clean"
+  ],
+  "judge": {
+    "rubric": "consumer",
+    "min_score": 7.0,
+    "assertions": [
+      "S3 origin access is restricted to CloudFront via OAI/OAC (no public bucket policy)",
+      "CloudFront distribution and S3 bucket come from private registry modules",
+      "CloudWatch metrics/alarms are configured",
+      "S3 bucket is in ap-southeast-2; CloudFront/us-east-1 resources are placed correctly"
+    ]
+  }
+}

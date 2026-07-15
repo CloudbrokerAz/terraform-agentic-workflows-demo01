@@ -4,6 +4,13 @@ set -e
 
 echo "=== Post-Create Setup Starting ==="
 
+SCRIPT_DIR="$(dirname "$0")"
+
+# Configure token-authenticated HTTPS git auth and neutralize any global
+# HTTPS->SSH insteadOf rewrite baked into the image (see issue #45).
+"${SCRIPT_DIR}/../../scripts/setup-git-auth.sh" \
+    || echo "Git auth setup failed; pushes may require manual git config"
+
 # Fix permissions for command history volume
 # Docker volumes are created with root ownership, but we run as 'node' user
 if [ -d /commandhistory ]; then

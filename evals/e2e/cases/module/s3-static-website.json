@@ -1,0 +1,34 @@
+{
+  "id": "module-s3-static-website",
+  "track": "module",
+  "description": "S3 static-website module: encryption, versioning, lifecycle, public-access controls, CORS, required tags",
+  "prompt_file": ".claude/skills/tf-module-e2e/prompts/example_s3.md",
+  "tags": ["module", "cheap", "aws", "standard"],
+  "timeout_minutes": 90,
+  "runtime": { "adapter": "claude-code", "model": "", "max_turns": 300 },
+  "sandbox": { "deploy": false },
+  "expected_artifacts": [
+    "specs/*/design.md",
+    "specs/*/research-*.md",
+    "specs/*/reports/validation_*.md",
+    "*.tf",
+    "tests/*.tftest.hcl"
+  ],
+  "deterministic_checks": [
+    "artifacts", "terraform_fmt", "terraform_validate", "terraform_test",
+    "tflint", "trivy", "issue_created", "pr_created", "checklist_complete"
+  ],
+  "judge": {
+    "rubric": "module",
+    "min_score": 7.0,
+    "assertions": [
+      "Server-side encryption (AES256) is always enabled with no variable to disable it",
+      "Versioning is enabled by default",
+      "A lifecycle rule transitions objects to Glacier after 90 days",
+      "All public access is blocked by default and only configurable for website hosting",
+      "Website configuration exposes index and error documents",
+      "Environment, Owner, and CostCenter tags are required (validated) inputs",
+      "Module ships .tftest.hcl tests covering the security defaults"
+    ]
+  }
+}

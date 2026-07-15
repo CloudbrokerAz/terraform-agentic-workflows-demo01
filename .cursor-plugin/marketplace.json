@@ -1,0 +1,17 @@
+{
+  "name": "tf-workflows",
+  "metadata": {
+    "description": "Marketplace for the Terraform Agentic Workflows plugin: SDD plan/implement workflows for Terraform module, consumer, policy, and provider development."
+  },
+  "owner": {
+    "name": "hashi-demo-lab",
+    "email": "srlynch@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "tf-workflows",
+      "source": "./",
+      "description": "Spec-driven plan/implement workflows, skills, and subagents for Terraform module, consumer, policy, and provider development."
+    }
+  ]
+}

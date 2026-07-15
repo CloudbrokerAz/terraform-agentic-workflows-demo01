@@ -1,0 +1,32 @@
+{
+  "id": "module-bedrock-agentcore",
+  "track": "module",
+  "description": "Bedrock AgentCore module from the detailed example_bedrock_agentcore.md spec",
+  "prompt_file": ".claude/skills/tf-module-e2e/prompts/example_bedrock_agentcore.md",
+  "tags": ["module", "aws", "extended"],
+  "timeout_minutes": 120,
+  "runtime": { "adapter": "claude-code", "model": "", "max_turns": 300 },
+  "sandbox": { "deploy": false },
+  "expected_artifacts": [
+    "specs/*/design.md",
+    "specs/*/research-*.md",
+    "specs/*/reports/validation_*.md",
+    "*.tf",
+    "tests/*.tftest.hcl"
+  ],
+  "deterministic_checks": [
+    "artifacts", "terraform_fmt", "terraform_validate", "terraform_test",
+    "tflint", "trivy", "issue_created", "pr_created", "checklist_complete"
+  ],
+  "judge": {
+    "rubric": "module",
+    "min_score": 7.0,
+    "assertions": [
+      "Module implements the resources required by the prompt's Module Requirements section",
+      "IAM roles/policies follow least privilege",
+      "All variables declared in the prompt's required list exist with correct types and validation",
+      "Outputs cover the identifiers a consumer needs to wire the agent",
+      "Module ships .tftest.hcl tests derived from the design's test scenarios"
+    ]
+  }
+}
