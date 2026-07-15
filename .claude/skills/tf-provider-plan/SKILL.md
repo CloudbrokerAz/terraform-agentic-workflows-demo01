@@ -9,7 +9,7 @@ argument-hint: "[resource-name] [provider-name] - Brief description of what the 
 
 Produces `specs/{FEATURE}/provider-design-{resource}.md` from requirements. Stops for human approval before any code is written.
 
-Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`.
+Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`. When a phase finishes, post `complete` with the canonical phase name — `Clarify` (Phase 1), `Design` (Phase 2) — so the script ticks the matching box in the issue's Status checklist.
 Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.sh "<step_name>"`. The `<step_name>` must be a short hyphenated identifier (e.g., `"clarify"`, `"research-and-design"`, `"design-approved"`) — NOT a sentence or file path.
 
 ## Phase 1: Requirements & Research

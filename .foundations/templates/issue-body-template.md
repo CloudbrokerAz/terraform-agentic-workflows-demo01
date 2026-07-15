@@ -28,7 +28,7 @@
 
 ## Status
 
-- [x] Phase 1: Understand
+- [x] Phase 1: Clarify
 - [ ] Phase 2: Design
-- [ ] Phase 3: Build + Test
+- [ ] Phase 3: Implement
 - [ ] Phase 4: Validate

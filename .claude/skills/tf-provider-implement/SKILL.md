@@ -9,7 +9,7 @@ argument-hint: "[feature-name] [resource-name] - Implement from existing specs/{
 
 Builds and validates a Terraform provider resource from `specs/{FEATURE}/provider-design-{resource}.md` using TDD.
 
-Post progress: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`
+Post progress: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. When a phase finishes, post `complete` with the canonical phase name — `Implement` (Phase 3), `Validate` (Phase 4) — so the script ticks the matching box in the issue's Status checklist.
 Checkpoint: `bash .foundations/scripts/bash/checkpoint-commit.sh --dir . --prefix feat "<step_name>"`
 
 ## Prerequisites

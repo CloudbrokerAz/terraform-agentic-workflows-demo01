@@ -9,7 +9,7 @@ argument-hint: "[feature-name] - Implement from existing specs/{feature}/consume
 
 Builds and validates a consumer deployment from `specs/{FEATURE}/consumer-design.md`.
 
-Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`.
+Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`. When a phase finishes, post `complete` with the canonical phase name — `Implement` (Phase 3), `Validate` (Phase 4) — so the script ticks the matching box in the issue's Status checklist.
 Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.sh --dir . --prefix feat "<step_name>"`. The `<step_name>` must be a short hyphenated identifier (e.g., `"scaffolding"`, `"checklist-item-b"`, `"validation"`) — NOT a sentence or file path.
 
 ## Prerequisites
@@ -49,7 +49,9 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 13. Verify report exists via Glob. Read the quality score from it. If score < 7.0:
     - Fix issues with `tf-consumer-developer` subagents
     - Destroy sandbox, redeploy, re-launch validator (max 3 rounds)
-14. Checkpoint commit, push branch, create PR linking to `$ISSUE_NUMBER`.
+14. Checkpoint commit, push branch, create PR linking to `$ISSUE_NUMBER`. Because the PR touches `.tf` files, the template's `module_validate.yml` requires exactly one `semver:*` label on it:
+    - Ensure the labels exist first (repos created from the template do not inherit labels): `gh label create "semver:patch" --color C2E0C6 --force; gh label create "semver:minor" --color BFD4F2 --force; gh label create "semver:major" --color F9D0C4 --force`.
+    - Apply exactly one label at creation: `gh pr create ... --label "semver:<type>"` — `semver:minor` for new functionality (including the initial deployment), `semver:patch` for fixes-only changes, `semver:major` for breaking changes.
 15. Ask user: "Destroy sandbox resources?" If yes, trigger destroy run and report status.
 
 ## Done
