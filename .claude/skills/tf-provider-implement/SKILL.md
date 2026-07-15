@@ -14,7 +14,7 @@ Checkpoint: `bash .foundations/scripts/bash/checkpoint-commit.sh --dir . --prefi
 
 ## Prerequisites
 
-1. Resolve `$FEATURE` and `$RESOURCE` from `$ARGUMENTS` or current git branch name.
+1. **Bootstrap `.foundations`** (no-op when running from the template repo where `.foundations/` already exists): run `LINK="${CLAUDE_PLUGIN_ROOT}/scripts/link-foundations.sh"; [ -f "$LINK" ] && bash "$LINK" || true` to point `.foundations/` at the installed plugin so the repo-relative paths below resolve. Then resolve `$FEATURE` and `$RESOURCE` from `$ARGUMENTS` or current git branch name.
 2. Verify `specs/{FEATURE}/provider-design-{resource}.md` exists via Glob. Stop if missing — tell user to run `/tf-provider-plan` first. Capture `$DESIGN_FILE`.
 3. Find `$ISSUE_NUMBER` from `$ARGUMENTS` or `gh issue list --search "$FEATURE"`.
 

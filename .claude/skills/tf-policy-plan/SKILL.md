@@ -16,7 +16,7 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 
 ## Phase 1: Requirements & Research
 
-1. Run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`.
+1. **Bootstrap `.foundations`** (no-op when running from the template repo where `.foundations/` already exists): run `LINK="${CLAUDE_PLUGIN_ROOT}/scripts/link-foundations.sh"; [ -f "$LINK" ] && bash "$LINK" || true` to point `.foundations/` at the installed plugin so the repo-relative paths below resolve. Then run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`.
 2. Parse `$ARGUMENTS` for the compliance rule or policy grouping, target provider, and description. The input may be:
    - **Compliance-driven**: A framework control or control family (e.g., `cis-aws-3.0-encryption`, `nist-800-53-ac`, `pci-dss-4.0-network`). In this mode, automatically look for existing YAML rules at `policy-research/{framework-slug}*.yaml` from `tf-research-policy-aws`.
    - **Ad-hoc**: A policy category without a compliance framework (e.g., `aws-s3-security`, `provider-governance`). In this mode, policies are designed from scratch requirements.
