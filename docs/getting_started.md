@@ -139,7 +139,7 @@ The template uses HCP Terraform for remote execution, state management, and work
 
 #### Generate Team API Token
 
-1. Go to **Settings** → **Teams** → **[Your Team]**
+1. Go to **Organization Settings** → **API Tokens** → **Team Tokens** → **[Your Team]**
 2. Click **Create a team token**
 3. Save this token — it cannot be retrieved later
 
@@ -256,7 +256,7 @@ If all gates pass, the script automatically initializes TFLint and installs pre-
 
 ### 4. Branch Protection (Recommended)
 
-Configure [branch protection rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches) or [repository rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) on `main` to enforce quality gates before merge.
+Configure [branch protection rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-a-branch-protection-rule/about-protected-branches) or [repository rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) on `main` to enforce quality gates before merge.
 
 **Recommended settings:**
 
