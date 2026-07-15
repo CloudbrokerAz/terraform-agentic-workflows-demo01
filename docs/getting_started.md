@@ -277,6 +277,14 @@ Configure [branch protection rules](https://docs.github.com/en/repositories/conf
 
 > **Note:** `module_validate.yml` already triggers on `pull_request` (path-filtered to `**.tf`, `**.tfvars`, and `**.tftest.hcl` changes) as well as `workflow_dispatch`, so the checks appear on PRs automatically — no trigger changes are needed. Because the trigger is path-filtered, PRs that touch no Terraform files won't produce these checks; keep that in mind when marking them required.
 >
+> **Semver labels:** `module_validate.yml` requires exactly one `semver:patch` / `semver:minor` / `semver:major` label on every PR it validates, and `module_release.yml` uses that label to compute the published version. Repos created from a template do **not** inherit labels, so create them once per repo (the implement workflows also do this automatically before opening a PR):
+>
+> ```bash
+> gh label create "semver:patch" --color C2E0C6 --force
+> gh label create "semver:minor" --color BFD4F2 --force
+> gh label create "semver:major" --color F9D0C4 --force
+> ```
+>
 > The `no-commit-to-branch` pre-commit hook (included in the template's `.pre-commit-config.yaml`) provides additional local protection against direct commits to `main`.
 >
 > **References:**

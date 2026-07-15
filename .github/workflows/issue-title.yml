@@ -1,0 +1,56 @@
+name: "Issue Title"
+
+# GitHub issue forms cannot inject a field value into the title, so issues
+# filed from the Module Request / Consumer Provisioning templates arrive with
+# the bare default title (e.g. "[MODULE REQUEST] ") and are indistinguishable
+# in the issue list. This workflow appends the identifying form field to the
+# title after creation. Titles the user customised are left untouched.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  fill-title:
+    name: Fill title from form body
+    if: >-
+      startsWith(github.event.issue.title, '[MODULE REQUEST]') ||
+      startsWith(github.event.issue.title, '[CONSUMER]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Append form name to bare title
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ github.event.issue.title }}
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          case "$TITLE" in
+            "[MODULE REQUEST]"*) PREFIX="[MODULE REQUEST]"; FIELD="Module Name" ;;
+            "[CONSUMER]"*)       PREFIX="[CONSUMER]";       FIELD="Application / Service Name" ;;
+            *) exit 0 ;;
+          esac
+
+          # Only fill titles left as the bare template default.
+          REST="${TITLE#"$PREFIX"}"
+          if [ -n "$(printf '%s' "$REST" | tr -d '[:space:]')" ]; then
+            echo "Title already customised; leaving as-is."
+            exit 0
+          fi
+
+          # Issue forms render each field as "### <label>" followed by the
+          # value; take the first non-empty line after the heading.
+          NAME=$(printf '%s\n' "$BODY" | tr -d '\r' | awk -v heading="### $FIELD" '
+            $0 == heading { grab = 1; next }
+            grab && NF { sub(/^[ \t]+/, ""); sub(/[ \t]+$/, ""); print; exit }' | cut -c -120)
+
+          if [ -z "$NAME" ] || [ "$NAME" = "_No response_" ]; then
+            echo "Could not parse \"$FIELD\" from the issue body; leaving title unchanged."
+            exit 0
+          fi
+
+          gh issue edit "${{ github.event.issue.number }}" \
+            --repo "${{ github.repository }}" \
+            --title "$PREFIX $NAME"
