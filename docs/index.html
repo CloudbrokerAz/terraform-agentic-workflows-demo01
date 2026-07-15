@@ -7010,7 +7010,7 @@ TEAM_TFE_TOKEN  # HCP Terraform Team Token (must be a Team API Token)</pre></sum
       <div class="expand-ref">Source: .foundations/scripts/bash/validate-env.sh, .devcontainer/claude-code/devcontainer.json</div>
     </div>
   </details>
-  <details class="gs-step"><summary><h3 style="color:var(--cmd-red)">Important: TEAM_TFE_TOKEN</h3><p>Must be a <strong>Team API Token</strong> -- not a user token or organization token. Create at:</p><pre>HCP Terraform > Settings > Teams > [Your Team] > Team API Token</pre></summary>
+  <details class="gs-step"><summary><h3 style="color:var(--cmd-red)">Important: TEAM_TFE_TOKEN</h3><p>Must be a <strong>Team API Token</strong> -- not a user token or organization token. Create at:</p><pre>HCP Terraform > Organization Settings > API Tokens > Team Tokens > [Your Team]</pre></summary>
     <div class="card-expand">
       <p>User tokens grant permissions based on the individual's access level, which may be too broad. Organization tokens have admin-level access. Team tokens are scoped to exactly the team's project permissions &mdash; this is the principle of least privilege applied to the agent's HCP Terraform access.</p>
       <ul>
@@ -7052,7 +7052,7 @@ Lock/Unlock Workspaces</pre></summary>
       <div class="expand-ref">Source: .claude/settings.local.json (deny list)</div>
     </div>
   </details>
-  <details class="gs-step"><summary><h3>3. Generate Team API Token</h3><p>In <strong>Settings > Teams > [Your Team]</strong>, click <strong>"Create a team token"</strong>. Save as <code>TEAM_TFE_TOKEN</code>.</p></summary>
+  <details class="gs-step"><summary><h3>3. Generate Team API Token</h3><p>In <strong>Organization Settings > API Tokens > Team Tokens > [Your Team]</strong>, click <strong>"Create a team token"</strong>. Save as <code>TEAM_TFE_TOKEN</code>.</p></summary>
     <div class="card-expand">
       <p>The devcontainer maps local environment variables into the container via <code>${localEnv:TEAM_TFE_TOKEN}</code>. Inside the container this becomes <code>TFE_TOKEN</code>, which the Terraform MCP server and CLI both consume automatically. The token is never hardcoded in configuration files.</p>
       <ul>
