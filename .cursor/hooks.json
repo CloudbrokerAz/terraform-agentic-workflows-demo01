@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "bash .claude/hooks/deny-config-files.sh cursor",
+        "matcher": "Write|Edit|MultiEdit|Update",
+        "failClosed": true,
+        "timeout": 10
+      }
+    ]
+  }
+}
