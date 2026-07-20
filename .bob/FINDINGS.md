@@ -59,6 +59,13 @@ headless agent CLI — that would be an IBM Bob *Shell* adapter, a separate prod
   `<root>/skills/{*,*/*}/SKILL.md` (one optional "group" folder level). First-wins dedupe by
   name: workspace > global > builtin.
 - **Global roots:** `~/.bob/skills`, `~/.agents/skills`, `~/.claude/skills`.
+- ⚠️ **`.agents/skills/` is NOT Bob-private — Copilot CLI reads it too.** Verified in
+  `@github/copilot` v0.0.420 (`index.js`, skill-root builder): Copilot scans `.github/skills`,
+  `.agents/skills` and `.claude/skills`. So a Bob dialect overlay placed in `.agents/skills/`
+  would silently load into Copilot as well and shadow nothing there (different dedupe), mixing
+  Bob tool names (`use_skill`, `ask_followup_question`) into Copilot sessions. **Put the Bob
+  overlay in `.bob/skills/` only** (§4.2) — `.bob` is read by Bob alone and still wins the
+  precedence dedupe.
 - Frontmatter fields are read **either top-level or under `metadata:`** (parser checks both):
   `user-invocable`, `argument-hint`, `disable-model-invocation`, `groups`. `name` is canonically
   the directory name and must match `^[a-z0-9]+(-[a-z0-9]+)*$` (≤64 chars) — invalid names are
@@ -78,6 +85,10 @@ headless agent CLI — that would be an IBM Bob *Shell* adapter, a separate prod
 - `WorkspaceAgentsManager` watches **only `<workspace>/.bob/agents/*.md`** — unlike skills,
   `.claude/agents/` and `.agents/agents/` are **not** read. This is the one hard dialect
   requirement of the port. (No global `~/.bob/agents` was observed in code.)
+- Note the repo now has a real `.agents/agents/` directory (Copilot dialect files, see §6) —
+  Bob still ignores it. `.agents/` is a shared *skills* root across tools, but **not** a shared
+  agents root anywhere: Bob reads `.bob/agents/`, Copilot reads `.github/agents/`, Claude reads
+  `.claude/agents/`. Three dialect dirs, no overlap.
 - File format: YAML frontmatter + markdown body = system prompt. An optional
   `## Output Constraints` heading is split out and handled specially. Parsed by a **flat**
   line-based parser — scalar `key: value` and simple `- item` string lists only; no nested maps.
@@ -314,7 +325,40 @@ customModes:
 7. **Subagent no-nesting** — orchestrator skills must run in the main task. They do today; the
    e2e harness pattern (skill → orchestrator) must also stay in the main task if ever ported.
 
-## 6. Effort summary
+## 6. Repo layout change (2026-07-20) — `.agents/` now exists
+
+Independently of the Bob port, the Copilot dialect content moved to canonical locations and
+`.github/` became symlinks:
+
+```
+.agents/agents/*.md   (19 Copilot dialect agent files)   <- .github/agents  (symlink)
+.agents/hooks/*.json  (2 Copilot hook configs)           <- .github/hooks   (symlink)
+```
+
+Verified against the Copilot CLI bundle (`@github/copilot` v0.0.420, `index.js`) rather than
+docs alone:
+
+- **Repo hooks load from exactly one path**, `join(gitRoot, ".github", "hooks")` globbed
+  `**/*.json`. There is no `.agents/hooks` code path.
+- **Project agents load from two roots only**: `.github/agents` and `.claude/agents`. There is
+  no `.agents/agents` code path.
+- **Skills are the exception** — `.github/skills`, `.agents/skills`, `.claude/skills` (see the
+  warning in §2.1).
+- **The symlinks work.** Hooks use node-glob, whose `follow:false` default only blocks `**`
+  from descending into symlinked *sub*directories — a symlink in the fixed base prefix resolves
+  normally (tested against this repo: both hook JSONs found). Agents use
+  `readdir(dir, {withFileTypes:true})`, which resolves the symlinked dir (19 entries, all
+  `isFile()`); the loader also explicitly stats symlinked *files*.
+- **Correction to the public docs:** Copilot does *not* require the `.agent.md` extension. The
+  loader accepts any `.md`, strips an optional `.agent` suffix, and only prefers `.agent.md`
+  when both spellings exist for one name. Our plain `.md` files are fine.
+
+Consequences for the Bob port: none to the plan above — Bob reads neither `.agents/agents/`
+nor `.github/`, and the `.bob/` dialect dirs are unaffected. Two knock-ons worth remembering:
+`.agents/skills/` is now a live shared root (don't put Bob overlays there), and the `.gitignore`
+line in §4.5 for `.bob/*.pkg` is still outstanding.
+
+## 7. Effort summary
 
 | Item | Effort |
 | --- | --- |

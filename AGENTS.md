@@ -56,7 +56,7 @@ Use simple `"$VAR"` quoting and explicit conditionals instead of parameter expan
 ## Component Inventory
 
 **Agents** — 21 in `.claude/agents/` (Claude Code dialect) with Copilot-dialect
-counterparts in `.github/agents/`:
+counterparts in `.agents/agents/`:
 
 | Role | Module | Provider | Consumer | Policy |
 | ---- | ------ | -------- | -------- | ------ |

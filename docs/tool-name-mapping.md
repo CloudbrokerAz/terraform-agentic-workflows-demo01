@@ -32,4 +32,4 @@
 3. **File ops split**: Copilot separates `view` (read) / `edit` (modify) / `create` (new). Also has `str_replace_editor` as a combined alternative. Claude Code separates `Read` / `Edit` / `Write`.
 4. **Task lifecycle**: Copilot has explicit `task_complete`, `report_progress`, `update_todo`, and `report_intent` tools for autonomous workflow management. Claude Code relies on implicit conversation flow.
 5. **Browser**: Copilot has built-in Playwright MCP tools (`browser_*`). Claude Code does not bundle browser automation.
-6. **MCP prefix**: Copilot uses `server-name/tool-name` (slash). Claude Code uses `mcp__server__tool` (double underscore). In `.github/agents/` YAML, Copilot also accepts `github/tool` as a short alias for `github-mcp-server/tool`.
+6. **MCP prefix**: Copilot uses `server-name/tool-name` (slash). Claude Code uses `mcp__server__tool` (double underscore). In `.agents/agents/` YAML, Copilot also accepts `github/tool` as a short alias for `github-mcp-server/tool`.
