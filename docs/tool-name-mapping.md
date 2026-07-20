@@ -1,4 +1,4 @@
-## Tool Name Mapping — Claude Code vs Copilot CLI vs IBM Bob
+## Tool Name and Hook Mapping — Claude Code vs Copilot CLI vs IBM Bob (vs Cursor for hooks)
 
 Every name below was read out of the shipped binaries, not from vendor documentation.
 
@@ -6,7 +6,8 @@ Every name below was read out of the shipped binaries, not from vendor documenta
 | --- | --- | --- |
 | GitHub Copilot CLI | **1.0.70** | `@github/copilot-darwin-arm64/app.js` + `prebuilds/darwin-arm64/runtime.node` (Rust builtin tool descriptors, queried directly) |
 | IBM Bob | extension `bob-code` **2.0.1** (app `1.121.0+bob2.0.1`) and **2.0.1-insider.1** (app `1.121.0+bob2.0.2-insider.1`) | `IBM Bob*.app/Contents/Resources/app/extensions/bob-code/dist/extension.js` (tool classes carry `id=`/`getId()`, `groups`, `permission`) |
-| Claude Code | current session | live tool surface — **not** code-verified like the other two columns |
+| Cursor | **3.12.17** | `Cursor.app/.../out/vs/workbench/workbench.desktop.main.js` (hooks section only) |
+| Claude Code | current session | live tool surface — **not** code-verified like the other columns |
 
 Copilot's 1.x line is a native binary with a Rust runtime, not the 0.x JS bundle — names below were
 re-confirmed against it. Copilot's name-keyed builtin table holds 25 tools, enumerated by brute-forcing
@@ -111,6 +112,69 @@ by this document.
    which short-circuits when `GITHUB_COPILOT_CLI_MODE === "true"` ("CLI mode detected - skipping
    default MCP servers"). So it belongs to the env-driven coding-agent path. Claude Code bundles no
    browser tools.
+
+## Hooks
+
+A fourth harness enters here: Cursor **3.12.17** (`Cursor.app/.../workbench.desktop.main.js`) ships a
+hook system, and this repo carries `.cursor/hooks.json`. The Claude Code column is again from the
+live session rather than code.
+
+| | Claude Code | Copilot CLI 1.0.70 | Cursor 3.12.17 | IBM Bob 2.0.1 |
+| --- | --- | --- | --- | --- |
+| Hook system | yes | yes | yes | **none** |
+| Repo config | `.claude/settings.json` `"hooks"` | `.github/hooks/*.json` (only path; cloud agent reads nothing else) | `.cursor/hooks.json` | — |
+| Other config | `settings.local.json` | `.github/copilot/settings.json`, `.claude/settings.json` (inline), `~/.copilot/hooks/`, `$COPILOT_HOME/hooks/`, policy dir, plugins | enterprise `hooks.json` under `/Library/Application Support/Cursor`, `C:\ProgramData\Cursor`, `/etc/cursor` | — |
+| Event case | `PascalCase` | accepts **both** (`preToolUse` and `PreToolUse`) | `camelCase` | — |
+| Hook types | command | `command`, `http` (url/headers/allowedEnvVars), `prompt` | `command`, `prompt` | — |
+| Tool matcher | yes | yes (`matcher`) | yes (`matcher`, omitted when `"*"`) | — |
+
+**Bob has no hook system at all.** Zero occurrences of `preToolUse`, `postToolUse`, `hooksDir`,
+`userHooks` or `hooks.json` in either the stable or insiders bundle. Nothing to port; enforcement in
+Bob has to live in mode `groups`/`permission` and the `execute_command` allow/deny lists instead.
+
+**Event names.** Copilot 1.0.70 accepts 14: `sessionStart`, `sessionEnd`, `userPromptSubmitted`,
+`preToolUse`, `preMcpToolCall`, `postToolUse`, `postToolUseFailure`, `errorOccurred`, `agentStop`,
+`subagentStart`, `subagentStop`, `preCompact`, `permissionRequest`, `notification`. Config keys are
+`version`, `disableAllHooks`, `hooks`; a command entry accepts `type`, `bash`, `powershell`,
+`command`, `exec`, `args`, `cwd`, `env`, `timeoutSec`/`timeout`, `matcher`.
+
+Cursor 3.12.17 defines 21, a superset in some areas: the Copilot-ish set plus `beforeShellExecution`,
+`afterShellExecution`, `beforeMCPExecution`, `afterMCPExecution`, `beforeReadFile`, `afterFileEdit`,
+`beforeTabFileRead`, `afterTabFileEdit`, `beforeSubmitPrompt`, `afterAgentResponse`,
+`afterAgentThought`, `stop`, `workspaceOpen`.
+
+**Cursor ships an explicit Claude Code compatibility map** (`claude-code-types.ts`), which is the
+clearest statement of cross-harness equivalence available in any of these binaries:
+
+| Claude Code | Cursor |
+| --- | --- |
+| `PreToolUse` | `preToolUse` |
+| `PostToolUse` | `postToolUse` |
+| `UserPromptSubmit` | `beforeSubmitPrompt` |
+| `Stop` | `stop` |
+| `SubagentStop` | `subagentStop` |
+| `SessionStart` / `SessionEnd` | `sessionStart` / `sessionEnd` |
+| `PreCompact` | `preCompact` |
+| `PermissionRequest`, `Notification` | **`null` — unsupported, silently ignored** |
+
+That same converter rewrites tool matchers, turning `mcp__server__tool` into a `MCP:tool` matcher —
+so Cursor, like Bob and Claude Code, is on the `mcp__` convention and only Copilot uses slashes.
+
+**Blocking semantics differ, and this is the trap.** A single script wired into all three needs a
+per-harness exit code, which is why `.claude/hooks/deny-config-files.sh` takes a dialect argument:
+
+- **Copilot**: exit **2** raises `HookCommandWarningError` — "Hook command exited with code 2
+  (warning)" — i.e. warn and continue. Any *other* non-zero raises `HookExitCodeError` and blocks.
+  So 2 is the one non-zero code that does not deny.
+- **Claude Code / Cursor**: exit **2** is the deny signal.
+- Richer control is available via JSON on stdout: Copilot's `hookIsTerminalDecision` treats
+  `decision: "block"`, `permissionDecision: "deny"`, or `behavior: "deny"` as terminal (verified by
+  calling it directly), and `permissionDecision: "allow"` as not.
+- Cursor hooks default to `failClosed: false`; this repo's `.cursor/hooks.json` sets it `true`
+  explicitly.
+
+Consequence for this repo: the same guard script is registered three times with three dialect args,
+and the Copilot copy must exit 1 rather than 2. Copilot hooks also fail open on timeout.
 
 ### Tools that do NOT exist (checked, to stop them being reintroduced)
 
