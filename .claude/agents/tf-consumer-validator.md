@@ -69,7 +69,7 @@ If Security & Compliance < 5.0, force "Not Production Ready".
 
 ### Step 5 — Write Report
 
-Read the report template from `.claude/skills/tf-report-template/template/tf-consumer-template.md`. Write the completed report to `specs/{FEATURE}/reports/deployment-report.md`. The report must include all sections: modules composed, static analysis results, run task results, quality score, sandbox deployment status, and overall pass/fail.
+Read the consumer report template from the preloaded `tf-report-template` skill (`template/tf-consumer-template.md` inside that skill's directory). Write the completed report to `specs/{FEATURE}/reports/deployment-report.md`. The report must include all sections: modules composed, static analysis results, run task results, quality score, sandbox deployment status, and overall pass/fail.
 
 ## Constraints
 

@@ -6680,14 +6680,14 @@ Step 12: terraform test + fmt + trivy + terraform-docs (validate phase)</pre>
 
 <div class="subsection" id="reference-skills-catalog" data-sub="Skills Catalog">
   <h3 class="subsection-title">Skills Catalog</h3>
-  <p class="subsection-desc">24 skills across module, provider, and consumer workflows — agents dynamically load the right skill for each task, bringing domain expertise on demand.</p>
+  <p class="subsection-desc">32 skills across module, provider, consumer, and policy workflows — agents dynamically load the right skill for each task, bringing domain expertise on demand.</p>
   <div class="ref-filter"><input type="text" placeholder="Filter skills..." id="skills-filter"></div>
   <div class="ref-card-grid" id="skills-grid"></div>
 </div>
 
 <div class="subsection" id="reference-agent-inventory" data-sub="Agent Inventory">
   <h3 class="subsection-title">Agent Inventory</h3>
-  <p class="subsection-desc">14 agents across 3 workflows — each agent is purpose-built with scoped tools and permissions for its specific role in the pipeline.</p>
+  <p class="subsection-desc">21 agents across 4 workflows (plus CI and evals) — each agent is purpose-built with scoped tools and permissions for its specific role in the pipeline.</p>
   <div class="ref-filter"><input type="text" placeholder="Filter agents..." id="agents-filter"></div>
   <div class="ref-card-grid" id="agents-grid"></div>
 </div>
@@ -7010,7 +7010,7 @@ TEAM_TFE_TOKEN  # HCP Terraform Team Token (must be a Team API Token)</pre></sum
       <div class="expand-ref">Source: .foundations/scripts/bash/validate-env.sh, .devcontainer/claude-code/devcontainer.json</div>
     </div>
   </details>
-  <details class="gs-step"><summary><h3 style="color:var(--cmd-red)">Important: TEAM_TFE_TOKEN</h3><p>Must be a <strong>Team API Token</strong> -- not a user token or organization token. Create at:</p><pre>HCP Terraform > Settings > Teams > [Your Team] > Team API Token</pre></summary>
+  <details class="gs-step"><summary><h3 style="color:var(--cmd-red)">Important: TEAM_TFE_TOKEN</h3><p>Must be a <strong>Team API Token</strong> -- not a user token or organization token. Create at:</p><pre>HCP Terraform > Organization Settings > API Tokens > Team Tokens > [Your Team]</pre></summary>
     <div class="card-expand">
       <p>User tokens grant permissions based on the individual's access level, which may be too broad. Organization tokens have admin-level access. Team tokens are scoped to exactly the team's project permissions &mdash; this is the principle of least privilege applied to the agent's HCP Terraform access.</p>
       <ul>
@@ -7052,7 +7052,7 @@ Lock/Unlock Workspaces</pre></summary>
       <div class="expand-ref">Source: .claude/settings.local.json (deny list)</div>
     </div>
   </details>
-  <details class="gs-step"><summary><h3>3. Generate Team API Token</h3><p>In <strong>Settings > Teams > [Your Team]</strong>, click <strong>"Create a team token"</strong>. Save as <code>TEAM_TFE_TOKEN</code>.</p></summary>
+  <details class="gs-step"><summary><h3>3. Generate Team API Token</h3><p>In <strong>Organization Settings > API Tokens > Team Tokens > [Your Team]</strong>, click <strong>"Create a team token"</strong>. Save as <code>TEAM_TFE_TOKEN</code>.</p></summary>
     <div class="card-expand">
       <p>The devcontainer maps local environment variables into the container via <code>${localEnv:TEAM_TFE_TOKEN}</code>. Inside the container this becomes <code>TFE_TOKEN</code>, which the Terraform MCP server and CLI both consume automatically. The token is never hardcoded in configuration files.</p>
       <ul>
@@ -7626,7 +7626,6 @@ function toggleAccordion(header) {
     { id:'terraform-style-guide', cat:'Core', desc:'HCL style conventions' },
     { id:'terraform-test', cat:'Core', desc:'.tftest.hcl guide' },
     { id:'tf-architecture-patterns', cat:'Core', desc:'Module design patterns' },
-    { id:'tf-implementation-patterns', cat:'Core', desc:'AWS resource patterns' },
     { id:'tf-research', cat:'Core', desc:'Research strategies' },
     { id:'tf-domain-category', cat:'Core', desc:'8-category ambiguity taxonomy' },
     { id:'tf-judge-criteria', cat:'Core', desc:'Quality scoring rubrics' },
@@ -7646,6 +7645,15 @@ function toggleAccordion(header) {
     { id:'tf-consumer-plan', cat:'Consumer', desc:'Phases 1-2' },
     { id:'tf-consumer-implement', cat:'Consumer', desc:'Phases 3-4' },
     { id:'tf-consumer-e2e', cat:'Consumer', desc:'E2E test harness' },
+    { id:'tf-policy-plan', cat:'Policy', desc:'Phases 1-2' },
+    { id:'tf-policy-implement', cat:'Policy', desc:'Phases 3-4' },
+    { id:'tf-policy', cat:'Policy', desc:'tfpolicy language reference' },
+    { id:'tf-research-policy-aws', cat:'Policy', desc:'AWS compliance baselines to YAML rules' },
+    { id:'tf-research-policy-azure', cat:'Policy', desc:'Azure compliance baselines to YAML rules' },
+    { id:'tf-runtask', cat:'Core', desc:'HCP Terraform run task results' },
+    { id:'gh-workflow', cat:'Core', desc:'GitHub CLI operations' },
+    { id:'provider-golangci-lint-uplift', cat:'Provider', desc:'Lint config uplift' },
+    { id:'provider-test-speed', cat:'Provider', desc:'Acceptance test speed analysis' },
     { id:'tf-report-template', cat:'Report', desc:'Validation results format' }
   ];
   var grid = document.getElementById('skills-grid');
@@ -7677,7 +7685,14 @@ function toggleAccordion(header) {
     { id:'tf-consumer-research', cat:'Consumer', desc:'Investigates research questions (x3-4 concurrent)' },
     { id:'tf-consumer-design', cat:'Consumer', desc:'Produces consumer-design.md' },
     { id:'tf-consumer-developer', cat:'Consumer', desc:'Implements checklist items' },
-    { id:'tf-consumer-validator', cat:'Consumer', desc:'Quality scoring + validation' }
+    { id:'tf-consumer-validator', cat:'Consumer', desc:'Quality scoring + validation' },
+    { id:'tf-policy-research', cat:'Policy', desc:'Investigates compliance rule mappings (x3-4 concurrent)' },
+    { id:'tf-policy-design', cat:'Policy', desc:'Produces policy-design.md' },
+    { id:'tf-policy-test-writer', cat:'Policy', desc:'TDD .policytest.hcl scaffolding' },
+    { id:'tf-policy-developer', cat:'Policy', desc:'Implements .policy.hcl checklist items' },
+    { id:'tf-policy-validator', cat:'Policy', desc:'Quality scoring + validation' },
+    { id:'module-upgrade-remediation', cat:'CI', desc:'@claude fixer for consumer module upgrades' },
+    { id:'tf-e2e-judge', cat:'Evals', desc:'Independent scorer for evals/e2e runs' }
   ];
   var agrid = document.getElementById('agents-grid');
   function renderAgents(filter) {

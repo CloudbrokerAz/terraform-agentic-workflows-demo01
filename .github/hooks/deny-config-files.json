@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "bash": "bash .claude/hooks/deny-config-files.sh copilot",
+        "matcher": "Write|Edit|MultiEdit",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

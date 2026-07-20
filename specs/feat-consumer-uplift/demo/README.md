@@ -82,14 +82,14 @@ If `terraform init/plan` fails (e.g. no AWS creds in workspace yet), that's OK �
 >
 > `CLAUDE_CODE_OAUTH_TOKEN` is read from `~/.claude/.credentials.json` → `accessToken` field. It uses your Claude Pro/Team subscription rather than API credits.
 
-The demo repo's `.mcp.json` must use **npx-based** MCP servers (not Docker) for GitHub Actions compatibility:
+The demo repo's CI MCP config must be runnable on GitHub Actions runners (which have Docker available — use the docker image below; the npm package previously referenced here does not exist on the public registry):
 
 ```json
 {
   "mcpServers": {
     "terraform": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/terraform-mcp-server@latest", "--toolsets=all"],
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "TFE_TOKEN", "hashicorp/terraform-mcp-server:latest", "--toolsets=all"],
       "env": { "TFE_TOKEN": "${TFE_TOKEN}" }
     }
   }
@@ -257,7 +257,7 @@ Each presenter gets their own demo repo via `create-demo-repos.zsh`:
 | Classify says "No module version changes" | The version sed replacement didn't match. Verify `main.tf` on base branch — the `replace_version()` function handles any constraint format, but check the diff actually shows a version change |
 | `terraform init` fails with "failed to create backend alias" | Remove `TF_WORKSPACE: ""` from workflow env block — empty string conflicts with cloud backend |
 | Plan exit code always 0 | Must use `PIPESTATUS[0]` when piping terraform through `tee` — `tee` always exits 0 |
-| @claude fix crashes instantly (0 cost, ~200ms) | `.mcp.json` uses Docker-based MCP server. Replace with npx-based config (see Step 6) |
+| @claude fix crashes instantly (0 cost, ~200ms) | MCP server failed to start. Confirm the docker-based CI config from Step 6 is in place and the runner can pull `hashicorp/terraform-mcp-server` |
 | "Credit balance is too low" in @claude step | Switch from `ANTHROPIC_API_KEY` to `CLAUDE_CODE_OAUTH_TOKEN` (uses Claude subscription) |
 | Risk assessment job skipped | Only runs when plan exit code is 2 (changes detected) |
 | Workflow not found by claude-code-action | Default branch must have the workflow file (see Step 4) |

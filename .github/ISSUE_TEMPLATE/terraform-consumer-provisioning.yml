@@ -14,6 +14,9 @@ body:
         are marked. Optional fields help the agent produce a more accurate design on
         the first pass.
 
+        You can leave the issue title as-is — it is filled in automatically from the
+        Application / Service Name after you submit.
+
   # ============================================================================
   # Application Identity
   # ============================================================================

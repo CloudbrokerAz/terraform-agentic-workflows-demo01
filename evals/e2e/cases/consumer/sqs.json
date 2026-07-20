@@ -1,0 +1,50 @@
+{
+  "id": "consumer-sqs",
+  "track": "consumer",
+  "description": "SQS queue composition from private registry modules; cheapest consumer deploy case",
+  "prompt_file": ".claude/skills/tf-consumer-e2e/prompts/consumer_sqs.md",
+  "tags": [
+    "consumer",
+    "deploy",
+    "aws",
+    "cheap"
+  ],
+  "timeout_minutes": 120,
+  "runtime": {
+    "adapter": "claude-code",
+    "model": "",
+    "max_turns": 300
+  },
+  "sandbox": {
+    "deploy": true,
+    "hcp_org": "hashi-demos-apj",
+    "workspace_pattern": "sandbox_consumer_sqs{SUFFIX}"
+  },
+  "expected_artifacts": [
+    "specs/*/consumer-design.md",
+    "specs/*/research-*.md",
+    "specs/*/reports/deployment-report.md",
+    "*.tf"
+  ],
+  "deterministic_checks": [
+    "artifacts",
+    "terraform_fmt",
+    "terraform_validate",
+    "tflint",
+    "trivy",
+    "issue_created",
+    "pr_created",
+    "checklist_complete",
+    "destroy_clean"
+  ],
+  "judge": {
+    "rubric": "consumer",
+    "min_score": 7.0,
+    "assertions": [
+      "Queue resources come from private registry modules, not raw resources",
+      "Encryption at rest is enabled on the queue",
+      "Region is ap-southeast-2",
+      "The cloud block targets the sandbox project with the prescribed workspace name"
+    ]
+  }
+}

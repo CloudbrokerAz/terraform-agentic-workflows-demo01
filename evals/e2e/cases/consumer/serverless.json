@@ -1,0 +1,51 @@
+{
+  "id": "consumer-serverless",
+  "track": "consumer",
+  "description": "Lambda + API Gateway + DynamoDB + S3 assets + CloudWatch observability + least-privilege IAM",
+  "prompt_file": ".claude/skills/tf-consumer-e2e/prompts/consumer_serverless.md",
+  "tags": [
+    "consumer",
+    "deploy",
+    "aws",
+    "standard"
+  ],
+  "timeout_minutes": 150,
+  "runtime": {
+    "adapter": "claude-code",
+    "model": "",
+    "max_turns": 300
+  },
+  "sandbox": {
+    "deploy": true,
+    "hcp_org": "hashi-demos-apj",
+    "workspace_pattern": "sandbox_consumer_serverless{SUFFIX}"
+  },
+  "expected_artifacts": [
+    "specs/*/consumer-design.md",
+    "specs/*/research-*.md",
+    "specs/*/reports/deployment-report.md",
+    "*.tf"
+  ],
+  "deterministic_checks": [
+    "artifacts",
+    "terraform_fmt",
+    "terraform_validate",
+    "tflint",
+    "trivy",
+    "issue_created",
+    "pr_created",
+    "checklist_complete",
+    "destroy_clean"
+  ],
+  "judge": {
+    "rubric": "consumer",
+    "min_score": 7.0,
+    "assertions": [
+      "Lambda is fronted by API Gateway via private registry modules",
+      "DynamoDB table module is used for storage with encryption enabled",
+      "IAM roles follow least privilege (no wildcard actions on *)",
+      "CloudWatch Logs and alarms cover the Lambda and API Gateway",
+      "Region is ap-southeast-2"
+    ]
+  }
+}

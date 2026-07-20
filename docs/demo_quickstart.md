@@ -149,4 +149,4 @@ plan → implement → deploy → PR cycle with test defaults.
 
 - [Getting Started](getting_started.md) — full setup, accounts, and tokens
 - [Tool Name Mapping](tool-name-mapping.md) — Claude vs. Copilot tool names
-- `.devcontainer/*/readme.md` — per‑variant devcontainer notes (incl. Podman)
+- `.devcontainer/*-podman/readme.md` — Podman-variant devcontainer notes (the Docker variants have no readme)

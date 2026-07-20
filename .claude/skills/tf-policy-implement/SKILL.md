@@ -9,13 +9,13 @@ argument-hint: "[feature-name] - Implement from existing specs/{feature}/policy-
 
 Builds and validates a tfpolicy policy set from `specs/{FEATURE}/policy-design.md` using TDD. The policy engine is tfpolicy. If the user pushes for a different engine, redirect them to the constitution and the exception process — do not silently switch.
 
-Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`.
+Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`. When a phase finishes, post `complete` with the canonical phase name — `Implement` (Phase 3), `Validate` (Phase 4) — so the script ticks the matching box in the issue's Status checklist.
 Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.sh --dir . --prefix feat "<step_name>"`. The `<step_name>` must be a short hyphenated identifier (e.g., `"test-scaffold"`, `"checklist-item-A"`, `"validation"`) — NOT a sentence or file path.
 
 ## Prerequisites
 
 1. Resolve `$FEATURE` from `$ARGUMENTS` or current git branch name.
-2. Run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`.
+2. **Bootstrap `.foundations`** (no-op when running from the template repo where `.foundations/` already exists): run `LINK="${CLAUDE_PLUGIN_ROOT}/scripts/link-foundations.sh"; [ -f "$LINK" ] && bash "$LINK" || true` to point `.foundations/` at the installed plugin so the repo-relative paths below resolve. Then run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`.
 3. Verify `specs/{FEATURE}/policy-design.md` exists via Glob. Stop if missing — tell user to run `/tf-policy-plan` first.
 4. Find `$ISSUE_NUMBER` from `$ARGUMENTS` or `gh issue list --search "$FEATURE"`.
 

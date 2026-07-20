@@ -7,7 +7,7 @@
 - **Foundations** — core concepts and architecture
 - **Guardrails** — security controls and constraints
 - **Spec-Driven Development** — the 4-phase SDD workflow
-- **Workflows** — module, provider, and consumer authoring
+- **Workflows** — module, provider, consumer, and policy authoring
 - **Reference** — commands, templates, and configuration
 - **Prerequisites** — tooling and environment setup
 

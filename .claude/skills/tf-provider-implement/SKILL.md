@@ -9,12 +9,12 @@ argument-hint: "[feature-name] [resource-name] - Implement from existing specs/{
 
 Builds and validates a Terraform provider resource from `specs/{FEATURE}/provider-design-{resource}.md` using TDD.
 
-Post progress: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`
+Post progress: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. When a phase finishes, post `complete` with the canonical phase name — `Implement` (Phase 3), `Validate` (Phase 4) — so the script ticks the matching box in the issue's Status checklist.
 Checkpoint: `bash .foundations/scripts/bash/checkpoint-commit.sh --dir . --prefix feat "<step_name>"`
 
 ## Prerequisites
 
-1. Resolve `$FEATURE` and `$RESOURCE` from `$ARGUMENTS` or current git branch name.
+1. **Bootstrap `.foundations`** (no-op when running from the template repo where `.foundations/` already exists): run `LINK="${CLAUDE_PLUGIN_ROOT}/scripts/link-foundations.sh"; [ -f "$LINK" ] && bash "$LINK" || true` to point `.foundations/` at the installed plugin so the repo-relative paths below resolve. Then resolve `$FEATURE` and `$RESOURCE` from `$ARGUMENTS` or current git branch name.
 2. Verify `specs/{FEATURE}/provider-design-{resource}.md` exists via Glob. Stop if missing — tell user to run `/tf-provider-plan` first. Capture `$DESIGN_FILE`.
 3. Find `$ISSUE_NUMBER` from `$ARGUMENTS` or `gh issue list --search "$FEATURE"`.
 

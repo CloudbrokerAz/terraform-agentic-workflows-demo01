@@ -8,7 +8,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.14-purple.svg)](https://www.terraform.io/)
 
-A framework for agentic Infrastructure as Code development workflows using **Spec-Driven Development (SDD)** — a structured approach that guides AI agents through building production-ready Terraform code with guardrails at every phase. Built on industry standards like [agent skills](https://agentskills.io/) and subagents, this framework is designed to be generic and can be customized to work with any AI coding harness that supports these primitives. Validated with **Claude Code** and **GitHub Copilot CLI**. Coming soon Project Bob ...
+A framework for agentic Infrastructure as Code development workflows using **Spec-Driven Development (SDD)** — a structured approach that guides AI agents through building production-ready Terraform code with guardrails at every phase. Built on industry standards like [agent skills](https://agentskills.io/) and subagents, this framework is designed to be generic and can be customized to work with any AI coding harness that supports these primitives. Validated with **Claude Code** and **GitHub Copilot CLI**; **Cursor** is supported experimentally via the [plugin](#install-as-a-plugin). Coming soon Project Bob ...
 
 > **Guardrails matter.** Agentic AI for critical infrastructure requires mature IaC practices and strong operational guardrails to deliver successful outcomes. **HCP Terraform** is a key component of this approach — providing remote execution, policy enforcement, state management, and approval workflows that keep AI-generated infrastructure safe and auditable.
 >
@@ -46,7 +46,7 @@ graph LR
 
 **Can't I build my own workflows?** Yes — and many teams do. But getting agentic IaC right is harder than it looks. Naive prompting produces code that works in demos but fails in production: no tests, no security defaults, inconsistent structure, and no guardrails to prevent drift. This framework encodes months of iteration into reusable skills, constitutions, and validation pipelines. You get a proven starting point instead of rebuilding the same lessons from scratch — and because it's built on open standards (agent skills, subagents, MCP), you can extend and customize it rather than being locked in.
 
-**Are these workflows designed to run in the IDE?** These workflows are designed for long-running, background agentic execution — not quick inline completions. We recommend starting in the IDE (VS Code devcontainer) as the fastest path to adoption. As practices mature, these same workflows can be centralized in cloud agent sandboxes such as [AWS AgentCore](https://aws.amazon.com/bedrock/agentcore/), decoupling execution from individual developer machines, enabling platform-level orchestration, and unlocking dynamic secrets management for coding agent harnesses.
+**Are these workflows designed to run in the IDE?** These workflows are designed for long-running, background agentic execution — not quick inline completions. We recommend starting in the IDE (VS Code devcontainer) as the fastest path to adoption. As practices mature, these same workflows can be centralized in cloud agent sandboxes such as [AWS AgentCore](https://aws.amazon.com/agentcore/), decoupling execution from individual developer machines, enabling platform-level orchestration, and unlocking dynamic secrets management for coding agent harnesses.
 
 ## Quick Start
 
@@ -67,6 +67,40 @@ bash .foundations/scripts/bash/validate-env.sh
 All other tools (Terraform, TFLint, terraform-docs, Trivy, Go, GitHub CLI, and more) are pre-installed in the devcontainer.
 
 See the **[Getting Started Guide](docs/getting_started.md)** for complete setup instructions including token configuration and branch protection.
+
+## Install as a plugin
+
+The workflows can also be installed as a **plugin** into any repository, instead of using this repo as a template. Parallel manifests serve each AI assistant from the same content: Claude Code reads `.claude-plugin/plugin.json`, GitHub Copilot CLI reads `.github/plugin/plugin.json`, and Cursor reads `.cursor-plugin/plugin.json` (each pointing at the shared skills plus the matching agent dialect).
+
+**Claude Code** (skills become namespaced, e.g. `/tf-workflows:tf-module-plan`):
+
+```shell
+/plugin marketplace add hashi-demo-lab/terraform-agentic-workflows
+/plugin install tf-workflows@tf-workflows
+```
+
+**GitHub Copilot CLI** (the same marketplace manifest works — Copilot reads `.claude-plugin/marketplace.json` too):
+
+```shell
+copilot plugin marketplace add hashi-demo-lab/terraform-agentic-workflows
+copilot plugin install tf-workflows@tf-workflows
+```
+
+(`copilot plugin install hashi-demo-lab/terraform-agentic-workflows` also works, but the Copilot CLI has deprecated direct repo installs in favor of marketplace installs.)
+
+**Cursor** (2.5+): import this repo's URL as a **Team Marketplace** (Settings → Customize → Plugins), register it under `plugins` in the project's `.cursor/settings.json`, or just open a repo containing `.claude/` — Cursor natively discovers skills from `.claude/skills/` and subagents from `.claude/agents/` (behind its third-party extensibility setting, on by default), so the workflows load with no plugin at all. The packaging is validated against Cursor's actual plugin loader (the engine bundled in `@cursor/sdk`, shared with `cursor-agent`): all 32 skills and 21 agents load through `.cursor-plugin/plugin.json`, and the plugin auto-bundles the repo-root `.mcp.json` like the other two CLIs. Frontmatter dialect: `skills:` preloading and `color:` are silently ignored everywhere (agent bodies reference skills by name, which still works via skill discovery); `model:`/`tools:` are honored for agents discovered from an open repo's `.claude/agents/`, but stripped for plugin-delivered agents (they run with `model: inherit` and all tools). Without the plugin, copy `.mcp.json` to `.cursor/mcp.json` for the Terraform MCP tools. Live end-to-end runs on Cursor haven't been exercised — treat as experimental until smoke-tested in an authenticated Cursor session.
+
+**MCP servers** — both CLIs auto-bundle the repo's `.mcp.json` with the plugin (it sits at the plugin root; neither CLI offers a manifest opt-out):
+
+- **Copilot CLI**: bundled servers keep their names (`terraform`, `aws-documentation-mcp-server`), so the plugin agents' `terraform/*` tool references work out of the box — the consuming machine just needs the server runtimes (`docker` + `TFE_TOKEN` for terraform, `uvx` for AWS docs).
+- **Claude Code**: plugin-bundled MCP tools are renamed to `mcp__plugin_tf-workflows_<server>__*`, which does NOT match the agents' `mcp__terraform__*` tool allowlists. Copy this repo's `.mcp.json` into the consuming repo (project scope) so the agents' allowlisted tools exist, and set `CLAUDE_CODE_SKIP_PLUGIN_MCP_SERVERS=1` to suppress the plugin-scoped duplicates (otherwise each server runs twice).
+
+**What the plugin does NOT carry** — the consuming repository must provide:
+
+- **`.foundations/`**: constitutions, design templates, and helper scripts are referenced repo-relatively by the workflows — copy `.foundations/` into the consuming repo (tailor the constitutions to your organization).
+- **Toolchain**: `terraform`, `tflint`, `trivy`, `pre-commit` config, and `gh` as per the devcontainer.
+
+For local development of the plugin itself: `claude --plugin-dir .` from the repo root, and `claude plugin validate .` before pushing.
 
 ## Core Workflows
 
@@ -109,9 +143,11 @@ Configured in `.mcp.json` and available automatically in the devcontainer.
 - **Devcontainer** — One per assistant: `claude-code` (Claude Code CLI) and `copilot-cli` (GitHub Copilot), each with a Docker variant and a rootless-Podman variant (`*-podman`). All ship Terraform 1.14, TFLint, terraform-docs, Trivy, Go 1.24, GitHub CLI, Vault Radar, Infracost, Checkov, golangci-lint, and pre-commit
 - **Pre-commit hooks** — fmt, validate, docs, tflint, trivy, secret detection, Vault Radar (requires optional `VAULT_RADAR_LICENSE`)
 - **TFLint** — AWS (0.46.0), Azure (0.31.1), and Terraform plugins with all 20 rules configured
-- **Constitutions** — Non-negotiable rules for module, provider, and consumer code generation
+- **Constitutions** — Non-negotiable rules for module, provider, consumer, and policy code generation
 - **Design templates** — Canonical starting points for each workflow's design phase
 - **CI/CD pipelines** — Validation, apply, release, and consumer uplift workflows
+- **E2E eval framework** — `evals/e2e/` runs full plan→implement cycles headlessly in throwaway repos, scores them with deterministic checks plus an independent judge agent, and renders an offline HTML report (wall time, cost, quality)
+- **Plugin manifests** — install the workflows into any repo via Claude Code, Copilot CLI, or Cursor (`.claude-plugin/`, `.github/plugin/`, `.cursor-plugin/`)
 
 ## Documentation
 
@@ -119,7 +155,8 @@ Configured in `.mcp.json` and available automatically in the devcontainer.
 |----------|-------------|
 | [Getting Started](docs/getting_started.md) | Environment setup and first workflow |
 | [Documentation Site](docs/index.html) | Full reference site (open locally in browser — not rendered on GitHub) |
-| [AGENTS.md](AGENTS.md) | Agent inventory, skills, and context management rules |
+| [AGENTS.md](AGENTS.md) | Agent/skill inventory and context management rules |
+| [E2E Eval Framework](evals/e2e/README.md) | Headless workflow evals: runner, judge, HTML report |
 
 ## Validated Models
 

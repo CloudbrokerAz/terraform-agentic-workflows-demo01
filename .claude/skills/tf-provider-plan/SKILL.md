@@ -9,12 +9,12 @@ argument-hint: "[resource-name] [provider-name] - Brief description of what the 
 
 Produces `specs/{FEATURE}/provider-design-{resource}.md` from requirements. Stops for human approval before any code is written.
 
-Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`.
+Post progress at key steps: `bash .foundations/scripts/bash/post-issue-progress.sh $ISSUE_NUMBER "<step>" "<status>" "<summary>"`. Valid status values: `started`, `in-progress`, `complete`, `failed`. When a phase finishes, post `complete` with the canonical phase name — `Clarify` (Phase 1), `Design` (Phase 2) — so the script ticks the matching box in the issue's Status checklist.
 Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.sh "<step_name>"`. The `<step_name>` must be a short hyphenated identifier (e.g., `"clarify"`, `"research-and-design"`, `"design-approved"`) — NOT a sentence or file path.
 
 ## Phase 1: Requirements & Research
 
-1. Run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`. Then separately verify Go is available: `go version` (Go >= 1.21 required). Stop if Go is not installed or version is insufficient.
+1. **Bootstrap `.foundations`** (no-op when running from the template repo where `.foundations/` already exists): run `LINK="${CLAUDE_PLUGIN_ROOT}/scripts/link-foundations.sh"; [ -f "$LINK" ] && bash "$LINK" || true` to point `.foundations/` at the installed plugin so the repo-relative paths below resolve. Then run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`. Then separately verify Go is available: `go version` (Go >= 1.21 required). Stop if Go is not installed or version is insufficient.
 2. Create GitHub issue: read `.foundations/templates/issue-body-template.md`, fill in the placeholders with parsed requirements, and run `gh issue create --title "Provider Resource: {provider}_{service}_{resource}" --body "$FILLED_BODY"`. Capture `$ISSUE_NUMBER`. Update the issue body again after Step 6 (clarification) to include API decisions and scope boundaries.
 4. Create feature branch: `bash .foundations/scripts/bash/create-new-feature.sh --json --workflow provider --issue $ISSUE_NUMBER --short-name "<resource-name>" "<feature description>"`. Parse the JSON output to capture `$BRANCH_NAME` as `$FEATURE`.
 5. Scan requirements against the `tf-domain-category` skill — focus on API behavior ambiguity, state management decisions (ForceNew vs in-place update), and error handling patterns.

@@ -11,6 +11,13 @@
 #   summary       Brief one-line summary of outcome (optional for started/in-progress, recommended for complete/failed)
 #   details       Multi-line details/bullets to append as **Summary** block (optional)
 #
+# On "complete", if <phase_name> matches a "- [ ] Phase N: <name>" entry in the
+# issue body's Status checklist (canonical phase names: Clarify, Design,
+# Implement, Validate), the checkbox is ticked automatically. Matching is
+# case-insensitive and an optional "Phase N: " prefix on <phase_name> is
+# accepted. Non-matching phase names (e.g. sub-steps like "Environment
+# Validation") leave the checklist untouched.
+#
 # Examples:
 #   post-issue-progress.sh 42 "Environment Validation" "complete" "All gates passed"
 #   post-issue-progress.sh 42 "Specify" "complete" "design.md generated (12 sections)" "- Defined VPC with 3 AZs
@@ -90,3 +97,31 @@ fi
 # Post to GitHub issue (non-interactive: prevent gh from hanging on prompts)
 ensure_gh_noninteractive
 gh issue comment "$ISSUE_NUMBER" --body "$BODY" < /dev/null
+
+# On phase completion, tick the matching "- [ ] Phase N: <name>" checkbox in
+# the issue body's Status checklist. No-op when nothing matches.
+if [[ "$STATUS" == "complete" ]]; then
+  PHASE_LABEL="$(printf '%s' "$PHASE_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/^phase [0-9]+: *//')"
+  ISSUE_BODY="$(gh issue view "$ISSUE_NUMBER" --json body --jq .body < /dev/null 2>/dev/null || true)"
+  if [[ -n "$ISSUE_BODY" ]]; then
+    UPDATED_BODY="$(printf '%s\n' "$ISSUE_BODY" | awk -v phase="$PHASE_LABEL" '
+      {
+        line = $0
+        lower = tolower(line)
+        gsub(/\r/, "", lower)
+        sub(/[[:space:]]+$/, "", lower)
+        if (lower ~ /^- \[ \] phase [0-9]+: /) {
+          label = lower
+          sub(/^- \[ \] phase [0-9]+: /, "", label)
+          if (label == phase) sub(/\[ \]/, "[x]", line)
+        }
+        print line
+      }')"
+    if [[ "$UPDATED_BODY" != "$ISSUE_BODY" ]]; then
+      BODY_FILE="$(mktemp)"
+      printf '%s\n' "$UPDATED_BODY" > "$BODY_FILE"
+      gh issue edit "$ISSUE_NUMBER" --body-file "$BODY_FILE" < /dev/null || true
+      rm -f "$BODY_FILE"
+    fi
+  fi
+fi

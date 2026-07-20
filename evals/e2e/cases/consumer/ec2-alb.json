@@ -1,0 +1,52 @@
+{
+  "id": "consumer-ec2-alb",
+  "track": "consumer",
+  "description": "EC2 across 2 AZs + ALB + security groups from private registry modules; real sandbox deploy",
+  "prompt_file": ".claude/skills/tf-consumer-e2e/prompts/consumer_ec2.md",
+  "tags": [
+    "consumer",
+    "deploy",
+    "aws",
+    "standard"
+  ],
+  "timeout_minutes": 120,
+  "runtime": {
+    "adapter": "claude-code",
+    "model": "",
+    "max_turns": 300
+  },
+  "sandbox": {
+    "deploy": true,
+    "hcp_org": "hashi-demos-apj",
+    "workspace_pattern": "sandbox_consumer_ec2{SUFFIX}"
+  },
+  "expected_artifacts": [
+    "specs/*/consumer-design.md",
+    "specs/*/research-*.md",
+    "specs/*/reports/deployment-report.md",
+    "*.tf"
+  ],
+  "deterministic_checks": [
+    "artifacts",
+    "terraform_fmt",
+    "terraform_validate",
+    "tflint",
+    "trivy",
+    "issue_created",
+    "pr_created",
+    "checklist_complete",
+    "destroy_clean"
+  ],
+  "judge": {
+    "rubric": "consumer",
+    "min_score": 7.0,
+    "assertions": [
+      "All compute/network resources come from private registry modules; raw resources are glue only",
+      "EC2 instances span exactly 2 availability zones",
+      "The ALB HTTP listener is wired to the instances via a target group",
+      "Nginx is installed via user data",
+      "Region is ap-southeast-2 and the existing default VPC is used",
+      "The cloud block targets the sandbox project with the prescribed workspace name"
+    ]
+  }
+}

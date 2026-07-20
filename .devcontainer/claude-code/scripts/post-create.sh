@@ -68,6 +68,11 @@ fi
 
 SCRIPT_DIR="$(dirname "$0")"
 
+# Configure token-authenticated HTTPS git auth and neutralize any global
+# HTTPS->SSH insteadOf rewrite baked into the image (see issue #45).
+"${SCRIPT_DIR}/../../scripts/setup-git-auth.sh" \
+    || echo "Git auth setup failed; pushes may require manual git config"
+
 # Optionally swap in a beta Terraform from /workspace/reference/.
 # TERRAFORM_BETA=true installs the matching OS/arch zip; unset restores stable.
 if [ "${TERRAFORM_BETA:-false}" = "true" ]; then

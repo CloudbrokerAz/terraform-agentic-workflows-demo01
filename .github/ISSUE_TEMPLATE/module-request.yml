@@ -13,6 +13,9 @@ body:
         Fill in as much detail as possible — required fields are marked. Optional fields help
         the agent produce a more accurate specification on the first pass.
 
+        You can leave the issue title as-is — it is filled in automatically from the
+        Module Name after you submit.
+
   # ============================================================================
   # Module Identity
   # ============================================================================
