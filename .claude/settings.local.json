@@ -64,7 +64,11 @@
       "Bash(gh issue view:*)",
       "Bash(GH_HOST=github.ibm.com gh issue view:*)",
       "Bash(gh api:*)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "WebFetch(domain:docs.github.com)",
+      "WebSearch",
+      "WebFetch(domain:developer.hashicorp.com)",
+      "Bash(git checkout *)"
     ],
     "deny": [
       "mcp__terraform__create_workspace_variable",

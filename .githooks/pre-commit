@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — commit-boundary checks (vault-radar, large-file, merge-conflict).
+# Native git hook, no framework. Enabled via: git config core.hooksPath .githooks
+# (the devcontainer sets this in post-create.sh). Shares logic with the agent hooks
+# through scripts/hooks/tf-guard.sh. See docs/proposals/agent-hooks-migration.md.
+exec "$(git rev-parse --show-toplevel)/scripts/hooks/tf-guard.sh" commit

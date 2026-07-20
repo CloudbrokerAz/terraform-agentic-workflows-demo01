@@ -100,4 +100,12 @@ if [ -f "$CERT_PATH" ]; then
     echo "NODE_EXTRA_CA_CERTS and OTEL_EXPORTER_OTLP_CERTIFICATE set in shell profile"
 fi
 
+# Enable the native git hooks (commit-boundary checks: vault-radar, large-file,
+# merge-conflict). Replaces the old pre-commit framework — see
+# docs/proposals/agent-hooks-migration.md.
+if [ -d /workspace/.githooks ]; then
+    git -C /workspace config core.hooksPath .githooks
+    echo "git core.hooksPath set to .githooks"
+fi
+
 echo "=== Post-Create Setup Complete ==="

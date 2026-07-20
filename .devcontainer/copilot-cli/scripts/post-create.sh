@@ -33,11 +33,12 @@ cat > ~/.terraform.d/credentials.tfrc.json << EOF
 EOF
 echo "Terraform credentials configured"
 
-# Initialize pre-commit hooks
-if [ -f .pre-commit-config.yaml ]; then
-  echo "Installing pre-commit hooks..."
-  pre-commit install
-  echo "Pre-commit hooks installed"
+# Enable the native git hooks (commit-boundary checks: vault-radar, large-file,
+# merge-conflict). Replaces the old pre-commit framework — see
+# docs/proposals/agent-hooks-migration.md.
+if [ -d .githooks ]; then
+  git config core.hooksPath .githooks
+  echo "git core.hooksPath set to .githooks"
 fi
 
 echo "=== Post-Create Setup Complete ==="
