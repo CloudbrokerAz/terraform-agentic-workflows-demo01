@@ -569,7 +569,7 @@ Canonical starting points for Phase 2 design output. Each template defines the r
 |-----------|---------|
 | `.claude/skills/` | Agent skills (slash commands) — used by both Claude Code and Copilot CLI |
 | `.claude/agents/` | Subagent definitions (research, design, validate, remediate) — used by both Claude Code and Copilot CLI |
-| `.agents/agents/` | GitHub Copilot agent definitions (same roles, Copilot tool names); `.github/agents` and `.github/hooks` are symlinks into `.agents/` so Copilot discovery keeps working |
+| `.agents/agents/` | GitHub Copilot agent definitions (same roles, Copilot tool names); `.github/agents` is a symlink into `.agents/` so Copilot discovery keeps working. Copilot hook configs stay in `.github/hooks/` — hooks are Copilot-only, so there is no second harness to share them with |
 | `.foundations/memory/` | Constitutions — non-negotiable code generation rules |
 | `.foundations/templates/` | Design document templates |
 | `.foundations/scripts/bash/` | Automation scripts (validate, checkpoint, progress, classify) |

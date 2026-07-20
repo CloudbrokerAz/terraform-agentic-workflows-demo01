@@ -4,7 +4,7 @@
 # restricts firing to write tools, so this script only checks the target path.
 #
 #   .claude/settings.json  -> PreToolUse, matcher "Write|Edit|MultiEdit|Update", arg "claude"
-#   .agents/hooks/*.json    -> PreToolUse (PascalCase => Claude payload+matcher), arg "copilot"
+#   .github/hooks/*.json    -> PreToolUse (PascalCase => Claude payload+matcher), arg "copilot"
 #   .cursor/hooks.json      -> preToolUse, matcher "Write|Edit|MultiEdit|Update", arg "cursor"
 #
 # $1 = harness dialect, which selects the block exit code:

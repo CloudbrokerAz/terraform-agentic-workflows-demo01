@@ -65,10 +65,9 @@ location, and a few Copilot-only events. There is **no "blocking-only" limitatio
 | Prompt submitted | `UserPromptSubmit` | `userPromptSubmitted` |
 | Subagent start / stop | `SubagentStart` / `SubagentStop` | `subagentStart` / `subagentStop` |
 
-**Config:** Claude → `.claude/settings.json` `"hooks"`. Copilot → `.agents/hooks/*.json`
-(`{ "version": 1, "hooks": {…} }`), exposed to Copilot via the `.github/hooks`
-symlink — Copilot (CLI and cloud agent) only discovers repo hooks at
-`.github/hooks/*.json`, so the symlink is what covers CLI + IDE + cloud.
+**Config:** Claude → `.claude/settings.json` `"hooks"`. Copilot → `.github/hooks/*.json`
+(`{ "version": 1, "hooks": {…} }`) — Copilot (CLI and cloud agent) discovers repo
+hooks at that one path only, which covers CLI + IDE + cloud.
 Docs: <https://docs.github.com/en/copilot/reference/hooks-reference>
 
 ## 4. Placement principle: match the check to its boundary
@@ -141,7 +140,7 @@ scripts/hooks/
 
 - **Claude** `.claude/settings.json`: `PostToolUse` → `tf-guard.sh fix`; `Stop` →
   `tf-guard.sh verify`.
-- **Copilot** `.agents/hooks/tf-guard.json`: `postToolUse` → `tf-guard.sh fix`;
+- **Copilot** `.github/hooks/tf-guard.json`: `postToolUse` → `tf-guard.sh fix`;
   `agentStop` → `tf-guard.sh verify`.
 - **Native git hook** (`.githooks/pre-commit`, one line): `tf-guard.sh commit` →
   `vault-radar` + `large-files` + `merge-conflict`.
@@ -174,15 +173,12 @@ exits `2` on a parse error so it's fed back. `verify` → `validate` + `tflint` 
 > hooks live in the checked-in `.claude/settings.json`, not the developer-local
 > `settings.local.json`.
 
-### 6b. Copilot (`.agents/hooks/tf-guard.json`, checked in)
+### 6b. Copilot (`.github/hooks/tf-guard.json`, checked in)
 
 Copilot **auto-discovers** any `.github/hooks/*.json` in the repo — no explicit
 registration; file presence is the wiring, and the cloud agent reads only this path.
-In this repo the files live in `.agents/hooks/`, with `.github/hooks` as a symlink
-to keep Copilot discovery working. Windows caveat: without `core.symlinks=true`
-(needs Developer Mode or admin), git checks the symlinks out as plain text files
-and Copilot discovery silently breaks — use the devcontainers or enable symlinks.
-Each entry uses `type: "command"` with a `bash` command (add `powershell` for Windows);
+The files stay in `.github/hooks/` as a real directory — hooks are Copilot-only, so
+there is no second harness to justify hoisting them into `.agents/`. Each entry uses `type: "command"` with a `bash` command (add `powershell` for Windows);
 the payload arrives on **stdin**. Note there is **no tool matcher** — `postToolUse`
 fires for every tool, so the script self-gates (`fix` exits 0 when the payload has no
 edited file path, e.g. for a `bash` tool call).
@@ -249,7 +245,7 @@ This also **closes the human-edit coverage gap**: anything a person edits by han
 ## 8. Migration plan
 
 1. **Add** `scripts/hooks/` dispatcher + `checks/` (ported 1:1 from `.pre-commit-config.yaml`).
-2. **Add** `.claude/settings.json` (Claude) and `.agents/hooks/tf-guard.json` (Copilot).
+2. **Add** `.claude/settings.json` (Claude) and `.github/hooks/tf-guard.json` (Copilot).
 3. **Add** `.githooks/pre-commit` (native shim → `tf-guard.sh commit`) and set
    `git config core.hooksPath .githooks` in each variant's `post-create.sh`.
 4. **Remove** `"disableAllHooks": true` from `.claude/settings.local.json`; prune stale

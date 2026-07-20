@@ -327,13 +327,17 @@ customModes:
 
 ## 6. Repo layout change (2026-07-20) — `.agents/` now exists
 
-Independently of the Bob port, the Copilot dialect content moved to canonical locations and
-`.github/` became symlinks:
+Independently of the Bob port, the Copilot dialect **agent** files moved to a canonical
+location, with `.github/agents` kept as a symlink:
 
 ```
 .agents/agents/*.md   (19 Copilot dialect agent files)   <- .github/agents  (symlink)
-.agents/hooks/*.json  (2 Copilot hook configs)           <- .github/hooks   (symlink)
+.github/hooks/*.json  (2 Copilot hook configs)           real directory, not moved
 ```
+
+Hooks deliberately stayed put. `.agents/` earns its keep only for content more than one harness
+reads; hooks are Copilot-only (Bob has no hook system at all — see §2), so a canonical dir plus
+symlink would have been indirection with no second consumer.
 
 Verified by reading the Copilot CLI implementation rather than the docs, on **two** versions —
 the previously installed `@github/copilot` **v0.0.420** (single `index.js` JS bundle) and, after
@@ -350,16 +354,14 @@ per-platform native package (`@github/copilot-darwin-arm64`) with `app.js` plus 
   code path in either version.
 - **Skills are the exception** — `.github/skills`, `.agents/skills`, `.claude/skills`; v1.0.70's
   own `/skills` help text repeats all three (see the warning in §2.1).
-- **The symlinks work in both implementations.**
-  - v0.0.420 (JS): hooks use node-glob, whose `follow:false` default only blocks `**` from
-    descending into symlinked *sub*directories — a symlink in the fixed base prefix resolves
-    normally (tested: both hook JSONs found). Agents use `readdir(dir,{withFileTypes:true})`,
+- **The agents symlink works in both implementations.**
+  - v0.0.420 (JS): agents use `readdir(dir,{withFileTypes:true})`,
     which resolves the symlinked dir (19 entries, all `isFile()`); the loader also explicitly
     stats symlinked *files*.
   - v1.0.70 (native): calling `runtime.node`'s `configLoaderCollectConventionDirs` directly
     against this repo returns both `.github/agents` and `.github/hooks`. Control cases
     (`.nope/agents`, `.github/nosuch`) return empty, proving it stats real directories rather
-    than string-joining — so the native path follows the symlinks too. Stronger still, the
+    than string-joining — so the native path follows the symlink too. Stronger still, the
     agent-file glob inside that root is called with `{follow:true}`, an explicit symlink opt-in
     rather than an incidental one.
   - Note the v0.0.420 evidence above is no longer reproducible — that version has been replaced
