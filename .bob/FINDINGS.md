@@ -359,10 +359,16 @@ per-platform native package (`@github/copilot-darwin-arm64`) with `app.js` plus 
   - v1.0.70 (native): calling `runtime.node`'s `configLoaderCollectConventionDirs` directly
     against this repo returns both `.github/agents` and `.github/hooks`. Control cases
     (`.nope/agents`, `.github/nosuch`) return empty, proving it stats real directories rather
-    than string-joining — so the native path follows the symlinks too.
+    than string-joining — so the native path follows the symlinks too. Stronger still, the
+    agent-file glob inside that root is called with `{follow:true}`, an explicit symlink opt-in
+    rather than an incidental one.
+  - Note the v0.0.420 evidence above is no longer reproducible — that version has been replaced
+    by 1.0.70 locally. The 1.0.70 evidence is the live, checkable one.
 - **Correction to the public docs:** Copilot does *not* require the `.agent.md` extension. The
-  loader accepts any `.md`, strips an optional `.agent` suffix, and only prefers `.agent.md`
-  when both spellings exist for one name. Our plain `.md` files are fine.
+  loader globs `**/*.md` and tags `isAgentMd` for the `.agent.md` spelling, then
+  `customAgentsResolveFilesByPriority` picks a winner per id. Called directly with
+  `[foo.md, foo.agent.md, bar.md]` it returns `foo.agent.md` and `bar.md` — so plain `.md` is
+  accepted and `.agent.md` only wins a collision. Our plain `.md` files are fine.
 - **Not verified:** a live end-to-end `copilot` session. This org's policy blocks headless runs
   ("Access denied by policy settings") and disables third-party MCP servers, so verification
   stops at the loader level. The Copilot **cloud agent** is server-side and likewise unverifiable
