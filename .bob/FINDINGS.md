@@ -335,28 +335,47 @@ Independently of the Bob port, the Copilot dialect content moved to canonical lo
 .agents/hooks/*.json  (2 Copilot hook configs)           <- .github/hooks   (symlink)
 ```
 
-Verified against the Copilot CLI bundle (`@github/copilot` v0.0.420, `index.js`) rather than
-docs alone:
+Verified by reading the Copilot CLI implementation rather than the docs, on **two** versions —
+the previously installed `@github/copilot` **v0.0.420** (single `index.js` JS bundle) and, after
+`npm i -g @github/copilot@latest`, **v1.0.70**. The 1.x line is a different architecture: a
+per-platform native package (`@github/copilot-darwin-arm64`) with `app.js` plus Rust-backed
+`runtime.node`, where convention-directory resolution runs through a **native fast path**
+(`configLoaderCollectConventionDirs`). Discovery roots are identical across both versions:
 
-- **Repo hooks load from exactly one path**, `join(gitRoot, ".github", "hooks")` globbed
-  `**/*.json`. There is no `.agents/hooks` code path.
-- **Project agents load from two roots only**: `.github/agents` and `.claude/agents`. There is
-  no `.agents/agents` code path.
-- **Skills are the exception** — `.github/skills`, `.agents/skills`, `.claude/skills` (see the
-  warning in §2.1).
-- **The symlinks work.** Hooks use node-glob, whose `follow:false` default only blocks `**`
-  from descending into symlinked *sub*directories — a symlink in the fixed base prefix resolves
-  normally (tested against this repo: both hook JSONs found). Agents use
-  `readdir(dir, {withFileTypes:true})`, which resolves the symlinked dir (19 entries, all
-  `isFile()`); the loader also explicitly stats symlinked *files*.
+- **Repo hooks load from exactly one path.** v0.0.420: `join(gitRoot,".github","hooks")` globbed
+  `**/*.json`. v1.0.70: `getHooksDir()` → `join(gitRoot,".github","hooks")`. No `.agents/hooks`
+  code path in either.
+- **Project agents load from two roots only.** v1.0.70 states it as a literal convention table —
+  `[{convention:".github"},{convention:".claude"}]` with component `"agents"`. No `.agents/agents`
+  code path in either version.
+- **Skills are the exception** — `.github/skills`, `.agents/skills`, `.claude/skills`; v1.0.70's
+  own `/skills` help text repeats all three (see the warning in §2.1).
+- **The symlinks work in both implementations.**
+  - v0.0.420 (JS): hooks use node-glob, whose `follow:false` default only blocks `**` from
+    descending into symlinked *sub*directories — a symlink in the fixed base prefix resolves
+    normally (tested: both hook JSONs found). Agents use `readdir(dir,{withFileTypes:true})`,
+    which resolves the symlinked dir (19 entries, all `isFile()`); the loader also explicitly
+    stats symlinked *files*.
+  - v1.0.70 (native): calling `runtime.node`'s `configLoaderCollectConventionDirs` directly
+    against this repo returns both `.github/agents` and `.github/hooks`. Control cases
+    (`.nope/agents`, `.github/nosuch`) return empty, proving it stats real directories rather
+    than string-joining — so the native path follows the symlinks too.
 - **Correction to the public docs:** Copilot does *not* require the `.agent.md` extension. The
   loader accepts any `.md`, strips an optional `.agent` suffix, and only prefers `.agent.md`
   when both spellings exist for one name. Our plain `.md` files are fine.
+- **Not verified:** a live end-to-end `copilot` session. This org's policy blocks headless runs
+  ("Access denied by policy settings") and disables third-party MCP servers, so verification
+  stops at the loader level. The Copilot **cloud agent** is server-side and likewise unverifiable
+  here; it clones with git, which preserves symlinks, so it should behave the same — inference,
+  not evidence.
 
 Consequences for the Bob port: none to the plan above — Bob reads neither `.agents/agents/`
-nor `.github/`, and the `.bob/` dialect dirs are unaffected. Two knock-ons worth remembering:
-`.agents/skills/` is now a live shared root (don't put Bob overlays there), and the `.gitignore`
-line in §4.5 for `.bob/*.pkg` is still outstanding.
+nor `.github/`, and the `.bob/` dialect dirs are unaffected. Three knock-ons worth remembering:
+`.agents/skills/` is now a live shared root (don't put Bob overlays there); the `.gitignore`
+line in §4.5 for `.bob/*.pkg` is still outstanding; and this org's Copilot policy disables
+**third-party MCP servers** in the CLI ("Only built-in servers are available") — so the
+`mcp__terraform__*` tooling the workflows depend on is currently unusable on the Copilot path,
+which strengthens the case for the Bob (or Claude Code) route where MCP is locally configured.
 
 ## 7. Effort summary
 
