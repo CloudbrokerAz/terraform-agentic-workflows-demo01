@@ -15,7 +15,7 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 ## Prerequisites
 
 1. Resolve `$FEATURE` from `$ARGUMENTS` or current git branch name.
-2. Run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`.
+2. **Bootstrap `.foundations`** (no-op when running from the template repo where `.foundations/` already exists): run `LINK="${CLAUDE_PLUGIN_ROOT}/scripts/link-foundations.sh"; [ -f "$LINK" ] && bash "$LINK" || true` to point `.foundations/` at the installed plugin so the repo-relative paths below resolve. Then run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`.
 3. Verify `specs/{FEATURE}/design.md` exists via Glob. Stop if missing — tell user to run `/tf-module-plan` first.
 4. Find `$ISSUE_NUMBER` from `$ARGUMENTS` or `gh issue list --search "$FEATURE"`.
 
