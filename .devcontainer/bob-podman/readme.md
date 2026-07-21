@@ -46,7 +46,10 @@ container sandbox (`docker.io/library/node:25-trixie`, from bobshell's
   ```
 - From **Bob IDE 2.0**, which has no built-in Dev Containers support, install
   the `mythreyak.open-remote-devcontainer` extension and set
-  `"remote.devcontainer.containerBinary": "podman"`.
+  `"remote.devcontainer.containerBinary": "podman"`. (Correct for published
+  versions ≤ 0.5.x; upstream has renamed the setting to
+  `remote.devcontainer.engine`, so check the extension's settings after
+  future updates.)
 
 ## Open it
 

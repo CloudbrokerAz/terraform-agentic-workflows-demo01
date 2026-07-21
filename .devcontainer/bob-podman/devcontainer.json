@@ -58,6 +58,9 @@
     "AWS_SESSION_EXPIRATION": "${localEnv:AWS_SESSION_EXPIRATION}",
     "VAULT_RADAR_LICENSE": "${localEnv:VAULT_RADAR_LICENSE:}",
     "BOBSHELL_API_KEY": "${localEnv:BOBSHELL_API_KEY}",
+    // bobshell's own docs require GEMINI_API_KEY set to the same value as
+    // BOBSHELL_API_KEY (its bundle resolves the key via GOOGLE_API_KEY ||
+    // GEMINI_API_KEY) — this is an intentional alias, not a leak.
     "GEMINI_API_KEY": "${localEnv:BOBSHELL_API_KEY}"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",

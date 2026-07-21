@@ -8,7 +8,7 @@
 FROM srlynch1/terraform-ai-tools:latest
 
 # --- Bob Shell + pre-commit --------------------------------------------------
-RUN version=$(curl -fsSL https://s3.us-south.cloud-object-storage.appdomain.cloud/bobshell/bobshell-version.txt) && \
+RUN version=$(curl -fsSL --connect-timeout 10 --max-time 30 https://s3.us-south.cloud-object-storage.appdomain.cloud/bobshell/bobshell-version.txt) && \
     npm install -g "https://s3.us-south.cloud-object-storage.appdomain.cloud/bobshell/bobshell-${version}.tgz" && \
     npm cache clean --force
 
@@ -55,6 +55,12 @@ RUN printf '[containers]\ndefault_sysctls = []\n' \
 RUN sed -i '/^node:/d' /etc/subuid /etc/subgid && \
     printf '[storage]\ndriver = "vfs"\n[storage.options]\nignore_chown_errors = "true"\n' \
         > /etc/containers/storage.conf
-ENV CONTAINERS_STORAGE_CONF=/etc/containers/storage.conf
+# Pin every podman config lookup to /etc. With XDG_CONFIG_HOME=/workspace,
+# podman would otherwise honor config placed under the (repo-controlled)
+# workspace — $XDG_CONFIG_HOME/containers/{storage,containers,registries}.conf —
+# letting checked-out content redirect registries or engine settings.
+ENV CONTAINERS_STORAGE_CONF=/etc/containers/storage.conf \
+    CONTAINERS_CONF=/etc/containers/containers.conf \
+    CONTAINERS_REGISTRIES_CONF=/etc/containers/registries.conf
 
 USER node

@@ -13,13 +13,14 @@ workflow end‑to‑end, and show the resulting pull request.
 
 ## 1. Pick a devcontainer
 
-Four variants ship in `.devcontainer/` — one per AI assistant, each with a
-Docker and a rootless‑Podman host engine. Pick the row that matches your setup.
+The variants in `.devcontainer/` are one per AI assistant, with a Docker
+and/or rootless‑Podman host engine. Pick the row that matches your setup.
 
 | Assistant | Docker host | Podman host |
 |-----------|-------------|-------------|
 | **Claude Code** | `.devcontainer/claude-code/` | `.devcontainer/claude-code-podman/` |
 | **GitHub Copilot** | `.devcontainer/copilot-cli/` | `.devcontainer/copilot-cli-podman/` |
+| **IBM Bob Shell** | — (Podman only) | `.devcontainer/bob-podman/` |
 
 In VS Code: **Dev Containers: Reopen in Container** → choose the matching entry
 (e.g. *"… - Claude Code"* or *"… - Copilot (Podman)"*).

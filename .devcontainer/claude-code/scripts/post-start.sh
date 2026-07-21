@@ -8,6 +8,6 @@ claude update || bun update -g @anthropic-ai/claude-code 2>/dev/null || echo "  
 
 # Update Terraform
 SCRIPT_DIR="$(dirname "$0")"
-"${SCRIPT_DIR}/../../scripts/update-terraform.sh"
+"${SCRIPT_DIR}/../../scripts/update-terraform.sh" || echo "  Terraform update skipped"
 
 echo "=== Post-Start Complete ==="

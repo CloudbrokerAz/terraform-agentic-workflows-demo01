@@ -213,7 +213,7 @@ git clone https://github.com/YOUR_ORG/your-new-repo.git
 code your-new-repo
 ```
 
-When VS Code opens, it will detect the devcontainer configuration and prompt you to **Reopen in Container**. The repository includes four devcontainer variants (two assistants × two container engines):
+When VS Code opens, it will detect the devcontainer configuration and prompt you to **Reopen in Container**. The repository includes these devcontainer variants:
 
 | Variant | Path | Use when |
 |---------|------|----------|
@@ -221,6 +221,8 @@ When VS Code opens, it will detect the devcontainer configuration and prompt you
 | `copilot-cli` | `.devcontainer/copilot-cli/` | You use GitHub Copilot as your AI coding assistant |
 | `claude-code-podman` | `.devcontainer/claude-code-podman/` | Claude Code with rootless Podman instead of Docker Desktop |
 | `copilot-cli-podman` | `.devcontainer/copilot-cli-podman/` | Copilot CLI with rootless Podman instead of Docker Desktop |
+| `bob-podman` | `.devcontainer/bob-podman/` | IBM Bob Shell on rootless Podman (no Docker variant) |
+| `vscode-agent` | `.devcontainer/vscode-agent/` | The VS Code agent mode without a dedicated assistant CLI |
 
 The devcontainer includes all required tools pre-installed:
 

@@ -8,7 +8,7 @@ npm install -g @github/copilot@latest 2>/dev/null || echo "  Copilot update skip
 
 # Update Terraform
 SCRIPT_DIR="$(dirname "$0")"
-"${SCRIPT_DIR}/../../scripts/update-terraform.sh"
+"${SCRIPT_DIR}/../../scripts/update-terraform.sh" || echo "  Terraform update skipped"
 
 # Pull latest Terraform MCP server image (existing behavior)
 docker image pull hashicorp/terraform-mcp-server:latest || true

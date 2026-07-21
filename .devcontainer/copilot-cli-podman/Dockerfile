@@ -60,6 +60,11 @@ RUN printf '[containers]\ndefault_sysctls = []\n' \
 RUN sed -i '/^node:/d' /etc/subuid /etc/subgid && \
     printf '[storage]\ndriver = "vfs"\n[storage.options]\nignore_chown_errors = "true"\n' \
         > /etc/containers/storage.conf
-ENV CONTAINERS_STORAGE_CONF=/etc/containers/storage.conf
+# Pin every podman config lookup to /etc so config placed under a redirected
+# XDG_CONFIG_HOME (e.g. /workspace, repo-controlled) cannot override registries
+# or engine settings.
+ENV CONTAINERS_STORAGE_CONF=/etc/containers/storage.conf \
+    CONTAINERS_CONF=/etc/containers/containers.conf \
+    CONTAINERS_REGISTRIES_CONF=/etc/containers/registries.conf
 
 USER node
