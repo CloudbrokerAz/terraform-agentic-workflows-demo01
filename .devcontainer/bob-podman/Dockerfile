@@ -1,15 +1,13 @@
-# Podman variant of ../bob/Dockerfile.
+# IBM Bob Shell devcontainer image for a rootless Podman host.
 #
-# Mirrors the Bob variant (same base image + Bob Shell + pre-commit) and adds a
-# rootless podman-in-podman runtime plus the `podman-docker` shim. The shim
-# provides a `docker` -> `podman` wrapper so the Terraform MCP `docker run`
-# config, the image pulls in post-start.sh, and Bob Shell's own container
-# sandbox (docker.io/library/node:25-trixie) all resolve to podman.
-#
-# Keep the Bob install block in sync with ../bob/Dockerfile.
+# Shared base image + Bob Shell + pre-commit, plus a rootless podman-in-podman
+# runtime and the `podman-docker` shim. The shim provides a `docker` -> `podman`
+# wrapper so the Terraform MCP `docker run` config, the image pulls in
+# post-start.sh, and Bob Shell's own container sandbox
+# (docker.io/library/node:25-trixie) all resolve to podman.
 FROM srlynch1/terraform-ai-tools:latest
 
-# --- Bob Shell + pre-commit (mirrors ../bob/Dockerfile) ----------------------
+# --- Bob Shell + pre-commit --------------------------------------------------
 RUN version=$(curl -fsSL https://s3.us-south.cloud-object-storage.appdomain.cloud/bobshell/bobshell-version.txt) && \
     npm install -g "https://s3.us-south.cloud-object-storage.appdomain.cloud/bobshell/bobshell-${version}.tgz" && \
     npm cache clean --force

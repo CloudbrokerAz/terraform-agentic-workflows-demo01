@@ -1,12 +1,12 @@
 // For format details, see https://aka.ms/devcontainer.json.
-// Podman variant of ../bob/devcontainer.json — same Bob Shell setup, retuned
-// to run under a rootless Podman host. The Docker variant is untouched.
+// IBM Bob Shell (bobshell) devcontainer for a rootless Podman host. Follows
+// the copilot-cli-podman pattern; there is no Docker/docker-in-docker variant
+// for Bob (removed as unsupported — Bob is used with Podman only).
 {
   "name": "${localWorkspaceFolderBasename} - Bob (Podman)",
   "build": {
     // Local Dockerfile: shared base + Bob Shell + rootless podman-in-podman.
-    "dockerfile": "Dockerfile",
-    "context": "../bob"
+    "dockerfile": "Dockerfile"
   },
 
   // No docker-in-docker feature: the image ships rootless podman-in-podman + the
@@ -31,8 +31,8 @@
   // keep-id already aligns UIDs; don't let the CLI try to chown/rebuild the user.
   "updateRemoteUserUID": false,
 
-  "postCreateCommand": "bash .devcontainer/bob/scripts/post-create.sh",
-  "postStartCommand": "bash .devcontainer/bob/scripts/post-start.sh",
+  "postCreateCommand": "bash .devcontainer/bob-podman/scripts/post-create.sh",
+  "postStartCommand": "bash .devcontainer/bob-podman/scripts/post-start.sh",
 
   "customizations": {
     "vscode": {
