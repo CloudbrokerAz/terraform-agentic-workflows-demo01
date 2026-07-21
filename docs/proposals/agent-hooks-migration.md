@@ -66,8 +66,8 @@ location, and a few Copilot-only events. There is **no "blocking-only" limitatio
 | Subagent start / stop | `SubagentStart` / `SubagentStop` | `subagentStart` / `subagentStop` |
 
 **Config:** Claude → `.claude/settings.json` `"hooks"`. Copilot → `.github/hooks/*.json`
-(`{ "version": 1, "hooks": {…} }`); the cloud agent reads only `.github/hooks/*.json`,
-so one file covers CLI + IDE + cloud.
+(`{ "version": 1, "hooks": {…} }`) — Copilot (CLI and cloud agent) discovers repo
+hooks at that one path only, which covers CLI + IDE + cloud.
 Docs: <https://docs.github.com/en/copilot/reference/hooks-reference>
 
 ## 4. Placement principle: match the check to its boundary
@@ -177,7 +177,8 @@ exits `2` on a parse error so it's fed back. `verify` → `validate` + `tflint` 
 
 Copilot **auto-discovers** any `.github/hooks/*.json` in the repo — no explicit
 registration; file presence is the wiring, and the cloud agent reads only this path.
-Each entry uses `type: "command"` with a `bash` command (add `powershell` for Windows);
+The files stay in `.github/hooks/` as a real directory — hooks are Copilot-only, so
+there is no second harness to justify hoisting them into `.agents/`. Each entry uses `type: "command"` with a `bash` command (add `powershell` for Windows);
 the payload arrives on **stdin**. Note there is **no tool matcher** — `postToolUse`
 fires for every tool, so the script self-gates (`fix` exits 0 when the payload has no
 edited file path, e.g. for a `bash` tool call).

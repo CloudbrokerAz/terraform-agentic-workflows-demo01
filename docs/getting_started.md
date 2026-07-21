@@ -29,9 +29,9 @@ Each workflow is driven by slash commands (e.g., `/tf-module-plan`) that orchest
 | Assistant | Devcontainer | Skills & agents | MCP config |
 |-----------|-------------|-----------------|------------|
 | **Claude Code** | `.devcontainer/claude-code/` | `.claude/skills/` and `.claude/agents/` | `.mcp.json` |
-| **GitHub Copilot** | `.devcontainer/copilot-cli/` | `.claude/skills/`, `.claude/agents/`, and `.github/agents/` | `devcontainer.json` (`customizations.vscode.mcp`) |
+| **GitHub Copilot** | `.devcontainer/copilot-cli/` | `.claude/skills/`, `.claude/agents/`, and `.agents/agents/` (discovered via the `.github/agents` symlink) | `devcontainer.json` (`customizations.vscode.mcp`) |
 
-The same slash commands work in both tools. Copilot CLI supports skill and agent lookup from `.claude/` directories in addition to `.github/agents/`. The underlying tool names differ between the two (see [Tool Name Mapping](tool-name-mapping.md)), but the user experience is the same.
+The same slash commands work in both tools. Copilot CLI supports skill and agent lookup from `.claude/` directories in addition to the Copilot-dialect agents in `.agents/agents/` — Copilot only discovers repo agents under `.github/agents/`, which in this repo is a symlink to `.agents/agents/`. The underlying tool names differ between the two (see [Tool Name Mapping](tool-name-mapping.md)), but the user experience is the same.
 
 > **Alternative: install as a plugin.** Instead of using this repo as a template, the workflows can be installed as a plugin into any repository — for Claude Code, GitHub Copilot CLI, or (experimentally) Cursor. See [Install as a plugin](../README.md#install-as-a-plugin) in the README.
 
@@ -569,7 +569,7 @@ Canonical starting points for Phase 2 design output. Each template defines the r
 |-----------|---------|
 | `.claude/skills/` | Agent skills (slash commands) — used by both Claude Code and Copilot CLI |
 | `.claude/agents/` | Subagent definitions (research, design, validate, remediate) — used by both Claude Code and Copilot CLI |
-| `.github/agents/` | GitHub Copilot agent definitions (same roles, Copilot tool names) |
+| `.agents/agents/` | GitHub Copilot agent definitions (same roles, Copilot tool names); `.github/agents` is a symlink into `.agents/` so Copilot discovery keeps working. Copilot hook configs stay in `.github/hooks/` — hooks are Copilot-only, so there is no second harness to share them with |
 | `.foundations/memory/` | Constitutions — non-negotiable code generation rules |
 | `.foundations/templates/` | Design document templates |
 | `.foundations/scripts/bash/` | Automation scripts (validate, checkpoint, progress, classify) |
