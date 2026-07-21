@@ -1,0 +1,48 @@
+// For format details, see https://aka.ms/devcontainer.json.
+// IBM Bob Shell (bobshell) devcontainer — Docker variant. Mirrors the
+// copilot-cli variant's wiring: shared base image, docker-in-docker for the
+// Terraform MCP server and for Bob's own container sandbox
+// (bobshell runs sandboxed commands in docker.io/library/node:25-trixie).
+{
+  "name": "${localWorkspaceFolderBasename} - Bob",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  // docker-in-docker serves both the Terraform MCP server (.bob/mcp.json /
+  // .mcp.json `docker run` entries) and Bob Shell's sandbox runtime.
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2.12.4": {}
+  },
+
+  "postCreateCommand": "bash .devcontainer/bob/scripts/post-create.sh",
+  "postStartCommand": "bash .devcontainer/bob/scripts/post-start.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "HashiCorp.HCL"
+      ]
+    }
+  },
+  "containerEnv": {
+    "XDG_CONFIG_HOME": "/workspace"
+  },
+  "remoteEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "GH_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "TFE_TOKEN": "${localEnv:TEAM_TFE_TOKEN}",
+    "TF_TOKEN_app_terraform_io": "${localEnv:TEAM_TFE_TOKEN}",
+    "AWS_ACCESS_KEY_ID": "${localEnv:AWS_ACCESS_KEY_ID}",
+    "AWS_SECRET_ACCESS_KEY": "${localEnv:AWS_SECRET_ACCESS_KEY}",
+    "AWS_SESSION_TOKEN": "${localEnv:AWS_SESSION_TOKEN}",
+    "AWS_SESSION_EXPIRATION": "${localEnv:AWS_SESSION_EXPIRATION}",
+    "VAULT_RADAR_LICENSE": "${localEnv:VAULT_RADAR_LICENSE:}",
+    "BOBSHELL_API_KEY": "${localEnv:BOBSHELL_API_KEY}",
+    "GEMINI_API_KEY": "${localEnv:BOBSHELL_API_KEY}"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace"
+}

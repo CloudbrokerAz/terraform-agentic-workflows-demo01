@@ -11,6 +11,6 @@ SCRIPT_DIR="$(dirname "$0")"
 "${SCRIPT_DIR}/../../scripts/update-terraform.sh"
 
 # Pull latest Terraform MCP server image (existing behavior)
-docker image pull hashicorp/terraform-mcp-server:0.4.0 || true
+docker image pull hashicorp/terraform-mcp-server:latest || true
 
 echo "=== Post-Start Complete ==="
