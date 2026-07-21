@@ -65,3 +65,7 @@ reference/terraform_1.15.0-policy20261002_darwin_arm64 (1).zip
 
 # E2E eval run outputs
 /evals/e2e/results/
+
+# Nested-podman config written into the workspace via XDG_CONFIG_HOME=/workspace
+/cni/
+/containers/

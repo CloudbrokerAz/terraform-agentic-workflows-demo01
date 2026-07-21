@@ -140,7 +140,7 @@ Configured in `.mcp.json` and available automatically in the devcontainer.
 
 ## What's Included
 
-- **Devcontainer** — One per assistant: `claude-code` (Claude Code CLI) and `copilot-cli` (GitHub Copilot), each with a Docker variant and a rootless-Podman variant (`*-podman`). All ship Terraform 1.14, TFLint, terraform-docs, Trivy, Go 1.24, GitHub CLI, Vault Radar, Infracost, Checkov, golangci-lint, and pre-commit
+- **Devcontainer** — One per assistant: `claude-code` (Claude Code CLI) and `copilot-cli` (GitHub Copilot), each with a Docker variant and a rootless-Podman variant (`*-podman`), plus `bob-podman` (IBM Bob Shell, rootless Podman only). All ship Terraform 1.14, TFLint, terraform-docs, Trivy, Go 1.24, GitHub CLI, Vault Radar, Infracost, Checkov, golangci-lint, and pre-commit
 - **Pre-commit hooks** — fmt, validate, docs, tflint, trivy, secret detection, Vault Radar (requires optional `VAULT_RADAR_LICENSE`)
 - **TFLint** — AWS (0.46.0), Azure (0.31.1), and Terraform plugins with all 20 rules configured
 - **Constitutions** — Non-negotiable rules for module, provider, consumer, and policy code generation

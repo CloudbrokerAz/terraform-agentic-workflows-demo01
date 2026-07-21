@@ -27,10 +27,10 @@ Files reviewed under `.devcontainer/`:
 | Capabilities | `NET_ADMIN` + `NET_RAW` added on both Docker and Podman variants; podman variant also retains them "for parity" with no consumer. |
 | Podman security opts | `seccomp=unconfined`, `label=disable` (SELinux off), `unmask=ALL` (full `/proc`) — three confinement layers disabled at once. |
 | Privilege | `node` has passwordless `sudo` (`%wheel NOPASSWD: ALL`) baked into the base image. |
-| Secrets | AWS keys, `TFE_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN` injected as **long-lived process env vars**; `TFE_TOKEN` also written to `~/.terraform.d/credentials.tfrc.json`. |
+| Secrets | AWS keys, `TFE_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN` injected as **long-lived process env vars**; `TFE_TOKEN` also written to `~/.terraform.d/credentials.tfrc.json`. The `bob-podman` variant additionally injects `BOBSHELL_API_KEY` (aliased into `GEMINI_API_KEY`, required by bobshell). |
 | Bypass aliases | `clauded="claude --dangerously-skip-permissions"` and `claudea`/`copiloty --yolo` shipped in `.zshrc` — full-autonomy modes one keystroke away, with no compensating egress control. |
 | Base image | `FROM srlynch1/terraform-ai-tools:latest` and `node:25.7.0-slim` — **unpinned `latest` / floating tags**, no digest pinning, personal Docker Hub namespace. |
-| Supply chain | `curl … bun.sh/install | bash` and `wget -O- … zsh-in-docker.sh` piped to a shell, unverified. |
+| Supply chain | `curl … bun.sh/install | bash` and `wget -O- … zsh-in-docker.sh` piped to a shell, unverified. `bob-podman` installs bobshell from an unauthenticated IBM COS bucket (version file + tarball, **no checksum or version pin**) at image build and re-checks it on every container start. |
 | Nested runtime | docker-in-docker (Docker) / rootless podman-in-podman (Podman) — expands attack surface; the Podman variant is rootless (good) but Docker DinD is effectively root-capable. |
 | Telemetry | OTEL endpoint and tokens sourced from `localEnv` — fine, but `OTEL_EXPORTER_OTLP_ENDPOINT` is unvalidated egress if the firewall lands. |
 

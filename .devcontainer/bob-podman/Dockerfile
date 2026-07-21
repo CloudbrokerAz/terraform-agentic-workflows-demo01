@@ -1,29 +1,23 @@
-# Podman variant of ../copilot-cli/DockerFile.
+# IBM Bob Shell devcontainer image for a rootless Podman host.
 #
-# Mirrors the Copilot variant (same base image + Copilot CLI + pre-commit) and
-# adds a rootless podman-in-podman runtime plus the `podman-docker` shim. The
-# shim provides a `docker` -> `podman` wrapper so the unchanged Terraform MCP
-# config in devcontainer.json (`command: "docker", args: ["run", ...]`) and the
-# `docker image pull` in post-start.sh work via podman.
-#
-# Keep the Copilot install block in sync with ../copilot-cli/DockerFile.
+# Shared base image + Bob Shell + pre-commit, plus a rootless podman-in-podman
+# runtime and the `podman-docker` shim. The shim provides a `docker` -> `podman`
+# wrapper so the Terraform MCP `docker run` config, the image pulls in
+# post-start.sh, and Bob Shell's own container sandbox
+# (docker.io/library/node:25-trixie) all resolve to podman.
 FROM srlynch1/terraform-ai-tools:latest
 
-# --- Copilot CLI + pre-commit (mirrors ../copilot-cli/DockerFile) -----------
-RUN npm install -g @github/copilot && \
+# --- Bob Shell + pre-commit --------------------------------------------------
+RUN version=$(curl -fsSL --connect-timeout 10 --max-time 30 https://s3.us-south.cloud-object-storage.appdomain.cloud/bobshell/bobshell-version.txt) && \
+    npm install -g "https://s3.us-south.cloud-object-storage.appdomain.cloud/bobshell/bobshell-${version}.tgz" && \
     npm cache clean --force
 
 RUN uv tool install pre-commit --with pre-commit-uv
 
-RUN echo 'alias copiloty="copilot --yolo --disable-builtin-mcps"' >> /home/node/.zshrc && \
-    echo "alias copilota='copilot --autopilot --allow-tool=\"write,edit,shell(git:*),shell(terraform:*),shell(ls),shell(cat),shell(grep)\" --disable-builtin-mcps'" >> /home/node/.zshrc && \
-    chown node:node /home/node/.zshrc
-
 # --- Rootless podman-in-podman -----------------------------------------------
-# podman + podman-docker provides the `docker` CLI shim so the inline Terraform
-# MCP config (`command: "docker", args: ["run", ...]`) resolves to podman.
-# slirp4netns gives the nested container outbound networking (the MCP fetches
-# registry data over the network).
+# podman + podman-docker provides the `docker` CLI shim so `docker run`/`docker
+# image pull` calls (Terraform MCP, Bob's sandbox) resolve to podman.
+# slirp4netns gives the nested container outbound networking.
 USER root
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -35,7 +29,7 @@ RUN apt-get update && \
     touch /etc/containers/nodocker
 
 # Resolve Docker-style short names (`hashicorp/terraform-mcp-server`) against
-# Docker Hub, matching Docker's behaviour so the inline MCP config works unchanged.
+# Docker Hub, matching Docker's behaviour so the MCP config works unchanged.
 RUN printf 'unqualified-search-registries = ["docker.io"]\n' \
         > /etc/containers/registries.conf
 
@@ -51,18 +45,20 @@ RUN printf '[containers]\ndefault_sysctls = []\n' \
 # inner podman runs in single-uid mode (no newuidmap), and use the vfs storage
 # driver with ignore_chown_errors so image layers that chown to other uids
 # (e.g. /etc/shadow -> 42) extract cleanly under the single mapping.
-# storage.conf lives in /etc and is pinned via CONTAINERS_STORAGE_CONF: this
-# variant sets XDG_CONFIG_HOME=/workspace, and rootless podman resolves its
-# storage config from XDG_CONFIG_HOME *without* falling back to
-# /etc/containers/storage.conf when the file is absent — the config was
-# silently lost and chown-heavy image pulls failed. The env var overrides the
+#
+# storage.conf lives in /etc and is pinned via CONTAINERS_STORAGE_CONF: the
+# devcontainer sets XDG_CONFIG_HOME=/workspace, and rootless podman resolves
+# its storage config from XDG_CONFIG_HOME *without* falling back to
+# /etc/containers/storage.conf when the file is absent (verified: graphOptions
+# stay empty and chown-heavy image pulls fail). The env var overrides the
 # lookup unconditionally.
 RUN sed -i '/^node:/d' /etc/subuid /etc/subgid && \
     printf '[storage]\ndriver = "vfs"\n[storage.options]\nignore_chown_errors = "true"\n' \
         > /etc/containers/storage.conf
-# Pin every podman config lookup to /etc so config placed under a redirected
-# XDG_CONFIG_HOME (e.g. /workspace, repo-controlled) cannot override registries
-# or engine settings.
+# Pin every podman config lookup to /etc. With XDG_CONFIG_HOME=/workspace,
+# podman would otherwise honor config placed under the (repo-controlled)
+# workspace — $XDG_CONFIG_HOME/containers/{storage,containers,registries}.conf —
+# letting checked-out content redirect registries or engine settings.
 ENV CONTAINERS_STORAGE_CONF=/etc/containers/storage.conf \
     CONTAINERS_CONF=/etc/containers/containers.conf \
     CONTAINERS_REGISTRIES_CONF=/etc/containers/registries.conf

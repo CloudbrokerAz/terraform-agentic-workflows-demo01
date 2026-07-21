@@ -57,11 +57,21 @@ RUN printf '[containers]\ndefault_sysctls = []\n' \
 # inner podman runs in single-uid mode (no newuidmap), and use the vfs storage
 # driver with ignore_chown_errors so image layers that chown to other uids
 # (e.g. /etc/shadow -> 42) extract cleanly under the single mapping.
+#
+# storage.conf lives in /etc and is pinned via CONTAINERS_STORAGE_CONF: rootless
+# podman resolves its storage config from XDG_CONFIG_HOME (which devcontainers
+# may point at /workspace) *without* falling back to /etc/containers/storage.conf
+# when the file is absent — the config would silently be lost and chown-heavy
+# image pulls fail. The env var overrides the lookup unconditionally.
 RUN sed -i '/^node:/d' /etc/subuid /etc/subgid && \
-    mkdir -p /home/node/.config/containers && \
     printf '[storage]\ndriver = "vfs"\n[storage.options]\nignore_chown_errors = "true"\n' \
-        > /home/node/.config/containers/storage.conf && \
-    chown -R node:node /home/node/.config
+        > /etc/containers/storage.conf
+# Pin every podman config lookup to /etc so config placed under a redirected
+# XDG_CONFIG_HOME (e.g. /workspace, repo-controlled) cannot override registries
+# or engine settings.
+ENV CONTAINERS_STORAGE_CONF=/etc/containers/storage.conf \
+    CONTAINERS_CONF=/etc/containers/containers.conf \
+    CONTAINERS_REGISTRIES_CONF=/etc/containers/registries.conf
 
 USER node
 ENV PATH="/home/node/.local/bin:${PATH}"
