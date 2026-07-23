@@ -24,14 +24,18 @@ It supports four core use cases:
 - **Consumer Provisioning** — Compose infrastructure from private registry modules and deploy to HCP Terraform
 - **Policy Authoring** — Write tfpolicy compliance policies with TDD (`/tf-policy-plan`, `/tf-policy-implement`)
 
-Each workflow is driven by slash commands (e.g., `/tf-module-plan`) that orchestrate multiple AI agents through the phases. The template supports two AI coding assistants:
+Each workflow is driven by slash commands (e.g., `/tf-module-plan`) that orchestrate multiple AI agents through the phases. Skills are shared across assistants; only the agent dialect and MCP config location differ:
 
-| Assistant | Devcontainer | Skills & agents | MCP config |
-|-----------|-------------|-----------------|------------|
-| **Claude Code** | `.devcontainer/claude-code/` | `.claude/skills/` and `.claude/agents/` | `.mcp.json` |
-| **GitHub Copilot** | `.devcontainer/copilot-cli/` | `.claude/skills/`, `.claude/agents/`, and `.agents/agents/` (discovered via the `.github/agents` symlink) | `devcontainer.json` (`customizations.vscode.mcp`) |
+| Assistant | Devcontainer | Skills | Agents | MCP config |
+|-----------|-------------|--------|--------|------------|
+| **Claude Code** | `.devcontainer/claude-code/`, `.devcontainer/claude-code-podman/` | `.claude/skills/` | `.claude/agents/` | `.mcp.json` |
+| **GitHub Copilot CLI** | `.devcontainer/copilot-cli/`, `.devcontainer/copilot-cli-podman/` | `.claude/skills/` | `.agents/agents/` (Copilot dialect), discovered via the `.github/agents` symlink | `.copilot/mcp.json` |
+| **VS Code agent mode** | `.devcontainer/vscode-agent/` | `.claude/skills/` | `.agents/agents/` | `devcontainer.json` (`customizations.vscode.mcp`) |
+| **IBM Bob Shell** | `.devcontainer/bob-podman/` (Podman only) | `.claude/skills/` (Bob scans this root natively) | not yet wired — see `.bob/FINDINGS.md` | not yet wired (`.bob/mcp.json` is the planned location) |
 
-The same slash commands work in both tools. Copilot CLI supports skill and agent lookup from `.claude/` directories in addition to the Copilot-dialect agents in `.agents/agents/` — Copilot only discovers repo agents under `.github/agents/`, which in this repo is a symlink to `.agents/agents/`. The underlying tool names differ between the two (see [Tool Name Mapping](tool-name-mapping.md)), but the user experience is the same.
+The same slash commands work across all of them. Copilot only discovers repo agents under `.github/agents/`, which in this repo is a symlink to `.agents/agents/`; the Bob-dialect overlay is deliberately kept out of `.agents/skills/` so it cannot leak Bob tool names into Copilot sessions. The underlying tool names differ per assistant (see [Tool Name Mapping](tool-name-mapping.md)), but the user experience is the same.
+
+> **Caveats.** Only Claude Code and Copilot CLI are validated end to end; Cursor is experimental (via the [plugin](../README.md#install-as-a-plugin)) and Bob support is documented but not yet configured. The `terraform` MCP server's toolset also varies by config: `.mcp.json` and `.copilot/mcp.json` request `--toolsets=all`, while the `devcontainer.json` (`customizations.vscode.mcp`) entries do not — so VS Code agent mode sees a smaller Terraform surface.
 
 > **Alternative: install as a plugin.** Instead of using this repo as a template, the workflows can be installed as a plugin into any repository — for Claude Code, GitHub Copilot CLI, or (experimentally) Cursor. See [Install as a plugin](../README.md#install-as-a-plugin) in the README.
 
@@ -586,7 +590,7 @@ Configured in `.mcp.json`, available automatically in the devcontainer:
 
 The `terraform` server runs as a container (`docker run hashicorp/terraform-mcp-server`), so it needs a working `docker` binary *inside* the devcontainer — that's why the Podman variants ship the `podman-docker` shim.
 
-> **Copilot differs:** `.devcontainer/copilot-cli/devcontainer.json` registers the server as `terraform-mcp` and omits `ENABLE_TF_OPERATIONS=true` and `--toolsets=all`, so Copilot sees a reduced Terraform MCP surface compared to `.mcp.json`. CI uses a separate `.mcp-ci.json`.
+> **Per-assistant configs.** Copilot CLI reads `.copilot/mcp.json` (same two servers, `--toolsets=all`). The `customizations.vscode.mcp` blocks in `.devcontainer/copilot-cli/` and `.devcontainer/vscode-agent/` register the server as `terraform-mcp` without `ENABLE_TF_OPERATIONS` or `--toolsets=all`, so VS Code agent mode sees a reduced Terraform surface. CI uses a separate `.mcp-ci.json`.
 
 ### Git & agent hooks
 
