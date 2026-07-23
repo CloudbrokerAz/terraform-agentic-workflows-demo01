@@ -51,12 +51,44 @@ Install these on your **host machine** — everything else is provided by the de
 Install the **Dev Containers** extension in VS Code (`ms-vscode-remote.remote-containers`).
 
 > **Using Podman instead of Docker?** Open the Podman-tuned variant for your
-> assistant — `.devcontainer/claude-code-podman/` (Claude Code) or
-> `.devcontainer/copilot-cli-podman/` (Copilot). Both use rootless
-> podman-in-podman so the Terraform MCP still works. See each variant's
-> `readme.md` for the one-time `dev.containers.dockerPath: podman` setup. The
-> default Docker variants (`.devcontainer/claude-code/`,
-> `.devcontainer/copilot-cli/`) are unchanged and remain Docker-only.
+> assistant — `.devcontainer/claude-code-podman/`, `.devcontainer/copilot-cli-podman/`,
+> or `.devcontainer/bob-podman/` (Bob is Podman-only) — and follow
+> [Podman hosts](#podman-hosts) below. The default Docker variants
+> (`.devcontainer/claude-code/`, `.devcontainer/copilot-cli/`) are unchanged and
+> remain Docker-only.
+
+### Podman hosts
+
+The Podman variants all run rootless podman-in-podman with the `podman-docker`
+shim, so the Terraform MCP server's `docker run …` command works unchanged
+inside the container. They need this one-time host setup:
+
+1. **Podman 4.x+ rootless, with the socket service running:**
+
+   ```bash
+   systemctl --user enable --now podman.socket
+   ```
+
+2. **Point the Dev Containers tooling at Podman** — in VS Code `settings.json`:
+
+   ```jsonc
+   "dev.containers.dockerPath": "podman"
+   ```
+
+   or from the CLI:
+
+   ```bash
+   devcontainer up --docker-path podman --workspace-folder . \
+     --config .devcontainer/claude-code-podman/devcontainer.json
+   ```
+
+3. **Bob IDE only** — Bob IDE 2.0 has no built-in Dev Containers support.
+   Install the `mythreyak.open-remote-devcontainer` extension and set
+   `"remote.devcontainer.containerBinary": "podman"` (renamed to
+   `remote.devcontainer.engine` in newer extension releases).
+
+Per-variant detail — user mapping, SELinux, nested storage and networking — is
+in each variant's `readme.md`.
 
 > All other tools (Terraform, TFLint, terraform-docs, Trivy, Go, GitHub CLI, Vault Radar, Claude Code CLI) are pre-installed inside the devcontainer.
 
@@ -186,7 +218,7 @@ Verify that both tokens are in your shell profile (`~/.zshrc` or `~/.bashrc`) so
 export GITHUB_TOKEN="github_pat_your_token_here"
 export TEAM_TFE_TOKEN="your_terraform_team_token_here"
 
-# Optional: Vault Radar secret scanning in pre-commit hooks
+# Optional: Vault Radar secret scanning in the git pre-commit hook
 # export VAULT_RADAR_LICENSE="your_license_here"
 ```
 
@@ -215,20 +247,23 @@ code your-new-repo
 
 When VS Code opens, it will detect the devcontainer configuration and prompt you to **Reopen in Container**. The repository includes these devcontainer variants:
 
-| Variant | Path | Use when |
-|---------|------|----------|
-| `claude-code` | `.devcontainer/claude-code/` | You have a Claude Code subscription (recommended for this template) |
-| `copilot-cli` | `.devcontainer/copilot-cli/` | You use GitHub Copilot as your AI coding assistant |
-| `claude-code-podman` | `.devcontainer/claude-code-podman/` | Claude Code with rootless Podman instead of Docker Desktop |
-| `copilot-cli-podman` | `.devcontainer/copilot-cli-podman/` | Copilot CLI with rootless Podman instead of Docker Desktop |
-| `bob-podman` | `.devcontainer/bob-podman/` | IBM Bob Shell on rootless Podman (no Docker variant) |
-| `vscode-agent` | `.devcontainer/vscode-agent/` | The VS Code agent mode without a dedicated assistant CLI |
+| Variant | Path | Picker name | Use when |
+|---------|------|-------------|----------|
+| `claude-code` | `.devcontainer/claude-code/` | `… - Claude Code` | You have a Claude Code subscription (recommended for this template) |
+| `copilot-cli` | `.devcontainer/copilot-cli/` | `… - Copilot` | You use GitHub Copilot as your AI coding assistant |
+| `claude-code-podman` | `.devcontainer/claude-code-podman/` | `… - Claude Code (Podman)` | Claude Code with rootless Podman instead of Docker Desktop |
+| `copilot-cli-podman` | `.devcontainer/copilot-cli-podman/` | `… - Copilot (Podman)` | Copilot CLI with rootless Podman instead of Docker Desktop |
+| `bob-podman` | `.devcontainer/bob-podman/` | `… - Bob (Podman)` | IBM Bob Shell on rootless Podman (no Docker variant) |
+| `vscode-agent` | `.devcontainer/vscode-agent/` | `… - Copilot` | The VS Code agent mode without a dedicated assistant CLI |
+
+> **Note:** `vscode-agent` and `copilot-cli` currently share the same picker
+> name (`… - Copilot`); pick by config path if you need to distinguish them.
 
 The devcontainer includes all required tools pre-installed:
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Terraform | 1.14.x | Infrastructure as Code |
+| Terraform | 1.15.x | Infrastructure as Code |
 | TFLint | 0.60.x | Terraform linting |
 | terraform-docs | 0.21.x | Documentation generation |
 | Trivy | Latest | Security scanning |
@@ -237,9 +272,12 @@ The devcontainer includes all required tools pre-installed:
 | Vault Radar | 0.43.x | Secret detection |
 | Claude Code | Latest | AI agent orchestration (claude-code variant) |
 | Infracost | 0.10.x | Cost estimation |
-| Checkov | Latest | Policy-as-code scanning |
+| Checkov | 3.2.x | Policy-as-code scanning |
 | golangci-lint | 2.10.x | Go linting (provider development) |
-| pre-commit | Latest | Git hook management |
+
+> Versions are pinned in `.devcontainer/base-image/Dockerfile`; the variant
+> images build `FROM srlynch1/terraform-ai-tools:latest`, so what you actually
+> get tracks the last base-image publish.
 
 ### 3. Validate Environment
 
@@ -251,10 +289,12 @@ bash .foundations/scripts/bash/validate-env.sh
 
 The script classifies checks as:
 
-- **GATE** — Must pass to proceed (TFE_TOKEN, GITHUB_TOKEN, Terraform, GitHub CLI)
+- **GATE** — Must pass to proceed: `TFE_TOKEN`; `TFE_TOKEN_TYPE` (introspected via `/api/v2/account/details` — user and organization tokens are rejected, only a Team API Token or service account passes); `GITHUB_TOKEN`; `GH_CLI` (installed and authenticated); `TERRAFORM` (>= 1.14)
 - **WARN** — Nice-to-have; degrades capability but doesn't block (TFLint, pre-commit, Trivy, terraform-docs)
 
-If all gates pass, the script automatically initializes TFLint and installs pre-commit hooks.
+Exit codes: `0` all checks passed, `1` a GATE failed (stop), `2` gates passed but a WARN failed.
+
+If all gates pass, the script initializes TFLint. Git hooks are enabled separately by the devcontainer via `git config core.hooksPath .githooks` — see [Git & agent hooks](#git--agent-hooks).
 
 ### 4. Branch Protection (Recommended)
 
@@ -275,11 +315,12 @@ Configure [branch protection rules](https://docs.github.com/en/repositories/conf
 **Required status checks** (from `.github/workflows/module_validate.yml`, which runs fmt, validate, tflint, trivy, and terraform test — the status-check contexts are the job names):
 
 - `Validate Module`
-- `Validate Examples (<example>)` — one check per example in the matrix
+- `Validate Examples (basic)`
+- `Validate Examples (complete)`
 
-> **Note:** `module_validate.yml` already triggers on `pull_request` (path-filtered to `**.tf`, `**.tfvars`, and `**.tftest.hcl` changes) as well as `workflow_dispatch`, so the checks appear on PRs automatically — no trigger changes are needed. Because the trigger is path-filtered, PRs that touch no Terraform files won't produce these checks; keep that in mind when marking them required.
+> **Note:** `module_validate.yml` already triggers on `pull_request` (path-filtered to `**.tf`, `**.tfvars`, `**.tftest.hcl`, and the workflow file itself) as well as `workflow_dispatch`, so the checks appear on PRs automatically — no trigger changes are needed. Because the trigger is path-filtered, PRs that touch no Terraform files won't produce these checks; keep that in mind when marking them required.
 >
-> **Semver labels:** `module_validate.yml` requires exactly one `semver:patch` / `semver:minor` / `semver:major` label on every PR it validates, and `module_release.yml` uses that label to compute the published version. Repos created from a template do **not** inherit labels, so create them once per repo (the implement workflows also do this automatically before opening a PR):
+> **Semver labels:** `module_validate.yml` requires exactly one `semver:patch` / `semver:minor` / `semver:major` label on every PR it validates, and `module_release.yml` uses that label to compute the published version. Repos created from a template do **not** inherit labels, so create them once per repo (the module and consumer implement workflows also do this automatically before opening a PR):
 >
 > ```bash
 > gh label create "semver:patch" --color C2E0C6 --force
@@ -287,7 +328,7 @@ Configure [branch protection rules](https://docs.github.com/en/repositories/conf
 > gh label create "semver:major" --color F9D0C4 --force
 > ```
 >
-> The `no-commit-to-branch` pre-commit hook (included in the template's `.pre-commit-config.yaml`) provides additional local protection against direct commits to `main`.
+> Branch protection is the only thing preventing direct commits to `main` — the local git hook does not block them.
 >
 > **References:**
 > - [Managing branch protection rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-a-branch-protection-rule/managing-a-branch-protection-rule)
@@ -406,10 +447,39 @@ Compose infrastructure from private registry modules and deploy to HCP Terraform
 2. **Design** — Produce `specs/{feature}/consumer-design.md` with module selection, wiring, security
 3. **Human Review** — Approve the design before any code is written
 4. **Implement** — Compose modules, configure workspace, deploy to sandbox
-5. **Validate** — Run `pre-commit`, verify deployment
+5. **Validate** — Run `terraform fmt` and `validate`, deploy to the sandbox workspace, score the run with `tf-consumer-validator`
 6. **PR** — Create a pull request with the implementation for final review
 
 > **Note:** Consumer code uses **only** private registry modules. Raw resources are prohibited except glue resources (`random_id`, `null_resource`, `terraform_data`). Module versions must use pessimistic constraints (`~> X.Y`).
+
+### Policy Authoring
+
+Write compliance policies with tfpolicy — `.policy.hcl` policy files with `.policytest.hcl` tests, built TDD-style.
+
+| Aspect | Detail |
+|--------|--------|
+| **Plan & Design** | `/tf-policy-plan` |
+| **Implement & Validate** | `/tf-policy-implement` |
+| **Constitution** | `.foundations/memory/policy-constitution.md` |
+| **Design template** | `.foundations/templates/policy-design-template.md` |
+
+**What it produces:**
+
+- `policies/*.policy.hcl` — policy definitions with enforcement levels (`mandatory`, `mandatory-overridable`, `advisory`)
+- `tests/*.policytest.hcl` — one test file per policy file
+- Compliance rule mapping (e.g. CIS AWS, NIST 800-53, PCI DSS) when a framework is supplied
+- HCP Terraform policy set configuration: workspace targeting, evaluation stage, override permissions
+
+**Phases:**
+
+1. **Clarify** — Parse the compliance rule or policy set, consume any existing YAML rules from `policy-research/{framework-slug}*.yaml`, ask about enforcement levels, framework/control family, and target resource scope
+2. **Design** — Produce `specs/{feature}/policy-design.md` with policy inventory, per-policy specifications, test scenarios, and HCP Terraform configuration
+3. **Human Review** — Approve the design before any code is written
+4. **Implement** — Write `.policytest.hcl` tests first (TDD), then build policies per checklist item
+5. **Validate** — Run `tfpolicy validate --policies=policies/` and `tfpolicy test --policies=policies/ --tests=tests/`, plus quality scoring against the policy constitution
+6. **PR** — Create a pull request with the implementation and the validation report linked
+
+> **Note:** The policy engine is tfpolicy. Requests for a different engine are redirected to the constitution's exception process rather than silently switched.
 
 ---
 
@@ -447,25 +517,25 @@ graph LR
 1. **Dependabot** detects a new module version in the private registry and creates a PR
 2. **Classify** — Parses the git diff to detect which modules changed and the semver bump type (patch/minor/major)
 3. **Validate** — Runs `terraform fmt` → `init` → `validate` → `tflint` → `plan`
-4. **Risk Assessment** — A deterministic matrix (no AI) maps version type × plan impact to a risk level:
+4. **Risk Assessment** — A deterministic matrix (no AI) maps version type × plan impact to a risk level. It runs only when `terraform plan` exits 2 (changes present); a plan that exits 0 (no diff at all) skips risk assessment entirely and the PR is auto-closed:
 
 | Plan Impact | Patch/Minor | Major |
 |-------------|-------------|-------|
-| **No plan changes** | Auto-merge | Auto-merge |
+| **No adds, no changes** | Auto-merge (low) | Auto-merge (low) |
 | **Adds only** | Needs review (low) | Needs review (medium) |
 | **Changes to existing** | Needs review (medium) | Needs review (high) |
 | **Destroy/Replace** | Breaking (high) | Breaking (critical) |
 | **Plan fails** | Breaking (high) | Breaking (critical) |
 
-5. **Decision** — Labels the PR and acts:
-   - **Auto-close** — No actual plan changes (Dependabot bumped version but nothing differs); close the PR
-   - **Auto-merge** — Squash merge immediately (adds-only with patch/minor bump)
-   - **Needs-review** — Post analysis comment, request human review
-   - **Breaking-change** — Block merge, trigger `@claude` remediation agent
+5. **Decision** — Labels the PR (`risk:<level>`, `version:<type>`, plus a decision label) and acts:
+   - **Auto-close** — Plan exit 0, no infrastructure diff at all; comment and close the PR
+   - **Auto-merge** — Squash merge immediately (plan has a diff but no adds and no changes to existing resources)
+   - **Needs-review** — Post the analysis comment, request review from `platform-team`, and post `@claude review and make a recommendation`
+   - **Breaking-change** — Block merge, label `breaking-change`, and post `@claude review and make a recommendation`
 
 ### Agent Remediation
 
-When a breaking change is detected or the plan fails, the pipeline posts `@claude review and make a recommendation` as a PR comment. This triggers the `terraform-claude-review.yml` workflow, which invokes the **module-upgrade-remediation** agent. (Requires [Claude for GitHub](https://github.com/apps/claude) or equivalent app installed on the repository.)
+The pipeline posts `@claude review and make a recommendation` as a PR comment on any of four triggers: `terraform plan` fails, `terraform validate` fails, or the decision is `breaking-change` or `needs-review`. This triggers the `terraform-claude-review.yml` workflow, which invokes the **module-upgrade-remediation** agent. (Requires [Claude for GitHub](https://github.com/apps/claude) or equivalent app installed on the repository.)
 
 The agent:
 
@@ -477,7 +547,7 @@ The agent:
 
 ### Post-Merge Apply
 
-After a PR is merged to `main`:
+After a PR touching `**/*.tf` is merged to `main`:
 
 1. Configuration is uploaded to the HCP Terraform workspace
 2. A run is created and applied
@@ -514,24 +584,25 @@ Configured in `.mcp.json`, available automatically in the devcontainer:
 | `terraform` | HCP Terraform — workspace management, run execution, registry lookups, variable management |
 | `aws-documentation-mcp-server` | AWS documentation search, best practices, service recommendations |
 
-### Pre-commit Hooks
+The `terraform` server runs as a container (`docker run hashicorp/terraform-mcp-server`), so it needs a working `docker` binary *inside* the devcontainer — that's why the Podman variants ship the `podman-docker` shim.
 
-Configured in `.pre-commit-config.yaml`, installed automatically by `validate-env.sh`:
+> **Copilot differs:** `.devcontainer/copilot-cli/devcontainer.json` registers the server as `terraform-mcp` and omits `ENABLE_TF_OPERATIONS=true` and `--toolsets=all`, so Copilot sees a reduced Terraform MCP surface compared to `.mcp.json`. CI uses a separate `.mcp-ci.json`.
 
-| Hook | Purpose |
-|------|---------|
-| `terraform_fmt` | Canonical formatting |
-| `terraform_validate` | Configuration validation |
-| `terraform_docs` | Auto-generate README.md |
-| `terraform_tflint` | Lint with `.tflint.hcl` rules |
-| `terraform_trivy` | Security scanning (CRITICAL/HIGH/MEDIUM) |
-| `end-of-file-fixer` | Consistent file endings |
-| `check-yaml` | YAML syntax validation |
-| `check-added-large-files` | Reject files > 500 KB |
-| `check-merge-conflict` | Detect conflict markers |
-| `detect-private-key` | Prevent credential commits |
-| `no-commit-to-branch` | Protect `main` from direct commits (included in template) |
-| `vault-radar-scan` | HashiCorp Vault Radar secret scanning |
+### Git & agent hooks
+
+The pre-commit framework has been replaced by a single dispatcher,
+`scripts/hooks/tf-guard.sh`, which serves Claude Code hooks, Copilot hooks, and
+the native git hook at `.githooks/pre-commit`. The devcontainer wires it up with
+`git config core.hooksPath .githooks` in `post-create.sh`. Background:
+`docs/proposals/agent-hooks-migration.md`.
+
+| Mode | Trigger | Checks |
+|------|---------|--------|
+| `fix` | After each agent file write | `terraform fmt`, `terraform-docs`, EOF newline, YAML syntax |
+| `verify` | End of agent turn | `terraform validate`, `tflint`, `trivy`, private-key scan over changed dirs |
+| `commit` | `git commit` | Vault Radar secret scan, large-file guard (500 KB, override with `TF_GUARD_MAXKB`), merge-conflict markers |
+
+Individual checks live in `scripts/hooks/checks/`.
 
 ### TFLint
 
@@ -541,7 +612,9 @@ Configured in `.tflint.hcl` with three plugins and full rule coverage:
 |--------|---------|-------|
 | AWS | 0.46.0 | Auto-enabled resource validation + `aws_resource_missing_tags` |
 | Azure | 0.31.1 | Auto-enabled resource validation |
-| Terraform | Built-in | All 20 rules explicitly configured (19 enabled, 1 disabled) |
+| Terraform | 0.14.1 | All 20 rules explicitly configured (19 enabled, 1 disabled) |
+
+> The base image pre-bakes slightly older rulesets (AWS 0.45.0, azurerm 0.30.0, plus a GCP ruleset that `.tflint.hcl` does not configure); `tflint --init` downloads the versions pinned above.
 
 ### Constitutions
 
@@ -552,6 +625,7 @@ Non-negotiable rules that govern all AI-generated code. Agents read the relevant
 | `.foundations/memory/module-constitution.md` | File organization, naming, security defaults, testing |
 | `.foundations/memory/provider-constitution.md` | Plugin Framework patterns, CRUD, state management |
 | `.foundations/memory/consumer-constitution.md` | Module composition, workspace config, backend setup |
+| `.foundations/memory/policy-constitution.md` | Policy structure, enforcement levels, testing, HCP Terraform policy sets |
 
 ### Design Templates
 
@@ -562,6 +636,7 @@ Canonical starting points for Phase 2 design output. Each template defines the r
 | `.foundations/templates/module-design-template.md` | Purpose, Resources, Interface, Security, Tests, Checklist |
 | `.foundations/templates/provider-design-template.md` | Purpose, Schema, CRUD, Errors, Tests, Checklist |
 | `.foundations/templates/consumer-design-template.md` | Purpose, Modules, Wiring, Security, Checklist |
+| `.foundations/templates/policy-design-template.md` | Purpose, Policy Inventory, Specifications, Tests, HCP Config, Checklist |
 
 ---
 
@@ -574,8 +649,12 @@ Canonical starting points for Phase 2 design output. Each template defines the r
 | `.agents/agents/` | GitHub Copilot agent definitions (same roles, Copilot tool names); `.github/agents` is a symlink into `.agents/` so Copilot discovery keeps working. Copilot hook configs stay in `.github/hooks/` — hooks are Copilot-only, so there is no second harness to share them with |
 | `.foundations/memory/` | Constitutions — non-negotiable code generation rules |
 | `.foundations/templates/` | Design document templates |
-| `.foundations/scripts/bash/` | Automation scripts (validate, checkpoint, progress, classify) |
+| `.foundations/scripts/bash/` | Automation scripts (`validate-env`, `checkpoint-commit`, `post-issue-progress`, `classify-version-bump`, `create-new-feature`, `scan-module-versions`) |
+| `scripts/hooks/` | Shared hook dispatcher (`tf-guard.sh`) and individual checks |
+| `.githooks/` | Native git hooks (enabled via `core.hooksPath`) |
 | `.github/workflows/` | CI/CD pipelines (validate, apply, release, uplift) |
+| `.claude-plugin/`, `.github/plugin/`, `.cursor-plugin/` | Plugin manifests for Claude Code, Copilot CLI, and Cursor |
+| `evals/` | Workflow evals, including the e2e harness (`evals/e2e/`) |
 | `specs/` | Feature design documents (created dynamically per workflow) |
 | `docs/` | Documentation (this guide, reference site, tool mappings) |
 
