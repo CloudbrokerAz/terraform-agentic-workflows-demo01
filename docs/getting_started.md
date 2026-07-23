@@ -94,7 +94,7 @@ inside the container. They need this one-time host setup:
 Per-variant detail — user mapping, SELinux, nested storage and networking — is
 in each variant's `readme.md`.
 
-> All other tools (Terraform, TFLint, terraform-docs, Trivy, Go, GitHub CLI, Vault Radar, Claude Code CLI) are pre-installed inside the devcontainer.
+> All other tools (Terraform, TFLint, terraform-docs, Trivy, Go, GitHub CLI, Vault Radar) are pre-installed inside every devcontainer variant. The assistant CLI itself is variant-specific — Claude Code in the `claude-code*` variants, Copilot CLI in the `copilot-cli*` variants, Bob Shell in `bob-podman`.
 
 ### Required Accounts
 
@@ -102,8 +102,9 @@ in each variant's `readme.md`.
 - **HCP Terraform** account with a [Team API token](#2-hcp-terraform-setup)
 - **AWS** account (you do not need AWS CLI or local credentials — all AWS access flows through HCP Terraform workspace variables)
 - **AI assistant** — one of the following:
-  - **Claude Code** — authenticate via `claude login` inside the devcontainer, or set `ANTHROPIC_API_KEY` in your shell profile
+  - **Claude Code** — authenticate with `claude login` inside the devcontainer. Note that no variant forwards `ANTHROPIC_API_KEY` via `remoteEnv`, so exporting it on the host alone has no effect inside the container
   - **GitHub Copilot** — requires a Copilot license; run `copilot login` inside the devcontainer or sign in via VS Code's built-in GitHub authentication when prompted
+  - **IBM Bob Shell** — export `BOBSHELL_API_KEY` in your host shell profile; the `bob-podman` variant forwards it as both `BOBSHELL_API_KEY` and `GEMINI_API_KEY`
 
 ---
 
@@ -147,6 +148,8 @@ The template uses HCP Terraform for remote execution, state management, and work
 1. Navigate to **Projects** in [HCP Terraform](https://app.terraform.io/)
 2. Create a new project (e.g., `sandbox`)
 3. This isolates test workspaces from production infrastructure
+
+> **Automate this setup.** `demo_bootstrap/hcp-prereqs/` provisions the sandbox project, the team, the exact permission matrix below, and the team API token with the `hashicorp/tfe` provider — run it once per organization instead of clicking through the steps that follow.
 
 #### Create a Dedicated Team
 
@@ -192,7 +195,9 @@ export TEAM_TFE_TOKEN="your_terraform_team_token_here"
 
 ### 3. AWS Credentials
 
-AWS credentials are managed through HCP Terraform, not set locally. The devcontainer and CI runners never hold AWS credentials directly.
+AWS credentials for Terraform runs are managed through HCP Terraform and are not required locally — the workflows never depend on local AWS credentials.
+
+> The devcontainers *do* forward host AWS credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_SESSION_EXPIRATION`) via `remoteEnv` for optional AWS CLI use, so anything you export on the host is visible inside the container. Prefer short-lived session credentials — see [Security Hardening](security/hardening.md).
 
 #### Option 1: Dynamic Provider Credentials (Recommended)
 
@@ -221,6 +226,9 @@ Verify that both tokens are in your shell profile (`~/.zshrc` or `~/.bashrc`) so
 # ~/.zshrc or ~/.bashrc
 export GITHUB_TOKEN="github_pat_your_token_here"
 export TEAM_TFE_TOKEN="your_terraform_team_token_here"
+
+# Required only for the bob-podman variant
+# export BOBSHELL_API_KEY="your_bob_api_key_here"
 
 # Optional: Vault Radar secret scanning in the git pre-commit hook
 # export VAULT_RADAR_LICENSE="your_license_here"
@@ -294,11 +302,11 @@ bash .foundations/scripts/bash/validate-env.sh
 The script classifies checks as:
 
 - **GATE** — Must pass to proceed: `TFE_TOKEN`; `TFE_TOKEN_TYPE` (introspected via `/api/v2/account/details` — user and organization tokens are rejected, only a Team API Token or service account passes); `GITHUB_TOKEN`; `GH_CLI` (installed and authenticated); `TERRAFORM` (>= 1.14)
-- **WARN** — Nice-to-have; degrades capability but doesn't block (TFLint, pre-commit, Trivy, terraform-docs)
+- **WARN** — Nice-to-have; degrades capability but doesn't block (TFLint, Trivy, terraform-docs). The script also reports a `PRE_COMMIT` WARN, but it is vestigial — this repo replaced the pre-commit framework with `scripts/hooks/tf-guard.sh` and ships no `.pre-commit-config.yaml`, so that warning can be ignored
 
 Exit codes: `0` all checks passed, `1` a GATE failed (stop), `2` gates passed but a WARN failed.
 
-If all gates pass, the script initializes TFLint. Git hooks are enabled separately by the devcontainer via `git config core.hooksPath .githooks` — see [Git & agent hooks](#git--agent-hooks).
+If all gates pass, the script runs `tflint --init` and `pre-commit install` (the latter is a no-op here, per above). The hooks that actually run come from `.githooks`, wired by the devcontainer via `git config core.hooksPath .githooks` — see [Git & agent hooks](#git--agent-hooks).
 
 ### 4. Branch Protection (Recommended)
 
@@ -416,7 +424,7 @@ Build Terraform Provider resources using HashiCorp's Plugin Framework.
 - Go resource implementation with CRUD operations
 - Schema design with typed attributes and validators
 - Acceptance test suite with sweep functions
-- State migration handling
+- Import support (`ImportState` / `ImportStatePassthroughID`) with an import test step
 
 **Phases:**
 
@@ -424,7 +432,7 @@ Build Terraform Provider resources using HashiCorp's Plugin Framework.
 2. **Design** — Produce `specs/{feature}/provider-design-{resource}.md` with schema, CRUD logic, error handling
 3. **Human Review** — Approve the design before any code is written
 4. **Implement** — Write test stubs first, then implement CRUD methods
-5. **Validate** — Run `go test`, `golangci-lint`, acceptance tests
+5. **Validate** — Run `go vet`, the `tf-provider-validator` agents, then acceptance tests (`go build` and `go test -c` run during Implement). `golangci-lint` is not part of this workflow — it is available separately via the `provider-golangci-lint-uplift` skill
 6. **PR** — Create a pull request with the implementation for final review
 
 ### Consumer Provisioning
@@ -454,6 +462,8 @@ Compose infrastructure from private registry modules and deploy to HCP Terraform
 5. **Validate** — Run `terraform fmt` and `validate`, deploy to the sandbox workspace, score the run with `tf-consumer-validator`
 6. **PR** — Create a pull request with the implementation for final review
 
+> **Prerequisite:** consumer workflows compose *only* private registry modules, so your HCP Terraform private registry must already contain some. `demo_bootstrap/private-registry/` forks and publishes a minimum set (vpc, security-group, sqs, sns, lambda, iam, cloudwatch, ec2-instance, autoscaling, alb, cloudfront, s3-bucket) covering the demo prompts.
+
 > **Note:** Consumer code uses **only** private registry modules. Raw resources are prohibited except glue resources (`random_id`, `null_resource`, `terraform_data`). Module versions must use pessimistic constraints (`~> X.Y`).
 
 ### Policy Authoring
@@ -469,7 +479,7 @@ Write compliance policies with tfpolicy — `.policy.hcl` policy files with `.po
 
 **What it produces:**
 
-- `policies/*.policy.hcl` — policy definitions with enforcement levels (`mandatory`, `mandatory-overridable`, `advisory`)
+- `policies/*.policy.hcl` — policy definitions with enforcement levels (`advisory`, `mandatory_overridable`, `mandatory` — underscores, the hyphenated spelling is rejected at validate time)
 - `tests/*.policytest.hcl` — one test file per policy file
 - Compliance rule mapping (e.g. CIS AWS, NIST 800-53, PCI DSS) when a framework is supplied
 - HCP Terraform policy set configuration: workspace targeting, evaluation stage, override permissions
@@ -529,7 +539,8 @@ graph LR
 | **Adds only** | Needs review (low) | Needs review (medium) |
 | **Changes to existing** | Needs review (medium) | Needs review (high) |
 | **Destroy/Replace** | Breaking (high) | Breaking (critical) |
-| **Plan fails** | Breaking (high) | Breaking (critical) |
+
+> If `terraform plan` exits 1 or `terraform validate` fails, the validate job labels the PR `breaking-change` + `risk:critical` regardless of semver type and triggers the `@claude` agent — the matrix above never runs in that case.
 
 5. **Decision** — Labels the PR (`risk:<level>`, `version:<type>`, plus a decision label) and acts:
    - **Auto-close** — Plan exit 0, no infrastructure diff at all; comment and close the PR
@@ -659,6 +670,10 @@ Canonical starting points for Phase 2 design output. Each template defines the r
 | `.github/workflows/` | CI/CD pipelines (validate, apply, release, uplift) |
 | `.claude-plugin/`, `.github/plugin/`, `.cursor-plugin/` | Plugin manifests for Claude Code, Copilot CLI, and Cursor |
 | `evals/` | Workflow evals, including the e2e harness (`evals/e2e/`) |
+| `.foundations/design/` | Per-workflow flow diagrams for each plan/implement skill |
+| `.foundations/test-scripts/` | Demo environment setup, bulk-run, and teardown scripts |
+| `demo_bootstrap/` | One-time bootstraps: HCP Terraform project/team/token (`hcp-prereqs/`) and private registry seeding (`private-registry/`) |
+| `reference/` | Authoring guides and templates for writing new skills and agents |
 | `specs/` | Feature design documents (created dynamically per workflow) |
 | `docs/` | Documentation (this guide, reference site, tool mappings) |
 
@@ -668,4 +683,7 @@ Canonical starting points for Phase 2 design output. Each template defines the r
 
 - **[Documentation Site](index.html)** — Full reference site covering foundations, guardrails, SDD workflow, and configuration (open `docs/index.html` in your browser)
 - **[AGENTS.md](../AGENTS.md)** — Agent inventory, skill list, and context management rules
-- **[Tool Name Mapping](tool-name-mapping.md)** — Copilot CLI vs Claude Code tool name differences
+- **[Demo Quickstart](demo_quickstart.md)** — ~10-minute path to a live end-to-end demo once the prerequisites above are in place
+- **[Security Hardening](security/hardening.md)** — container, credential, and CI hardening guidance
+- **[Tool Name Mapping](tool-name-mapping.md)** — Copilot CLI vs Claude Code vs Bob tool name differences
+- **[Validated Models](../README.md#validated-models)** — models these workflows have been evaluated against
