@@ -515,7 +515,7 @@ footer .files b{color:var(--muted);font-weight:500}
   <div class="wrap">
     <div class="snum">06</div>
     <h2>Findings</h2>
-    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code. Four further findings — a contradictory design filename, an unreachable Azure research path, a missing engine gate and an undefined carve-out in the per-item gate — were fixed in the skills rather than documented here.</p>
+    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code. Three further findings — an unreachable Azure research path, a missing engine gate and an undefined carve-out in the per-item gate — were fixed in the skills rather than documented here.</p>
 
     <div class="finding">
       <div class="sev hi">High</div>
@@ -524,6 +524,16 @@ footer .files b{color:var(--muted);font-weight:500}
         <p>The string <code>tfpolicy</code> appears nowhere in <code>scripts/hooks/</code>. Two of the four Stop checks — <code>terraform validate</code> and <code>tflint</code> — build their file set from a <code>*.tf</code> glob and exit 0 on the empty set. <code>trivy config</code> still scans the repo but cannot parse policy HCL. So on a policy-only turn the only check that reads the new files is the private-key grep. There is no eval case for this track and no <code>tfpolicy</code> check in <code>deterministic.sh</code> either, so nothing re-runs the engine independently — even though the harness, judge and rubric already exist and already accept <code>track: "policy"</code>.</p>
         <p>The consequence is that <code>tfpolicy validate</code> and <code>tfpolicy test</code> passing is an <em>assertion made by the agent about its own work</em>. On the module track the same claim is checked twice more — by the Stop hook and by the harness. Here it is checked nowhere.</p>
         <span class="cite">scripts/hooks/tf-guard.sh · scripts/hooks/checks/{validate,lint,trivy,secrets}.sh · evals/e2e/cases/</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev md">Medium</div>
+      <div>
+        <h3>The plan skill contradicted itself about its own output filename</h3>
+        <p><code>tf-policy-plan</code> called its design artifact <code>tf-policy-design.md</code> in the frontmatter description and the opening line, but <code>policy-design.md</code> in step 9 and again on the Done line — two names for one file inside a 47-line skill. The design agent writes <code>policy-design.md</code>, and all four downstream readers — test writer, developer, validator and the judge criteria — open that same path, so the working name was the correct one and the description was the outlier.</p>
+        <p>Nothing broke at runtime, because the name that appears in the frontmatter is never resolved as a path. The cost was to the reader: the two places a human looks first to learn what the skill produces both named a file that does not exist. Resolved in <code>059c238</code> by standardising on <code>policy-design.md</code> at all four sites.</p>
+        <span class="cite">.claude/skills/tf-policy-plan/SKILL.md:3,10,40,47 · .claude/agents/tf-policy-design.md · .claude/skills/tf-policy-implement/SKILL.md</span>
       </div>
     </div>
 
