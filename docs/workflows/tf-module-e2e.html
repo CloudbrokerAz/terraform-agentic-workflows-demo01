@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tf-module-e2e — Workflow Anatomy</title>
+<meta name="description" content="How the tf-module-e2e skill actually runs: skills, subagents, hooks, gates and artifacts, mapped from source.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --paper:#FAFAF8;      --band:#F2F0EB;
+  --ink:#16161A;        --body:#3C3A36;      --muted:#5C5952;   --faint:#6E6A63;
+  --rule:#E3DFD8;       --rule-soft:#EDEAE4; --rule-strong:#8F887C;
+  --accent:#C4283A;     --accent-soft:rgba(196,40,58,.09);
+  --h-research:#995F2A; --h-design:#6B3FA0;  --h-test:#1A6B7A;
+  --h-dev:#1F5C8B;      --h-val:#2D7A4F;     --h-judge:#5B5F6B;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --col:860px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#131316;    --band:#1A1A1E;
+    --ink:#F2F0EC;      --body:#C9C5BE;      --muted:#B0ABA3;   --faint:#8B867E;
+    --rule:#2E2E34;     --rule-soft:#26262B; --rule-strong:#6A6A75;
+    --accent:#F0596B;   --accent-soft:rgba(240,89,107,.13);
+    --h-research:#D99A57;--h-design:#A97DD8; --h-test:#4FA8BC;
+    --h-dev:#5C9BD1;    --h-val:#5FB585;     --h-judge:#9AA0AD;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131316;--band:#1A1A1E;--ink:#F2F0EC;--body:#C9C5BE;
+  --muted:#B0ABA3;--faint:#8B867E;--rule:#2E2E34;--rule-soft:#26262B;--rule-strong:#6A6A75;
+  --accent:#F0596B;--accent-soft:rgba(240,89,107,.13);
+  --h-research:#D99A57;--h-design:#A97DD8;--h-test:#4FA8BC;
+  --h-dev:#5C9BD1;--h-val:#5FB585;--h-judge:#9AA0AD;
+}
+:root[data-theme="light"]{
+  --paper:#FAFAF8;--band:#F2F0EB;--ink:#16161A;--body:#3C3A36;
+  --muted:#5C5952;--faint:#6E6A63;--rule:#E3DFD8;--rule-soft:#EDEAE4;--rule-strong:#8F887C;
+  --accent:#C4283A;--accent-soft:rgba(196,40,58,.09);
+  --h-research:#995F2A;--h-design:#6B3FA0;--h-test:#1A6B7A;
+  --h-dev:#1F5C8B;--h-val:#2D7A4F;--h-judge:#5B5F6B;
+}
+
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);color:var(--body);
+  font-family:var(--sans);font-size:17px;line-height:1.7;
+  overflow-x:hidden;
+}
+
+/* ---------- shell ---------- */
+.wrap{max-width:var(--col);margin:0 auto;padding:0 28px}
+.bleed{width:100%;padding:52px 0;border-top:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);background:var(--band);margin:56px 0}
+.bleed .wrap{max-width:1216px}
+
+/* ---------- masthead ---------- */
+header.mast{padding:76px 0 0}
+.eyebrow{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:2.6px;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(38px,6vw,62px);line-height:1.04;letter-spacing:-.02em;color:var(--ink);margin:18px 0 0}
+h1 .mono{font-family:var(--mono);font-weight:600;font-size:.62em;letter-spacing:-.01em}
+.dek{font-size:20px;line-height:1.6;color:var(--muted);max-width:640px;margin:22px 0 0;font-weight:300}
+.dek em{font-style:italic;color:var(--ink)}
+
+.meta{display:flex;flex-wrap:wrap;margin:40px 0 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.meta>div{flex:1 1 130px;padding:14px 18px 14px 0;border-left:1px solid var(--rule-soft);padding-left:18px}
+.meta>div:first-child{border-left:0;padding-left:0}
+.meta dt{font-family:var(--mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);display:block}
+.meta dd{font-family:var(--mono);font-size:13px;color:var(--ink);margin-top:5px;font-weight:500}
+
+/* ---------- sections ---------- */
+section{padding:58px 0 0}
+.snum{font-family:var(--mono);font-size:10px;letter-spacing:2.4px;color:var(--accent);font-weight:600}
+h2{font-family:var(--serif);font-weight:700;font-size:34px;line-height:1.18;letter-spacing:-.015em;color:var(--ink);margin:10px 0 0}
+h3{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.02em;color:var(--ink);margin:34px 0 8px}
+.finding h3{margin:0 0 6px}
+p{margin:18px 0 0;max-width:66ch}
+p.lead{font-size:19px;color:var(--muted);font-weight:300}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:currentColor}
+code{font-family:var(--mono);font-size:.86em;background:var(--rule-soft);padding:1.5px 5px;border-radius:3px;color:var(--ink);overflow-wrap:anywhere}
+strong{color:var(--ink);font-weight:600}
+
+/* ---------- figures ---------- */
+figure{margin:34px 0 0}
+.bleed figure{margin:0}
+figure svg{display:block;width:100%;height:auto;overflow:visible}
+figcaption{font-family:var(--mono);font-size:10px;letter-spacing:1.3px;color:var(--faint);margin-top:16px;text-transform:uppercase}
+figcaption b{color:var(--muted);font-weight:600}
+.scroller{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.scroller>svg{min-width:100%}
+.bleed .scroller>svg{min-width:1160px}
+.scrollnote{display:none;font-family:var(--mono);font-size:10px;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--muted);margin-top:10px}
+@media (max-width:1215px){.bleed .scrollnote{display:block}}
+
+/* ---------- findings ---------- */
+.finding{border-top:1px solid var(--rule);padding:22px 0 20px;display:grid;grid-template-columns:96px 1fr;gap:22px}
+.finding:last-of-type{border-bottom:1px solid var(--rule)}
+.sev{font-family:var(--mono);font-size:9px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;padding-top:3px}
+.sev.hi{color:var(--accent)}.sev.md{color:var(--h-research)}.sev.lo{color:var(--muted)}
+.finding h3{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--ink);margin:0 0 6px}
+.finding p{margin:0;font-size:15px;line-height:1.62}
+.finding p+p{margin-top:9px}
+.cite{font-family:var(--mono);font-size:11px;color:var(--faint);display:block;margin-top:9px;overflow-wrap:anywhere}
+
+/* ---------- step reference ---------- */
+.steps{columns:2;column-gap:44px;margin:30px 0 0;border-top:1px solid var(--rule);padding-top:22px}
+.steps div{break-inside:avoid;display:grid;grid-template-columns:26px 1fr;gap:10px;padding:5px 0;font-size:14px;line-height:1.5}
+.steps .n{font-family:var(--mono);font-size:10px;color:var(--faint);padding-top:4px;font-weight:600}
+.steps .t{color:var(--body)}
+.steps .t b{color:var(--ink);font-weight:600}
+.steps .t .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.3px;display:block;color:var(--muted)}
+.steps div.hx .n,.steps div.hx .t .who{color:var(--faint)}
+.steps div.hx .t{color:var(--muted)}
+.steps div.gate .n{color:var(--accent)}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0}
+
+/* ---------- footer ---------- */
+footer{margin-top:72px;border-top:1px solid var(--rule);padding:34px 0 80px}
+footer p{font-size:13.5px;color:var(--muted);max-width:70ch}
+footer .files{font-family:var(--mono);font-size:11.5px;line-height:1.9;color:var(--faint);margin-top:18px;overflow-wrap:anywhere}
+footer .files b{color:var(--muted);font-weight:500}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .steps{columns:1}
+  .meta div{flex-basis:50%}
+  .finding{grid-template-columns:1fr;gap:6px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="eyebrow">Workflow anatomy · Terraform agentic workflows</div>
+    <h1><span class="mono">tf-module-e2e</span><br>What actually runs</h1>
+    <p class="dek">A 28-line skill file that reaches five subagents, eight reference skills, four guard hooks and four gates — almost none of which it mentions. This is the map of what the <em>run</em> does, traced from source rather than from the description.</p>
+
+    <dl class="meta">
+      <div><dt>Entry point</dt><dd>/tf-module-e2e</dd></div>
+      <div><dt>Skill file</dt><dd>28 lines</dd></div>
+      <div><dt>Subagents</dt><dd>5 + 1 judge</dd></div>
+      <div><dt>Ref. skills</dt><dd>8</dd></div>
+      <div><dt>Hooks</dt><dd>3 + 1 git</dd></div>
+      <div><dt>Runtime steps</dt><dd>31</dd></div>
+    </dl>
+  </div>
+</header>
+
+<main>
+
+<!-- ============================================ 1 ============================ -->
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">01</div>
+    <h2 style="margin-bottom:8px">Who calls whom, and where the hooks fire</h2>
+    <p class="lead" style="margin-top:6px;max-width:74ch">Two orchestrating skills, five in-workflow subagents and one deliberately kept outside. Every subagent starts with a fresh context, so what they share is only what is on disk — chiefly <code>design.md</code>, which every implementation agent reads — and every file any of them writes passes through guard hooks that no skill file mentions.</p>
+
+    <figure>
+      <div class="scroller">
+      <!-- ===== FIG 1 — delegation + interception ===== -->
+      <svg viewBox="0 0 1160 648" role="img" aria-labelledby="f1t f1d">
+        <title id="f1t">Delegation and hook interception for tf-module-e2e</title>
+        <desc id="f1d">The e2e skill delegates to two orchestrating skills, which dispatch five subagents. Everything those subagents write passes through a PreToolUse deny hook and a PostToolUse fix hook, with a Stop hook firing at every turn boundary and a git pre-commit hook firing on every checkpoint commit. The e2e judge sits outside the boundary, launched by the eval harness with all hooks disabled, and it is forbidden from reading the validator report.</desc>
+
+        <!-- ============ out-of-band column ============ -->
+        <rect x="930" y="26" width="200" height="540" rx="6" fill="none" stroke="var(--h-judge)" stroke-width="1" stroke-dasharray="5 4" opacity=".55"/>
+        <text x="1030" y="20" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.6" fill="var(--h-judge)">OUT OF BAND</text>
+
+        <!-- ============ entry ============ -->
+        <circle cx="480" cy="58" r="14" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".22"/>
+        <circle cx="480" cy="58" r="6.5" fill="var(--ink)"/>
+        <text x="480" y="30" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--ink)" letter-spacing=".4">tf-module-e2e</text>
+        <text x="480" y="44" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--faint)">28 lines · two sentences of delegation · one assertion</text>
+
+        <text x="1030" y="46" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--h-judge)">prompts/*.md</text>
+        <path d="M930,50 C780,50 640,54 498,56" fill="none" stroke="var(--h-judge)" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>
+        <text x="714" y="42" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-judge)">the only harness → skill link</text>
+
+        <!-- ============ orchestrators ============ -->
+        <path d="M480,72 C480,118 300,114 300,152" fill="none" stroke="var(--muted)" stroke-width="1" opacity=".38"/>
+        <path d="M480,72 C480,118 660,114 660,152" fill="none" stroke="var(--muted)" stroke-width="1" opacity=".38"/>
+
+        <circle cx="300" cy="158" r="6" fill="var(--ink)"/>
+        <text x="284" y="155" text-anchor="end" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">tf-module-plan</text>
+        <text x="284" y="168" text-anchor="end" font-family="var(--sans)" font-size="9.5" fill="var(--faint)">SDD phases 1–2 · 35 lines</text>
+        <circle cx="660" cy="158" r="6" fill="var(--ink)"/>
+        <text x="676" y="155" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">tf-module-implement</text>
+        <text x="676" y="168" font-family="var(--sans)" font-size="9.5" fill="var(--faint)">SDD phases 3–4 · 46 lines</text>
+
+        <!-- human gate -->
+        <line x1="372" y1="158" x2="446" y2="158" stroke="var(--rule)" stroke-width="1"/>
+        <line x1="514" y1="158" x2="592" y2="158" stroke="var(--rule)" stroke-width="1"/>
+        <rect x="450" y="142" width="60" height="34" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3">
+          <animate attributeName="opacity" values=".45;1;.45" dur="3.4s" repeatCount="indefinite"/>
+        </rect>
+        <text x="480" y="157" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">HUMAN</text>
+        <text x="480" y="168" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">GATE</text>
+        <text x="480" y="189" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">skipped in E2E</text>
+
+        <!-- ============ fan to subagents ============ -->
+        <g fill="none" stroke-width="1.1" opacity=".42">
+          <path d="M300,164 C300,222 130,214 130,266" stroke="var(--h-research)"/>
+          <path d="M300,164 C300,220 300,220 300,266" stroke="var(--h-design)"/>
+          <path d="M660,164 C660,222 480,214 480,266" stroke="var(--h-test)"/>
+          <path d="M660,164 C660,220 650,220 650,266" stroke="var(--h-dev)"/>
+          <path d="M660,164 C660,222 820,214 820,266" stroke="var(--h-val)"/>
+        </g>
+        <path d="M1030,64 L1030,260" stroke="var(--h-judge)" stroke-width="1.1" opacity=".42" fill="none" stroke-dasharray="4 3"/>
+        <rect x="994" y="78" width="72" height="12" fill="var(--band)"/>
+        <text x="1030" y="86" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-judge)">run-eval.sh</text>
+
+        <!-- dispatch particles -->
+        <circle r="3" fill="var(--h-research)" opacity="0">
+          <animateMotion dur="2.9s" repeatCount="indefinite" begin="0s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M300,164 C300,222 130,214 130,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="2.9s" repeatCount="indefinite" begin="0s"/>
+        </circle>
+        <circle r="3" fill="var(--h-design)" opacity="0">
+          <animateMotion dur="3.4s" repeatCount="indefinite" begin="0.4s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M300,164 C300,220 300,220 300,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.4s" repeatCount="indefinite" begin="0.4s"/>
+        </circle>
+        <circle r="3" fill="var(--h-test)" opacity="0">
+          <animateMotion dur="3.1s" repeatCount="indefinite" begin="1.3s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M660,164 C660,222 480,214 480,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.1s" repeatCount="indefinite" begin="1.3s"/>
+        </circle>
+        <circle r="3" fill="var(--h-dev)" opacity="0">
+          <animateMotion dur="2.6s" repeatCount="indefinite" begin="1.7s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M660,164 C660,220 650,220 650,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="2.6s" repeatCount="indefinite" begin="1.7s"/>
+        </circle>
+        <circle r="3" fill="var(--h-val)" opacity="0">
+          <animateMotion dur="3.7s" repeatCount="indefinite" begin="2.3s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M660,164 C660,222 820,214 820,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.7s" repeatCount="indefinite" begin="2.3s"/>
+        </circle>
+
+        <!-- ============ subagent nodes ============ -->
+        <g>
+          <circle cx="130"  cy="272" r="16" fill="var(--h-research)" opacity=".12"/><circle cx="130" cy="272" r="6" fill="var(--h-research)"/>
+          <circle cx="300"  cy="272" r="16" fill="var(--h-design)"   opacity=".12"/><circle cx="300" cy="272" r="6" fill="var(--h-design)"/>
+          <circle cx="480"  cy="272" r="16" fill="var(--h-test)"     opacity=".12"/><circle cx="480" cy="272" r="6" fill="var(--h-test)"/>
+          <circle cx="650"  cy="272" r="16" fill="var(--h-dev)"      opacity=".12"/><circle cx="650" cy="272" r="6" fill="var(--h-dev)"/>
+          <circle cx="820"  cy="272" r="16" fill="var(--h-val)"      opacity=".12"/><circle cx="820" cy="272" r="6" fill="var(--h-val)"/>
+          <circle cx="1030" cy="272" r="16" fill="var(--h-judge)"    opacity=".1"/>
+          <circle cx="1030" cy="272" r="6" fill="none" stroke="var(--h-judge)" stroke-width="1.6"/>
+        </g>
+        <g text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4">
+          <text x="130"  y="304" fill="var(--h-research)">RESEARCH</text>
+          <text x="300"  y="304" fill="var(--h-design)">DESIGN</text>
+          <text x="480"  y="304" fill="var(--h-test)">TEST-WRITER</text>
+          <text x="650"  y="304" fill="var(--h-dev)">DEVELOPER</text>
+          <text x="820"  y="304" fill="var(--h-val)">VALIDATOR</text>
+          <text x="1030" y="304" fill="var(--h-judge)">E2E-JUDGE</text>
+        </g>
+        <!-- per-agent spec, three lines -->
+        <g text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">
+          <text x="130"  y="315">×3–4 concurrent, foreground</text>
+          <text x="130"  y="327">9 terraform + 4 AWS MCP tools</text>
+          <text x="130"  y="339">one question per instance</text>
+          <text x="300"  y="315">one pass, retried once</text>
+          <text x="300"  y="327">reads constitution + template</text>
+          <text x="300"  y="339">writes all seven sections</text>
+          <text x="480"  y="315">no Bash — cannot run terraform</text>
+          <text x="480"  y="327">reads design §2 §3 §5</text>
+          <text x="480"  y="339">four test files before any code</text>
+          <text x="650"  y="315">one dispatch per checklist item</text>
+          <text x="650"  y="327">reads design §2 §3 §4</text>
+          <text x="650"  y="339">ticks its own box in §6</text>
+          <text x="820"  y="315">up to three fix rounds</text>
+          <text x="820"  y="327">six weighted dimensions</text>
+          <text x="820"  y="339">conservative auto-fix only</text>
+          <text x="1030" y="315" fill="var(--h-judge)">fresh context, read-only</text>
+          <text x="1030" y="327" fill="var(--h-judge)">same tf-judge-criteria rubric</text>
+          <text x="1030" y="339" fill="var(--h-judge)">forbidden: validation report</text>
+        </g>
+
+        <!-- ============ hook band ============ -->
+        <rect x="92" y="364" width="816" height="112" rx="6" fill="var(--accent-soft)"/>
+        <text x="92" y="357" font-family="var(--mono)" font-size="8" letter-spacing="2" fill="var(--accent)" font-weight="700">HOOKS</text>
+
+        <!-- agent verticals through the per-tool-call rows -->
+        <g stroke-width="1.2" opacity=".55" stroke-dasharray="2 3">
+          <line x1="130" y1="350" x2="130" y2="419" stroke="var(--h-research)"/>
+          <line x1="300" y1="350" x2="300" y2="419" stroke="var(--h-design)"/>
+          <line x1="480" y1="350" x2="480" y2="419" stroke="var(--h-test)"/>
+          <line x1="650" y1="350" x2="650" y2="419" stroke="var(--h-dev)"/>
+          <line x1="820" y1="350" x2="820" y2="419" stroke="var(--h-val)"/>
+        </g>
+        <g opacity=".9">
+          <circle cx="130" cy="392.5" r="2.6" fill="var(--h-research)"/>
+          <circle cx="300" cy="392.5" r="2.6" fill="var(--h-design)"/>
+          <circle cx="480" cy="392.5" r="2.6" fill="var(--h-test)"/>
+          <circle cx="650" cy="392.5" r="2.6" fill="var(--h-dev)"/>
+          <circle cx="820" cy="392.5" r="2.6" fill="var(--h-val)"/>
+        </g>
+
+        <!-- row 1 — PreToolUse -->
+        <rect x="100" y="370" width="800" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-opacity=".55"/>
+        <text x="110" y="383" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">PreToolUse</text>
+        <text x="500" y="383" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">deny-config-files</tspan> — blocks writes to .gitignore · .tflint.hcl · .mcp.json · .pre-commit-config.yaml</text>
+        <text x="890" y="383" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">DENIES THE CALL</text>
+
+        <!-- row 2 — PostToolUse -->
+        <rect x="100" y="396" width="800" height="19" rx="9.5" fill="var(--band)" stroke="var(--muted)" stroke-width="1" stroke-opacity=".55"/>
+        <text x="110" y="409" font-family="var(--mono)" font-size="8" fill="var(--muted)" font-weight="600">PostToolUse</text>
+        <text x="500" y="409" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard fix</tspan> — terraform fmt, terraform-docs README inject, trailing-newline repair</text>
+        <text x="890" y="409" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--muted)" font-weight="700">MUTATES, RARELY FAILS</text>
+
+        <!-- row 3 — git pre-commit -->
+        <rect x="100" y="422" width="800" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"/>
+        <text x="110" y="435" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">git pre-commit</text>
+        <text x="500" y="435" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard commit</tspan> — Vault Radar secret scan and staged-file hygiene, on every checkpoint commit</text>
+        <text x="890" y="435" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">ABORTS THE COMMIT</text>
+
+        <!-- row 4 — Stop -->
+        <rect x="100" y="448" width="800" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3">
+          <animate attributeName="stroke-opacity" values=".45;1;.45" dur="3.3s" repeatCount="indefinite"/>
+        </rect>
+        <text x="110" y="461" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">Stop</text>
+        <text x="500" y="461" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard verify</tspan> — validate · tflint · trivy · private-key scan, all four unconditionally</text>
+        <text x="890" y="461" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">BLOCKS THE TURN END</text>
+
+        <text x="500" y="490" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.1" fill="var(--muted)">SOLID — EVERY AGENT TOOL CALL &#160;·&#160; DASHED — SESSION LEVEL &#160;·&#160; ALL FOUR DECLARED OUTSIDE ANY SKILL</text>
+        <text x="1030" y="392" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-judge)">no hooks fire —</text>
+        <text x="1030" y="404" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-judge)">launched with hooks off</text>
+
+        <!-- ============ artifacts ============ -->
+        <line x1="60" y1="508" x2="922" y2="508" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <line x1="938" y1="508" x2="1122" y2="508" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <text x="60" y="502" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--faint)">WRITES</text>
+        <g text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">
+          <text x="130"  y="526">research-*.md</text>
+          <text x="480"  y="526">tests/*.tftest.hcl</text>
+          <text x="650"  y="526">main.tf · outputs.tf</text>
+          <text x="820"  y="526">validation_*.md</text>
+          <text x="1030" y="526">verdict JSON</text>
+        </g>
+        <rect x="248" y="514" width="104" height="18" rx="9" fill="var(--ink)" opacity=".08"/>
+        <text x="300" y="527" text-anchor="middle" font-family="var(--mono)" font-size="9" font-weight="700" fill="var(--ink)">design.md</text>
+        <text x="300" y="546" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.3" fill="var(--ink)">SINGLE SOURCE OF TRUTH</text>
+
+        <g fill="none" stroke="var(--ink)" stroke-width="1" opacity=".32" stroke-dasharray="3 3">
+          <path d="M310,550 C350,584 430,584 478,554"/>
+          <path d="M314,552 C420,598 570,598 648,554"/>
+          <path d="M318,554 C460,610 730,610 818,554"/>
+          <path d="M322,556 C500,624 900,624 1028,554"/>
+        </g>
+        <text x="660" y="624" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--muted)">read back by the test-writer, the developer, the validator and the judge</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 1</b> — delegation, the one artifact everyone reads, and the guard layers between an agent and the disk</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>Three properties are worth pulling out. <strong>The test-writer has no Bash tool</strong>, so it physically cannot run <code>terraform</code> — the tests it writes are shaped by <code>design.md</code> Section 5 alone, not by what happens to pass. <strong>The developer runs once per checklist item</strong> and ticks its own box, which is why the Section 6 gate exists at all. <strong>The judge shares no context with the run</strong> and is explicitly forbidden from opening the validator’s report, so its score cannot be anchored to the workflow’s own self-assessment.</p>
+
+    <p>The Stop hook is the most consequential of the four. It re-runs <code>validate</code>, <code>tflint</code> and <code>trivy</code> at <em>every</em> turn boundary for the whole session — nothing scopes it to the workflow — duplicating much of what the validator agent does in Phase 4. <code>validate</code> and <code>tflint</code> run over <code>git diff HEAD</code> plus untracked files, so their scope widens as the session accumulates changes; <code>trivy</code> scans the entire repository regardless. The practical effect is that quality enforcement here is doubled up in one environment and, because every check exits 0 silently when its binary is absent, entirely absent in another.</p>
+  </div>
+</section>
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">02</div>
+    <h2 style="margin-bottom:8px">The runtime spine</h2>
+    <p class="lead" style="margin-top:6px;max-width:70ch">Thirty-one steps across three tiers. The eval harness brackets the run at both ends; the skill itself owns only the thin middle. Two of the four gates are bypassed.</p>
+
+    <figure>
+      <div class="scroller">
+      <!-- ===== FIG 2 — lane chart ===== -->
+      <svg viewBox="0 0 1120 418" role="img" aria-labelledby="f2t f2d">
+        <title id="f2t">Runtime sequence of a tf-module-e2e run</title>
+        <desc id="f2d">Thirty-one steps on three lanes — eval harness, orchestrating skills, and subagents. Thirty are plotted as dots; step 27, the Stop hook, is drawn as a span because it recurs at every turn boundary rather than happening once. Steps 1 to 3 and 29 to 31 belong to the harness only. The clarification and human-approval gates are marked bypassed.</desc>
+
+        <!-- harness-only zones -->
+        <rect x="60" y="56" width="104" height="290" fill="var(--rule)" opacity=".3"/>
+        <rect x="956" y="56" width="104" height="290" fill="var(--rule)" opacity=".3"/>
+        <text x="112" y="50" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.4" fill="var(--muted)">HARNESS ONLY</text>
+        <text x="1008" y="50" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.4" fill="var(--muted)">HARNESS ONLY</text>
+
+        <!-- lanes -->
+        <g stroke="var(--rule-strong)" stroke-width="1">
+          <line x1="72" y1="120" x2="1048" y2="120"/>
+          <line x1="72" y1="210" x2="1048" y2="210"/>
+          <line x1="72" y1="300" x2="1048" y2="300"/>
+        </g>
+        <g font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--muted)">
+          <text x="4" y="117">HARNESS</text>
+          <text x="4" y="207">ORCHESTRATOR</text>
+          <text x="4" y="297">SUBAGENTS</text>
+        </g>
+
+        <!-- phase bars -->
+        <g>
+          <rect x="168" y="166" width="208" height="1.5" fill="var(--rule-strong)"/>
+          <text x="272" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">PLAN · PHASE 1</text>
+          <rect x="392" y="166" width="112" height="1.5" fill="var(--rule-strong)"/>
+          <text x="448" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">PLAN · PHASE 2</text>
+          <rect x="520" y="166" width="80" height="1.5" fill="var(--rule-strong)"/>
+          <text x="560" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">HANDOFF</text>
+          <rect x="616" y="166" width="176" height="1.5" fill="var(--rule-strong)"/>
+          <text x="704" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">IMPLEMENT · PHASE 3</text>
+          <rect x="808" y="166" width="144" height="1.5" fill="var(--rule-strong)"/>
+          <text x="880" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">IMPLEMENT · PHASE 4</text>
+        </g>
+
+        <!-- spine polyline -->
+        <polyline fill="none" stroke="var(--muted)" stroke-width="1" opacity=".45" stroke-linejoin="round"
+          points="80,120 112,120 144,120 176,210 208,210 240,210 272,210 304,210 336,210 368,210 400,300 432,300 464,210 496,210 528,210 560,210 592,210 624,300 656,210 688,210 720,300 752,300 784,210 816,300 848,210 880,210 944,210 976,120 1008,300 1040,120"/>
+
+        <!-- travelling particle -->
+        <circle r="3.4" fill="var(--accent)" opacity="0">
+          <animateMotion dur="17s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.6 1"
+            path="M80,120 L112,120 L144,120 L176,210 L208,210 L240,210 L272,210 L304,210 L336,210 L368,210 L400,300 L432,300 L464,210 L496,210 L528,210 L560,210 L592,210 L624,300 L656,210 L688,210 L720,300 L752,300 L784,210 L816,300 L848,210 L880,210 L944,210 L976,120 L1008,300 L1040,120"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.03;.95;1" dur="17s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- gates -->
+        <g>
+          <line x1="240" y1="102" x2="240" y2="318" stroke="var(--ink)" stroke-width="1" opacity=".35"/>
+          <line x1="368" y1="102" x2="368" y2="318" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3" opacity=".75"/>
+          <line x1="496" y1="96"  x2="496" y2="322" stroke="var(--accent)" stroke-width="1.8" stroke-dasharray="5 3">
+            <animate attributeName="opacity" values=".5;1;.5" dur="3.1s" repeatCount="indefinite"/>
+          </line>
+          <line x1="784" y1="102" x2="784" y2="318" stroke="var(--ink)" stroke-width="1" opacity=".35"/>
+        </g>
+        <!-- Stop-hook span -->
+        <line x1="208" y1="252" x2="880" y2="252" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 4" opacity=".5"/>
+        <rect x="392" y="243" width="312" height="18" rx="3" fill="var(--band)"/>
+        <text x="548" y="255.5" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.1" fill="var(--accent)" >STOP HOOK — tf-guard verify, EVERY TURN BOUNDARY</text>
+
+        <g stroke-width="1" opacity=".3" stroke-dasharray="2 3">
+          <line x1="240" y1="318" x2="240" y2="346" stroke="var(--ink)"/>
+          <line x1="368" y1="318" x2="368" y2="346" stroke="var(--accent)"/>
+          <line x1="496" y1="322" x2="496" y2="346" stroke="var(--accent)"/>
+          <line x1="784" y1="318" x2="784" y2="346" stroke="var(--ink)"/>
+        </g>
+        <g text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1">
+          <text x="240" y="358" fill="var(--muted)">ENV GATE</text>
+          <text x="240" y="370" fill="var(--muted)" font-size="8">enforced</text>
+          <text x="368" y="358" fill="var(--accent)">CLARIFY Q&amp;A</text>
+          <text x="368" y="370" fill="var(--accent)" font-size="8">bypassed</text>
+          <text x="496" y="358" fill="var(--accent)" font-weight="700">HUMAN APPROVAL</text>
+          <text x="496" y="370" fill="var(--accent)" font-size="8">bypassed</text>
+          <text x="784" y="358" fill="var(--muted)">SECTION 6</text>
+          <text x="784" y="370" fill="var(--muted)" font-size="8">soft — may flag</text>
+        </g>
+
+        <!-- step dots: harness -->
+        <g fill="var(--paper)" stroke="var(--muted)" stroke-width="1.4">
+          <circle cx="80" cy="120" r="4"/><circle cx="112" cy="120" r="4"/><circle cx="144" cy="120" r="4"/>
+          <circle cx="976" cy="120" r="4"/><circle cx="1040" cy="120" r="4"/>
+        </g>
+        <!-- step dots: orchestrator -->
+        <g fill="var(--ink)">
+          <circle cx="176" cy="210" r="3.4"/><circle cx="208" cy="210" r="3.4"/><circle cx="240" cy="210" r="3.4"/>
+          <circle cx="272" cy="210" r="3.4"/><circle cx="304" cy="210" r="3.4"/><circle cx="336" cy="210" r="3.4"/>
+          <circle cx="368" cy="210" r="3.4"/><circle cx="464" cy="210" r="3.4"/><circle cx="496" cy="210" r="3.4"/>
+          <circle cx="528" cy="210" r="3.4"/><circle cx="560" cy="210" r="3.4"/><circle cx="592" cy="210" r="3.4"/>
+          <circle cx="656" cy="210" r="3.4"/><circle cx="688" cy="210" r="3.4"/><circle cx="784" cy="210" r="3.4"/>
+          <circle cx="848" cy="210" r="3.4"/><circle cx="880" cy="210" r="3.4"/><circle cx="944" cy="210" r="3.4"/>
+        </g>
+        <!-- step dots: subagents, in hue -->
+        <g>
+          <circle cx="400"  cy="300" r="5" fill="var(--h-research)"/>
+          <circle cx="432"  cy="300" r="5" fill="var(--h-design)"/>
+          <circle cx="624"  cy="300" r="5" fill="var(--h-test)"/>
+          <circle cx="720"  cy="300" r="5" fill="var(--h-dev)"/>
+          <circle cx="752"  cy="300" r="4" fill="var(--h-test)" opacity=".55"/>
+          <circle cx="816"  cy="300" r="5" fill="var(--h-val)"/>
+          <circle cx="1008" cy="300" r="5" fill="var(--paper)" stroke="var(--h-judge)" stroke-width="1.6"/>
+        </g>
+
+        <!-- subagent labels -->
+        <g font-family="var(--mono)" font-size="8" text-anchor="middle" letter-spacing=".6">
+          <text x="412"  y="322" fill="var(--h-research)">research ×3–4</text>
+          <text x="444"  y="336" fill="var(--h-design)">design</text>
+          <text x="624"  y="322" fill="var(--h-test)">test-writer</text>
+          <text x="720"  y="322" fill="var(--h-dev)">developer ×N</text>
+          <text x="752"  y="336" fill="var(--h-test)">retry</text>
+          <text x="828"  y="322" fill="var(--h-val)">validator ≤3</text>
+          <text x="1008" y="336" fill="var(--h-judge)">judge · fresh context</text>
+        </g>
+
+        <!-- harness labels -->
+        <g font-family="var(--mono)" font-size="8" text-anchor="middle" fill="var(--muted)">
+          <text x="80"   y="100">case JSON</text>
+          <text x="126"  y="86">throwaway repo</text>
+          <text x="152"  y="100">claude -p</text>
+          <text x="976"  y="100">harvest + checks</text>
+          <text x="1040" y="86">teardown</text>
+        </g>
+        <line x1="144" y1="108" x2="144" y2="116" stroke="var(--accent)" stroke-width="1"/>
+        <rect x="76" y="56" width="150" height="15" rx="7.5" fill="var(--accent-soft)"/>
+        <text x="151" y="66.5" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">--dangerously-skip-permissions</text>
+        <path d="M186,71 C186,90 168,96 152,104" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".5"/>
+
+        <!-- step ruler -->
+        <g font-family="var(--mono)" font-size="8" fill="var(--muted)" text-anchor="middle">
+          <text x="80" y="400">01</text><text x="240" y="400">06</text><text x="400" y="400">11</text>
+          <text x="560" y="400">16</text><text x="720" y="400">21</text><text x="880" y="400">26</text>
+          <text x="1040" y="400">31</text>
+        </g>
+        <line x1="72" y1="388" x2="1048" y2="388" stroke="var(--rule-strong)" stroke-width="1" opacity=".7"/>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 2</b> — 31 runtime steps, 30 as dots · lane = who is executing · dot colour = which subagent</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>The shape matters more than the individual steps. The harness owns both ends, and the skill never learns that it exists — the only channel between them is a prompt file whose text happens to name the skill. Everything between step 4 and step 28 would run identically if a human typed the command.</p>
+
+    <h3>Step by step</h3>
+    <div class="steps">
+      <div class="hx"><span class="n">01</span><span class="t"><span class="who">run-eval.sh</span>Parse case JSON, arm the teardown trap, render the prompt.</span></div>
+      <div class="hx"><span class="n">02</span><span class="t"><span class="who">run-eval.sh</span>Create a private throwaway repo from the eval template.</span></div>
+      <div class="hx"><span class="n">03</span><span class="t"><span class="who">claude-code.sh</span>Launch <b>claude -p</b> headless with permissions skipped.</span></div>
+      <div><span class="n">04</span><span class="t"><span class="who">agent session</span>Prompt line 5 names the skill; the skill loads.</span></div>
+      <div><span class="n">05</span><span class="t"><span class="who">tf-module-e2e</span>PART 1 delegates wholesale to /tf-module-plan.</span></div>
+      <div class="gate"><span class="n">06</span><span class="t"><span class="who">tf-module-plan</span>Bootstrap foundations, then the <b>environment gate</b> — a hard stop, not bypassed.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">tf-module-plan</span>Parse arguments, create the GitHub tracking issue.</span></div>
+      <div><span class="n">08</span><span class="t"><span class="who">tf-module-plan</span>Create the feature branch; its name becomes <b>$FEATURE</b>.</span></div>
+      <div><span class="n">09</span><span class="t"><span class="who">tf-domain-category</span>Scan requirements against the 8-category ambiguity taxonomy.</span></div>
+      <div class="gate"><span class="n">10</span><span class="t"><span class="who">tf-module-plan</span><b>Clarification gate</b> — up to 4 questions, one mandatory on security. Self-bypassed by the prompt.</span></div>
+      <div><span class="n">11</span><span class="t"><span class="who">tf-module-research ×3–4</span>Concurrent research via MCP; one question each.</span></div>
+      <div><span class="n">12</span><span class="t"><span class="who">tf-module-design</span>Reads constitution, template and all research; writes <b>design.md</b>.</span></div>
+      <div><span class="n">13</span><span class="t"><span class="who">tf-module-plan</span>Verify the file exists and all 7 sections are present.</span></div>
+      <div class="gate"><span class="n">14</span><span class="t"><span class="who">tf-module-plan</span><b>Human approval gate</b> — the only thing separating design from code. Skipped in E2E.</span></div>
+      <div><span class="n">15</span><span class="t"><span class="who">tf-module-plan</span>Post issue progress; checkpoint commit.</span></div>
+      <div><span class="n">16</span><span class="t"><span class="who">tf-module-e2e</span>PART 2 delegates to /tf-module-implement.</span></div>
+      <div><span class="n">17</span><span class="t"><span class="who">tf-module-implement</span>Resolve $FEATURE, re-run the env gate, require design.md.</span></div>
+      <div><span class="n">18</span><span class="t"><span class="who">tf-module-test-writer</span>Scaffolding plus four <b>.tftest.hcl</b> files — before any code exists.</span></div>
+      <div><span class="n">19</span><span class="t"><span class="who">tf-module-implement</span>init + <b>validate only</b>. Running the tests here is explicitly forbidden.</span></div>
+      <div><span class="n">20</span><span class="t"><span class="who">tf-module-implement</span>Grep design.md Section 6 for the checklist items.</span></div>
+      <div><span class="n">21</span><span class="t"><span class="who">tf-module-developer ×N</span>One dispatch per checklist item; writes code, ticks its own box.</span></div>
+      <div><span class="n">22</span><span class="t"><span class="who">tf-module-test-writer</span>Re-launched with failures and reported data sources, to add mocks.</span></div>
+      <div class="gate"><span class="n">23</span><span class="t"><span class="who">tf-module-implement</span><b>Section 6 gate</b> — any unticked item must be ticked or the gap flagged; it may proceed either way.</span></div>
+      <div><span class="n">24</span><span class="t"><span class="who">tf-module-validator</span>Conformance, static analysis, 6-dimension score, auto-fix, report.</span></div>
+      <div><span class="n">25</span><span class="t"><span class="who">tf-module-implement</span>Fix and re-launch the validator, maximum 3 rounds.</span></div>
+      <div><span class="n">26</span><span class="t"><span class="who">tf-module-implement</span>Push, create semver labels, open the PR.</span></div>
+      <div class="gate"><span class="n">27</span><span class="t"><span class="who">Stop hook</span>tf-guard verify runs at <b>every</b> turn boundary, for the whole session.</span></div>
+      <div><span class="n">28</span><span class="t"><span class="who">tf-module-e2e</span>Assert Section 6 is complete; print the status line.</span></div>
+      <div class="hx"><span class="n">29</span><span class="t"><span class="who">run-eval.sh</span>Harvest artifacts; run 9 deterministic checks.</span></div>
+      <div class="hx"><span class="n">30</span><span class="t"><span class="who">tf-e2e-judge</span>Fresh read-only session scores the result independently.</span></div>
+      <div class="hx"><span class="n">31</span><span class="t"><span class="who">run-eval.sh</span>Destroy the repo and any deployment; append results.jsonl.</span></div>
+    </div>
+  </div>
+</section>
+<section>
+  <div class="wrap">
+    <div class="snum">03</div>
+    <h2>What each agent knows</h2>
+    <p class="lead">Reference skills are preloaded through agent frontmatter rather than requested at runtime — one orchestrator aside, which loads its taxonomy from its own body. The matrix is sparse on purpose: each actor gets exactly the knowledge its phase needs and nothing else.</p>
+
+    <figure>
+      <div class="scroller">
+      <!-- ===== FIG 3 — reference-skill preload matrix ===== -->
+      <svg viewBox="104 0 796 434" role="img" aria-labelledby="f3t f3d">
+        <title id="f3t">Which reference skills each actor loads</title>
+        <desc id="f3d">A matrix of eight actors against eight reference skills. tf-module-plan loads tf-domain-category from its own body; tf-module-implement loads none. terraform-test is shared by the design and test-writer agents. tf-judge-criteria is the only skill loaded on both sides of the in-workflow boundary, by the validator and by the independent judge. The full list of pairs is given as a table beneath the figure.</desc>
+
+        <g font-family="var(--mono)" font-size="9" fill="var(--muted)">
+          <text transform="translate(330,118) rotate(-52)">tf-research</text>
+          <text transform="translate(400,118) rotate(-52)">tf-architecture-patterns</text>
+          <text transform="translate(470,118) rotate(-52)">tf-security-baselines</text>
+          <text transform="translate(540,118) rotate(-52)" fill="var(--h-test)">terraform-test</text>
+          <text transform="translate(610,118) rotate(-52)">terraform-style-guide</text>
+          <text transform="translate(680,118) rotate(-52)" fill="var(--accent)" font-weight="600">tf-judge-criteria</text>
+          <text transform="translate(750,118) rotate(-52)">tf-report-template</text>
+          <text transform="translate(820,118) rotate(-52)">tf-domain-category</text>
+        </g>
+
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".5">
+          <line x1="330" y1="126" x2="330" y2="392"/><line x1="400" y1="126" x2="400" y2="392"/>
+          <line x1="470" y1="126" x2="470" y2="392"/><line x1="540" y1="126" x2="540" y2="392"/>
+          <line x1="610" y1="126" x2="610" y2="392"/><line x1="680" y1="126" x2="680" y2="392"/>
+          <line x1="750" y1="126" x2="750" y2="392"/><line x1="820" y1="126" x2="820" y2="392"/>
+        </g>
+        <line x1="120" y1="126" x2="856" y2="126" stroke="var(--rule-strong)" stroke-width="1"/>
+
+        <g font-family="var(--mono)" font-size="9.5" text-anchor="end">
+          <text x="306" y="153" fill="var(--muted)">tf-module-plan</text>
+          <text x="306" y="185" fill="var(--muted)">tf-module-implement</text>
+          <text x="306" y="217" fill="var(--h-research)">tf-module-research</text>
+          <text x="306" y="249" fill="var(--h-design)">tf-module-design</text>
+          <text x="306" y="281" fill="var(--h-test)">tf-module-test-writer</text>
+          <text x="306" y="313" fill="var(--h-dev)">tf-module-developer</text>
+          <text x="306" y="345" fill="var(--h-val)">tf-module-validator</text>
+          <text x="306" y="379" fill="var(--h-judge)">tf-e2e-judge</text>
+        </g>
+        <g font-family="var(--mono)" font-size="7" text-anchor="end" fill="var(--muted)">
+          <text x="306" y="163">orchestrator · loads from its own body</text>
+          <text x="306" y="195">orchestrator</text>
+        </g>
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".45">
+          <line x1="120" y1="166" x2="856" y2="166"/><line x1="120" y1="198" x2="856" y2="198"/>
+          <line x1="120" y1="230" x2="856" y2="230"/><line x1="120" y1="262" x2="856" y2="262"/>
+          <line x1="120" y1="294" x2="856" y2="294"/><line x1="120" y1="326" x2="856" y2="326"/>
+        </g>
+
+        <!-- the out-of-band wall, with a knockout so it does not strike its own label -->
+        <line x1="120" y1="359" x2="856" y2="359" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="5 4" opacity=".7"/>
+        <rect x="700" y="351" width="160" height="16" fill="var(--paper)"/>
+        <text x="856" y="363" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1.3" fill="var(--accent)" font-weight="600">OUT-OF-BAND BOUNDARY</text>
+
+        <!-- cells -->
+        <circle cx="820" cy="150" r="5" fill="var(--muted)"/>
+        <text x="330" y="186" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">—</text>
+        <text x="352" y="186" font-family="var(--sans)" font-size="9" fill="var(--muted)">loads no reference skill</text>
+        <circle cx="330" cy="214" r="5" fill="var(--h-research)"/>
+        <circle cx="400" cy="246" r="5" fill="var(--h-design)"/>
+        <circle cx="470" cy="246" r="5" fill="var(--h-design)"/>
+        <circle cx="540" cy="246" r="5" fill="var(--h-design)"/>
+        <circle cx="540" cy="278" r="5" fill="var(--h-test)"/>
+        <circle cx="610" cy="310" r="5" fill="var(--h-dev)"/>
+        <circle cx="680" cy="342" r="5" fill="var(--h-val)"/>
+        <circle cx="750" cy="342" r="5" fill="var(--h-val)"/>
+        <circle cx="680" cy="376" r="5" fill="none" stroke="var(--h-judge)" stroke-width="1.8"/>
+
+        <!-- shared-skill connectors -->
+        <line x1="540" y1="251" x2="540" y2="273" stroke="var(--h-test)" stroke-width="1.4" opacity=".6"/>
+        <line x1="680" y1="347" x2="680" y2="371" stroke="var(--accent)" stroke-width="1.8">
+          <animate attributeName="stroke-opacity" values=".5;1;.5" dur="3.9s" repeatCount="indefinite"/>
+        </line>
+
+        <text x="500" y="418" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--accent)">tf-judge-criteria is the only skill loaded on both sides of the wall — the judge scores against the validator’s own rubric</text>
+      </svg>
+      </div>
+      <figcaption><b>Fig. 3</b> — reference-skill loading · a dot means that actor loads that skill; all but the top row load it through agent frontmatter</figcaption>
+      <div class="sr-only">
+      <table>
+        <caption>Reference skills loaded by each actor</caption>
+        <tbody>
+          <tr><th scope="row">tf-module-plan (orchestrator)</th><td>tf-domain-category, loaded from the skill body rather than frontmatter</td></tr>
+          <tr><th scope="row">tf-module-implement (orchestrator)</th><td>none</td></tr>
+          <tr><th scope="row">tf-module-research</th><td>tf-research</td></tr>
+          <tr><th scope="row">tf-module-design</th><td>tf-architecture-patterns, tf-security-baselines, terraform-test</td></tr>
+          <tr><th scope="row">tf-module-test-writer</th><td>terraform-test</td></tr>
+          <tr><th scope="row">tf-module-developer</th><td>terraform-style-guide</td></tr>
+          <tr><th scope="row">tf-module-validator</th><td>tf-judge-criteria, tf-report-template</td></tr>
+          <tr><th scope="row">tf-e2e-judge (out of band)</th><td>tf-judge-criteria</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </figure>
+
+    <p><code>tf-domain-category</code> is the only reference skill an orchestrator loads directly; everything else arrives through an agent’s frontmatter. The consequential cell is <code>tf-judge-criteria</code>, loaded by both the in-workflow validator and the out-of-band judge. The eval’s independence therefore comes from <strong>fresh context and read-only tools, not from a different standard</strong> — both sides score against the same six weighted dimensions and the same <em>Security below 5.0 → not production ready</em> override.</p>
+  </div>
+</section>
+<!-- ============================================ 4 ============================ -->
+<section>
+  <div class="wrap">
+    <div class="snum">04</div>
+    <h2>Findings</h2>
+    <p class="lead">Produced by an independent review pass over the same source files, then verified edge by edge against the code.</p>
+
+    <div class="finding">
+      <div class="sev lo">Low</div>
+      <div>
+        <h3>The module track has a third of the eval coverage the consumer track has</h3>
+        <p>The consumer track wires all six of its prompts to cases, one to one. The module track ships eight prompts and two cases — only <code>example_s3.md</code> and <code>example_bedrock_agentcore.md</code> are graded. The other six are runnable by hand (<code>/tf-module-e2e example_ec2</code>) but nothing scores them.</p>
+        <p>Not obviously a defect: each case carries per-prompt judge assertions that have to be written from that prompt's requirements, and every added case doubles down on suite cost. The committed suite — two module cases plus the consumer track’s six — looks like a deliberate trade-off — it is just nowhere recorded as one, which is why the gap reads as an oversight.</p>
+        <p>Both committed module cases also set <code>sandbox.deploy=false</code>, so the module track never provisions real infrastructure; deploy and teardown are exercised by the consumer track alone. That is by design — the module workflow is verified through <code>terraform test</code> and static analysis.</p>
+        <span class="cite">evals/e2e/cases/ · .claude/skills/tf-module-e2e/prompts/ · evals/e2e/README.md</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>How this page was produced.</strong> Six parallel extraction agents read the skill, its two parent skills, the six agent definitions, the hook layer and the project’s orchestration rules independently. A reconciliation pass merged their output into a single graph of 69 nodes and 118 edges, re-opened the cited files for the most load-bearing relationships, and discarded the edges that did not hold up. Every claim above traces to a file and line; the diagrams are drawn from that graph rather than from prose. Its sibling covers the <a href="tf-consumer-e2e.html">consumer track</a>.</p>
+    <div class="files">
+      <b>Skill</b> &nbsp;.claude/skills/tf-module-e2e/SKILL.md<br>
+      <b>Parents</b> &nbsp;.claude/skills/tf-module-plan/ · .claude/skills/tf-module-implement/<br>
+      <b>Agents</b> &nbsp;.claude/agents/tf-module-{research,design,test-writer,developer,validator}.md · tf-e2e-judge.md<br>
+      <b>Hooks</b> &nbsp;.claude/settings.json · .claude/hooks/deny-config-files.sh · scripts/hooks/tf-guard.sh · .githooks/pre-commit<br>
+      <b>Harness</b> &nbsp;evals/e2e/bin/run-eval.sh · adapters/ · cases/ · judge/<br>
+      <b>Rules</b> &nbsp;AGENTS.md · .claude/CLAUDE.md
+    </div>
+  </div>
+</footer>
+
+<script>
+/* prefers-reduced-motion: display:none does not stop SMIL in Chromium,
+   so pause the animation timeline on each SVG instead. */
+(function () {
+  var q = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function apply() {
+    document.querySelectorAll('svg').forEach(function (s) {
+      if (typeof s.pauseAnimations !== 'function') return;
+      if (q.matches) { s.setCurrentTime(0); s.pauseAnimations(); }
+      else { s.unpauseAnimations(); }
+    });
+  }
+  apply();
+  q.addEventListener ? q.addEventListener('change', apply) : q.addListener(apply);
+})();
+</script>
+</body>
+</html>
