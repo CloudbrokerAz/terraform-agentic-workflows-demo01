@@ -111,6 +111,32 @@ Adjust the `--volume=` entry in [`../devcontainer.json`](../devcontainer.json)
 if yours differs. The in-image podman-in-podman stack is left in place for the
 native `../bob-podman` variant but is unused here.
 
+## The server-install race
+
+Bob installs its remote-extension-host server into `~/.bobide-server-insiders`
+on first attach, and allows the install script roughly **60 seconds**. IBM's QA
+endpoint serves the ~110 MB tarball at about 1.9 MB/s — measured at **59s**
+from inside the container. Losing that race gives:
+
+```
+Failed to connect to the remote extension host server
+(Error: Server install script failed with exit code 1)
+```
+
+with an empty `~/.bobide-server-insiders/bin/<commit>/` left behind — the same
+symptom as a genuinely missing server, which makes it easy to misdiagnose.
+Extraction is only 2s; the download is the whole problem.
+
+`../devcontainer.json` mounts a named volume at that path so the server
+survives container rebuilds. Fill it once, without the timeout, with:
+
+```bash
+bash .devcontainer/scripts/seed-bob-server.sh
+```
+
+It derives the version, commit and download URL from the installed Bob app's
+`product.json`, so re-run it after Bob updates — the server is keyed by commit.
+
 ## Prerequisites
 
 - Podman 4.x+ (rootless) with the socket service running, and **Rosetta enabled**

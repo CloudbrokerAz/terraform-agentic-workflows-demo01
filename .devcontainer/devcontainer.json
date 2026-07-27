@@ -78,6 +78,22 @@
     "--env=DOCKER_HOST=unix:///run/podman/podman.sock",
     "--env=CONTAINER_HOST=unix:///run/podman/podman.sock",
 
+    // --- persist Bob's remote-extension-host server ---
+    // Bob installs its REH server into ~/.bobide-server-insiders on connect,
+    // and gives the install script roughly 60s. IBM's QA endpoint serves the
+    // 110 MB tarball at ~1.9 MB/s -- measured at 59s in-container, i.e. right
+    // on the limit. Losing that race gives:
+    //   Failed to connect to the remote extension host server
+    //   (Error: Server install script failed with exit code 1)
+    // with an empty ~/.bobide-server-insiders/bin/<commit>/ left behind.
+    // Extraction is only 2s; the download is the whole problem.
+    //
+    // A named volume keeps the server across container rebuilds, so the race
+    // happens at most once per Bob version rather than on every rebuild.
+    // Seed it without the timeout pressure using:
+    //   .devcontainer/scripts/seed-bob-server.sh
+    "--volume=bob-server-insiders:/home/node/.bobide-server-insiders",
+
     // --- stands in for the ignored containerEnv ---
     "--env=XDG_CONFIG_HOME=/workspace/${localWorkspaceFolderBasename}",
 
