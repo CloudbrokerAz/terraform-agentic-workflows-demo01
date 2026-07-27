@@ -29,6 +29,15 @@
 
 This repository is a **Terraform development template** using **SDD** (Spec-Driven Development, 4-phase workflow). It supports four workflows: **module authoring** (raw resources with secure defaults), **provider development** (Plugin Framework resources), **consumer provisioning** (composing infrastructure from private registry modules), and **policy development** (tfpolicy policy-as-code for HCP Terraform). All workflows share the same 4-phase structure: Clarify, Design, Implement, Validate.
 
+> **Coverage is not symmetric.** Only the module and consumer workflows have an e2e
+> harness (`tf-module-e2e`, `tf-consumer-e2e`) and eval cases under `evals/e2e/cases/`,
+> so only those two are ever run end to end and scored by an independent judge. The
+> provider and policy workflows have the same agents, constitutions and templates, but
+> no automated end-to-end run. The `tf-guard` hooks are also `*.tf`-scoped: on a turn
+> that writes only `.policy.hcl` or `.go` files, everything except the private-key scan
+> and the commit-boundary checks no-ops. Treat quality claims for those two tracks as
+> agent-asserted rather than machine-verified.
+
 ## Shell Safety
 
 Never generate shell commands containing dangerous bash parameter expansion patterns. These trigger Copilot CLI security warnings and can enable arbitrary code execution (CVE-2026-29783):

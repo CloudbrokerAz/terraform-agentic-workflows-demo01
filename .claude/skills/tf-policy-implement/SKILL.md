@@ -15,7 +15,7 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 ## Prerequisites
 
 1. Resolve `$FEATURE` from `$ARGUMENTS` or current git branch name.
-2. **Bootstrap `.foundations`** (no-op when running from the template repo where `.foundations/` already exists): run `LINK="${CLAUDE_PLUGIN_ROOT}/scripts/link-foundations.sh"; [ -f "$LINK" ] && bash "$LINK" || true` to point `.foundations/` at the installed plugin so the repo-relative paths below resolve. Then run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`.
+2. **Bootstrap `.foundations`** (no-op when running from the template repo where `.foundations/` already exists): run `LINK="${CLAUDE_PLUGIN_ROOT}/scripts/link-foundations.sh"; [ -f "$LINK" ] && bash "$LINK" || true` to point `.foundations/` at the installed plugin so the repo-relative paths below resolve. Then run `bash .foundations/scripts/bash/validate-env.sh --json`. Stop if `gate_passed=false`. Then verify the policy engine is available: `tfpolicy version`. Stop if it is not installed rather than discovering it mid-loop at step 6.
 3. Verify `specs/{FEATURE}/policy-design.md` exists via Glob. Stop if missing — tell user to run `/tf-policy-plan` first.
 4. Find `$ISSUE_NUMBER` from `$ARGUMENTS` or `gh issue list --search "$FEATURE"`.
 
@@ -29,7 +29,7 @@ Checkpoint after each phase: `bash .foundations/scripts/bash/checkpoint-commit.s
 
 8. **Iterate the checklist**: For each unchecked item in declared order:
    - Launch `tf-policy-developer` agent with `$ARGUMENTS = "FEATURE=<path> ITEM=<id>: <description>"`.
-   - When it completes, run `tfpolicy validate --policies=policies/`. If it fails (and the failure is not the documented hard-block-gate exception), pause and re-launch the developer with the error output as context — max 2 retries per item.
+   - When it completes, run `tfpolicy validate --policies=policies/`. If it fails, pause and re-launch the developer with the error output as context — max 2 retries per item. A validate failure is always blocking: there is no carve-out.
    - Run `tfpolicy test --policies=policies/ --tests=tests/`. Capture pass/fail counts but do NOT block on test failures yet — later items may still need to land. Surface progress.
    - Checkpoint commit (`"checklist-item-<id>"`).
    - Use concurrent subagents only for independent items whose file scopes don't overlap. Item A almost always blocks B/C (scaffolding precedes filling), so default to sequential unless the design clearly separates files.

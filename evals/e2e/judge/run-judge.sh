@@ -61,8 +61,13 @@ render > "$OUT/judge-prompt.md"
 invoke_judge() {
   (
     cd "$WORKDIR" || exit 97
+    # disableAllHooks: the workdir carries the workflow's .claude/settings.json,
+    # whose Stop hook (tf-guard.sh verify) would otherwise run at the end of the
+    # judge session and block its JSON-only turn on findings in the graded code.
+    # The judge is read-only, so it needs none of the workflow's hooks.
     run_with_timeout 1800 claude -p "$(cat "$OUT/judge-prompt.md")${1:-}" \
       --output-format json \
+      --settings '{"disableAllHooks": true}' \
       --allowedTools "Skill,Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(terraform providers:*)" \
       ${JUDGE_MODEL:+--model "$JUDGE_MODEL"}
   )

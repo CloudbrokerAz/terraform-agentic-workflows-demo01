@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tf-consumer-e2e — Workflow Anatomy</title>
+<meta name="description" content="How the tf-consumer-e2e skill actually runs: skills, subagents, hooks, the sandbox deploy and the three teardown paths, mapped from source.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --paper:#FAFAF8;      --band:#F2F0EB;
+  --ink:#16161A;        --body:#3C3A36;      --muted:#5C5952;   --faint:#6E6A63;
+  --rule:#E3DFD8;       --rule-soft:#EDEAE4; --rule-strong:#8F887C;
+  --accent:#C4283A;     --accent-soft:rgba(196,40,58,.09);
+  --h-research:#995F2A; --h-design:#6B3FA0;  --h-test:#1A6B7A;
+  --h-dev:#1F5C8B;      --h-val:#2D7A4F;     --h-judge:#5B5F6B;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --col:860px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#131316;    --band:#1A1A1E;
+    --ink:#F2F0EC;      --body:#C9C5BE;      --muted:#B0ABA3;   --faint:#8B867E;
+    --rule:#2E2E34;     --rule-soft:#26262B; --rule-strong:#6A6A75;
+    --accent:#F0596B;   --accent-soft:rgba(240,89,107,.13);
+    --h-research:#D99A57;--h-design:#A97DD8; --h-test:#4FA8BC;
+    --h-dev:#5C9BD1;    --h-val:#5FB585;     --h-judge:#9AA0AD;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131316;--band:#1A1A1E;--ink:#F2F0EC;--body:#C9C5BE;
+  --muted:#B0ABA3;--faint:#8B867E;--rule:#2E2E34;--rule-soft:#26262B;--rule-strong:#6A6A75;
+  --accent:#F0596B;--accent-soft:rgba(240,89,107,.13);
+  --h-research:#D99A57;--h-design:#A97DD8;--h-test:#4FA8BC;
+  --h-dev:#5C9BD1;--h-val:#5FB585;--h-judge:#9AA0AD;
+}
+:root[data-theme="light"]{
+  --paper:#FAFAF8;--band:#F2F0EB;--ink:#16161A;--body:#3C3A36;
+  --muted:#5C5952;--faint:#6E6A63;--rule:#E3DFD8;--rule-soft:#EDEAE4;--rule-strong:#8F887C;
+  --accent:#C4283A;--accent-soft:rgba(196,40,58,.09);
+  --h-research:#995F2A;--h-design:#6B3FA0;--h-test:#1A6B7A;
+  --h-dev:#1F5C8B;--h-val:#2D7A4F;--h-judge:#5B5F6B;
+}
+
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);color:var(--body);
+  font-family:var(--sans);font-size:17px;line-height:1.7;
+  overflow-x:hidden;
+}
+
+/* ---------- shell ---------- */
+.wrap{max-width:var(--col);margin:0 auto;padding:0 28px}
+.bleed{width:100%;padding:52px 0;border-top:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);background:var(--band);margin:56px 0}
+.bleed .wrap{max-width:1216px}
+
+/* ---------- masthead ---------- */
+header.mast{padding:76px 0 0}
+.eyebrow{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:2.6px;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(38px,6vw,62px);line-height:1.04;letter-spacing:-.02em;color:var(--ink);margin:18px 0 0}
+h1 .mono{font-family:var(--mono);font-weight:600;font-size:.62em;letter-spacing:-.01em}
+.dek{font-size:20px;line-height:1.6;color:var(--muted);max-width:640px;margin:22px 0 0;font-weight:300}
+.dek em{font-style:italic;color:var(--ink)}
+
+.meta{display:flex;flex-wrap:wrap;margin:40px 0 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.meta>div{flex:1 1 130px;padding:14px 18px 14px 0;border-left:1px solid var(--rule-soft);padding-left:18px}
+.meta>div:first-child{border-left:0;padding-left:0}
+.meta dt{font-family:var(--mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);display:block}
+.meta dd{font-family:var(--mono);font-size:13px;color:var(--ink);margin-top:5px;font-weight:500}
+
+/* ---------- sections ---------- */
+section{padding:58px 0 0}
+.snum{font-family:var(--mono);font-size:10px;letter-spacing:2.4px;color:var(--accent);font-weight:600}
+h2{font-family:var(--serif);font-weight:700;font-size:34px;line-height:1.18;letter-spacing:-.015em;color:var(--ink);margin:10px 0 0}
+h3{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.02em;color:var(--ink);margin:34px 0 8px}
+.finding h3{margin:0 0 6px}
+p{margin:18px 0 0;max-width:66ch}
+p.lead{font-size:19px;color:var(--muted);font-weight:300}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:currentColor}
+code{font-family:var(--mono);font-size:.86em;background:var(--rule-soft);padding:1.5px 5px;border-radius:3px;color:var(--ink);overflow-wrap:anywhere}
+strong{color:var(--ink);font-weight:600}
+
+/* ---------- figures ---------- */
+figure{margin:34px 0 0}
+.bleed figure{margin:0}
+figure svg{display:block;width:100%;height:auto;overflow:visible}
+figcaption{font-family:var(--mono);font-size:10px;letter-spacing:1.3px;color:var(--faint);margin-top:16px;text-transform:uppercase}
+figcaption b{color:var(--muted);font-weight:600}
+.scroller{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.scroller>svg{min-width:100%}
+.bleed .scroller>svg{min-width:1160px}
+.scrollnote{display:none;font-family:var(--mono);font-size:10px;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--muted);margin-top:10px}
+@media (max-width:1215px){.bleed .scrollnote{display:block}}
+
+/* ---------- findings ---------- */
+.finding{border-top:1px solid var(--rule);padding:22px 0 20px;display:grid;grid-template-columns:96px 1fr;gap:22px}
+.finding:last-of-type{border-bottom:1px solid var(--rule)}
+.sev{font-family:var(--mono);font-size:9px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;padding-top:3px}
+.sev.hi{color:var(--accent)}.sev.md{color:var(--h-research)}.sev.lo{color:var(--muted)}
+.finding h3{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--ink);margin:0 0 6px}
+.finding p{margin:0;font-size:15px;line-height:1.62}
+.finding p+p{margin-top:9px}
+.cite{font-family:var(--mono);font-size:11px;color:var(--faint);display:block;margin-top:9px;overflow-wrap:anywhere}
+
+/* ---------- step reference ---------- */
+.steps{columns:2;column-gap:44px;margin:30px 0 0;border-top:1px solid var(--rule);padding-top:22px}
+.steps div{break-inside:avoid;display:grid;grid-template-columns:26px 1fr;gap:10px;padding:5px 0;font-size:14px;line-height:1.5}
+.steps .n{font-family:var(--mono);font-size:10px;color:var(--faint);padding-top:4px;font-weight:600}
+.steps .t{color:var(--body)}
+.steps .t b{color:var(--ink);font-weight:600}
+.steps .t .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.3px;display:block;color:var(--muted)}
+.steps div.hx .n,.steps div.hx .t .who{color:var(--faint)}
+.steps div.hx .t{color:var(--muted)}
+.steps div.gate .n{color:var(--accent)}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0}
+
+/* ---------- footer ---------- */
+footer{margin-top:72px;border-top:1px solid var(--rule);padding:34px 0 80px}
+footer p{font-size:13.5px;color:var(--muted);max-width:70ch}
+footer .files{font-family:var(--mono);font-size:11.5px;line-height:1.9;color:var(--faint);margin-top:18px;overflow-wrap:anywhere}
+footer .files b{color:var(--muted);font-weight:500}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .steps{columns:1}
+  .meta div{flex-basis:50%}
+  .meta>div:nth-child(odd){border-left:0;padding-left:0}
+  .finding{grid-template-columns:1fr;gap:6px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="wrap">
+    <div class="eyebrow">Workflow anatomy · Terraform agentic workflows</div>
+    <h1><span class="mono">tf-consumer-e2e</span><br>What actually runs</h1>
+    <p class="dek">The consumer track’s sibling of the module harness — and the one that stands real infrastructure up. A 43-line skill file reaches four subagents, eight reference skills and four guard hooks, deploys to an HCP Terraform sandbox, and relies on something outside itself to tear that sandbox down again.</p>
+
+    <dl class="meta">
+      <div><dt>Entry point</dt><dd>/tf-consumer-e2e</dd></div>
+      <div><dt>Skill file</dt><dd>43 lines</dd></div>
+      <div><dt>Subagents</dt><dd>4 + 1 judge</dd></div>
+      <div><dt>Ref. skills</dt><dd>8</dd></div>
+      <div><dt>Hooks</dt><dd>3 + 1 git</dd></div>
+      <div><dt>Runtime steps</dt><dd>29</dd></div>
+    </dl>
+  </div>
+</header>
+
+<main>
+
+<!-- ============================================ 1 ============================ -->
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">01</div>
+    <h2 style="margin-bottom:8px">From a request to live infrastructure</h2>
+    <p class="lead" style="margin-top:6px;max-width:74ch">You invoke two orchestrating skills in turn; they dispatch four subagents, with one more kept deliberately outside. One agent fewer than the module track — there is no test-writer, because this track proves itself by deploying rather than by testing.</p>
+
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1160 640" role="img" aria-labelledby="c1t c1d">
+        <title id="c1t">Delegation and hook interception for tf-consumer-e2e</title>
+        <desc id="c1d">A human invokes each of the two orchestrating skills in turn and approves the design between them, so the approval gate fires on this path. The e2e skill sits in the eval column and drives the same two skills in one session with the gate bypassed, which is what the harness uses. The orchestrating skills, which dispatch four subagents: research, design, developer and validator. Everything they write passes through a PreToolUse deny hook and a PostToolUse fix hook, with a git pre-commit hook and a Stop hook firing at session level. The e2e judge sits outside the boundary, launched by the eval harness with hooks disabled, and is forbidden from reading the quality-score and narrative sections of the validator's deployment report.</desc>
+
+        <rect x="930" y="26" width="200" height="532" rx="6" fill="none" stroke="var(--h-judge)" stroke-width="1" stroke-dasharray="5 4" opacity=".55"/>
+        <text x="1030" y="20" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.6" fill="var(--h-judge)">EVAL PATH &#183; OUT OF BAND</text>
+
+        <circle cx="480" cy="58" r="15" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".3"/>
+        <circle cx="480" cy="58" r="7" fill="var(--accent)"/>
+        <text x="504" y="54" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--accent)" letter-spacing=".4">THE HUMAN</text>
+        <text x="504" y="68" font-family="var(--sans)" font-size="10" fill="var(--body)">invokes each half and approves the design in between</text>
+        <text x="248" y="104" text-anchor="end" font-family="var(--mono)" font-size="8" fill="var(--accent)">invocation 1 &#183; /tf-consumer-plan</text>
+        <text x="712" y="104" font-family="var(--mono)" font-size="8" fill="var(--accent)">invocation 2 &#183; /tf-consumer-implement</text>
+
+        <path d="M480,73 C480,112 300,110 300,152" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/>
+        <path d="M480,73 C480,112 660,110 660,152" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/>
+        <circle r="3" fill="var(--accent)" opacity="0"><animateMotion dur="3.2s" repeatCount="indefinite" begin="0s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M480,73 C480,112 300,110 300,152"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.2s" repeatCount="indefinite" begin="0s"/></circle>
+        <circle r="3" fill="var(--accent)" opacity="0"><animateMotion dur="3.6s" repeatCount="indefinite" begin="1.6s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M480,73 C480,112 660,110 660,152"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.6s" repeatCount="indefinite" begin="1.6s"/></circle>
+
+        <circle cx="300" cy="158" r="6" fill="var(--ink)"/>
+        <text x="284" y="155" text-anchor="end" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">tf-consumer-plan</text>
+        <text x="284" y="168" text-anchor="end" font-family="var(--sans)" font-size="9.5" fill="var(--faint)">SDD phases 1–2 · 44 lines</text>
+        <circle cx="660" cy="158" r="6" fill="var(--ink)"/>
+        <text x="676" y="155" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">tf-consumer-implement</text>
+        <text x="676" y="168" font-family="var(--sans)" font-size="9.5" fill="var(--faint)">SDD phases 3–4 · 59 lines · deploys</text>
+
+        <line x1="380" y1="158" x2="446" y2="158" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <line x1="514" y1="158" x2="600" y2="158" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <rect x="450" y="142" width="60" height="34" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3">
+          <animate attributeName="stroke-opacity" values=".45;1;.45" dur="3.4s" repeatCount="indefinite"/>
+        </rect>
+        <text x="480" y="157" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">HUMAN</text>
+        <text x="480" y="168" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">GATE</text>
+        <text x="480" y="189" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">fires — you approve here</text>
+
+        <g fill="none" stroke-width="1.1" opacity=".42">
+          <path d="M300,164 C300,222 170,214 170,266" stroke="var(--h-research)"/>
+          <path d="M300,164 C300,220 380,220 380,266" stroke="var(--h-design)"/>
+          <path d="M660,164 C660,222 590,214 590,266" stroke="var(--h-dev)"/>
+          <path d="M660,164 C660,222 800,214 800,266" stroke="var(--h-val)"/>
+        </g>
+        <path d="M1030,64 L1030,260" stroke="var(--h-judge)" stroke-width="1.1" opacity=".42" fill="none" stroke-dasharray="4 3"/>
+        <rect x="994" y="78" width="72" height="12" fill="var(--band)"/>
+        <text x="1030" y="52" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--h-judge)">prompts/consumer_*.md</text>
+        <line x1="1030" y1="58" x2="1030" y2="76" stroke="var(--h-judge)" stroke-width="1" stroke-dasharray="3 3" opacity=".45"/>
+        <text x="1030" y="90" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-judge)">run-eval.sh</text>
+        <circle cx="1030" cy="120" r="12" fill="none" stroke="var(--h-judge)" stroke-width="1" opacity=".3"/>
+        <circle cx="1030" cy="120" r="5.5" fill="var(--h-judge)"/>
+        <text x="1030" y="106" text-anchor="middle" font-family="var(--mono)" font-size="9.5" font-weight="700" fill="var(--h-judge)">tf-consumer-e2e</text>
+        <text x="1030" y="142" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">43 lines · runs both halves in</text>
+        <text x="1030" y="154" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">one session, for evals only</text>
+        <path d="M1018,132 C980,170 950,196 920,204" fill="none" stroke="var(--h-judge)" stroke-width="1" stroke-dasharray="4 3" opacity=".5"/>
+        <line x1="920" y1="204" x2="574" y2="204" stroke="var(--h-judge)" stroke-width="1" stroke-dasharray="4 3" opacity=".5"/>
+        <polygon points="574,201 566,204 574,207" fill="var(--h-judge)" opacity=".65"/>
+        <text x="748" y="198" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-judge)">eval path — the same two skills, one session, gate bypassed</text>
+
+        <circle r="3" fill="var(--h-research)" opacity="0">
+          <animateMotion dur="2.9s" repeatCount="indefinite" begin="0s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M300,164 C300,222 170,214 170,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="2.9s" repeatCount="indefinite" begin="0s"/>
+        </circle>
+        <circle r="3" fill="var(--h-design)" opacity="0">
+          <animateMotion dur="3.4s" repeatCount="indefinite" begin="0.4s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M300,164 C300,220 380,220 380,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.4s" repeatCount="indefinite" begin="0.4s"/>
+        </circle>
+        <circle r="3" fill="var(--h-dev)" opacity="0">
+          <animateMotion dur="2.6s" repeatCount="indefinite" begin="1.3s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M660,164 C660,222 590,214 590,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="2.6s" repeatCount="indefinite" begin="1.3s"/>
+        </circle>
+        <circle r="3" fill="var(--h-val)" opacity="0">
+          <animateMotion dur="3.7s" repeatCount="indefinite" begin="2.1s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M660,164 C660,222 800,214 800,266"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.7s" repeatCount="indefinite" begin="2.1s"/>
+        </circle>
+
+        <g>
+          <circle cx="170"  cy="272" r="16" fill="var(--h-research)" opacity=".12"/><circle cx="170" cy="272" r="6" fill="var(--h-research)"/>
+          <circle cx="380"  cy="272" r="16" fill="var(--h-design)"   opacity=".12"/><circle cx="380" cy="272" r="6" fill="var(--h-design)"/>
+          <circle cx="590"  cy="272" r="16" fill="var(--h-dev)"      opacity=".12"/><circle cx="590" cy="272" r="6" fill="var(--h-dev)"/>
+          <circle cx="800"  cy="272" r="16" fill="var(--h-val)"      opacity=".12"/><circle cx="800" cy="272" r="6" fill="var(--h-val)"/>
+          <circle cx="1030" cy="272" r="16" fill="var(--h-judge)"    opacity=".1"/>
+          <circle cx="1030" cy="272" r="6" fill="none" stroke="var(--h-judge)" stroke-width="1.6"/>
+        </g>
+        <g text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4">
+          <text x="170"  y="304" fill="var(--h-research)">RESEARCH</text>
+          <text x="380"  y="304" fill="var(--h-design)">DESIGN</text>
+          <text x="590"  y="304" fill="var(--h-dev)">DEVELOPER</text>
+          <text x="800"  y="304" fill="var(--h-val)">VALIDATOR</text>
+          <text x="1030" y="304" fill="var(--h-judge)">E2E-JUDGE</text>
+        </g>
+        <g text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">
+          <text x="170"  y="319">×3–4, pinned to foreground</text>
+          <text x="170"  y="331">9 terraform MCP tools</text>
+          <text x="170"  y="343">private registry discovery</text>
+          <text x="380"  y="319">one pass, retried once</text>
+          <text x="380"  y="331">zero MCP tools by design</text>
+          <text x="380"  y="343">writes all six sections</text>
+          <text x="590"  y="319">one dispatch per checklist item</text>
+          <text x="590"  y="331">modules only, five glue resources</text>
+          <text x="590"  y="343">writes no tests, ever</text>
+          <text x="800"  y="319">up to three rounds</text>
+          <text x="800"  y="331">inspects the live HCP run</text>
+          <text x="800"  y="343">scores, never fixes</text>
+          <text x="1030" y="319" fill="var(--h-judge)">fresh context, read-only</text>
+          <text x="1030" y="331" fill="var(--h-judge)">hooks disabled</text>
+          <text x="1030" y="343" fill="var(--h-judge)">forbidden: score + narrative</text>
+        </g>
+
+        <rect x="92" y="364" width="816" height="112" rx="6" fill="var(--accent-soft)"/>
+        <text x="60" y="62" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">ENTRY</text>
+        <text x="60" y="162" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">SKILLS</text>
+        <text x="60" y="276" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">AGENTS</text>
+        <text x="60" y="357" font-family="var(--mono)" font-size="8" letter-spacing="2" fill="var(--accent)" font-weight="700">HOOKS</text>
+
+        <g stroke-width="1.2" opacity=".55" stroke-dasharray="2 3">
+          <line x1="170" y1="350" x2="170" y2="419" stroke="var(--h-research)"/>
+          <line x1="380" y1="350" x2="380" y2="419" stroke="var(--h-design)"/>
+          <line x1="590" y1="350" x2="590" y2="419" stroke="var(--h-dev)"/>
+          <line x1="800" y1="350" x2="800" y2="419" stroke="var(--h-val)"/>
+        </g>
+        <g opacity=".9">
+          <circle cx="170" cy="392.5" r="2.6" fill="var(--h-research)"/>
+          <circle cx="380" cy="392.5" r="2.6" fill="var(--h-design)"/>
+          <circle cx="590" cy="392.5" r="2.6" fill="var(--h-dev)"/>
+          <circle cx="800" cy="392.5" r="2.6" fill="var(--h-val)"/>
+        </g>
+
+        <rect x="100" y="370" width="800" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-opacity=".55"/>
+        <text x="110" y="383" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">PreToolUse</text>
+        <text x="500" y="383" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">deny-config-files</tspan> — blocks writes to .gitignore · .tflint.hcl · .mcp.json · .pre-commit-config.yaml</text>
+        <text x="890" y="383" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">DENIES THE CALL</text>
+
+        <rect x="100" y="396" width="800" height="19" rx="9.5" fill="var(--band)" stroke="var(--muted)" stroke-width="1" stroke-opacity=".55"/>
+        <text x="110" y="409" font-family="var(--mono)" font-size="8" fill="var(--muted)" font-weight="600">PostToolUse</text>
+        <text x="500" y="409" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard fix</tspan> — terraform fmt, terraform-docs README inject, trailing-newline repair</text>
+        <text x="890" y="409" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--muted)" font-weight="700">MUTATES, RARELY FAILS</text>
+
+        <rect x="100" y="422" width="800" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"/>
+        <text x="110" y="435" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">git pre-commit</text>
+        <text x="500" y="435" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard commit</tspan> — Vault Radar secret scan and staged-file hygiene, on every checkpoint commit</text>
+        <text x="890" y="435" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">ABORTS THE COMMIT</text>
+
+        <rect x="100" y="448" width="800" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3">
+          <animate attributeName="stroke-opacity" values=".45;1;.45" dur="3.3s" repeatCount="indefinite"/>
+        </rect>
+        <text x="110" y="461" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">Stop</text>
+        <text x="500" y="461" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard verify</tspan> — validate · tflint · trivy · private-key scan, all four unconditionally</text>
+        <text x="890" y="461" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">BLOCKS THE TURN END</text>
+
+        <text x="500" y="490" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.1" fill="var(--muted)">SOLID — EVERY WRITE/EDIT TOOL CALL &#160;·&#160; DASHED — SESSION LEVEL &#160;·&#160; NO SUBAGENTSTOP ENTRY, SO FINDINGS SURFACE LATE AND IN AGGREGATE</text>
+
+        <line x1="60" y1="508" x2="922" y2="508" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <line x1="938" y1="508" x2="1122" y2="508" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <text x="60" y="502" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">WRITES</text>
+        <g text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">
+          <text x="170"  y="526">research-*.md</text>
+          <text x="590"  y="526">*.tf at repo root</text>
+          <text x="800"  y="526">deployment-report.md</text>
+          <text x="1030" y="526">verdict JSON</text>
+        </g>
+        <rect x="322" y="514" width="116" height="18" rx="9" fill="var(--ink)" opacity=".08"/>
+        <text x="380" y="527" text-anchor="middle" font-family="var(--mono)" font-size="9" font-weight="700" fill="var(--ink)">consumer-design.md</text>
+        <text x="380" y="546" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.3" fill="var(--ink)">SINGLE SOURCE OF TRUTH</text>
+
+        <g fill="none" stroke="var(--ink)" stroke-width="1" opacity=".32" stroke-dasharray="3 3">
+          <path d="M390,550 C440,586 540,586 588,554"/>
+          <path d="M394,552 C480,598 700,598 798,554"/>
+          <path d="M398,554 C520,614 900,614 1028,554"/>
+        </g>
+        <text x="660" y="618" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--muted)">read back by the developer, the validator and the judge</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 1</b> — delegation, the one artifact everyone reads, and the guard layers between an agent and the disk</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>Two of these agents are shaped by a constraint the module track does not have. The <strong>design agent holds zero MCP tools by design</strong>, so every fact about a private registry module reaches it second-hand through <code>research-*.md</code> — the research lane is the only thing standing between the design and invented module inputs. The <strong>validator inspects a live cloud run</strong>, not just files: it is handed a run ID and workspace name and queries HCP Terraform directly, and unlike its module counterpart it is forbidden from fixing anything it finds.</p>
+  </div>
+</section>
+
+<!-- ============================================ 2 ============================ -->
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">02</div>
+    <h2 style="margin-bottom:8px">The runtime spine</h2>
+    <p class="lead" style="margin-top:6px;max-width:72ch">Twenty-nine steps across three tiers. Eleven belong to the harness — four before the session starts and seven after it ends — and everything that guarantees the sandbox does not survive lives in that second group.</p>
+
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1120 424" role="img" aria-labelledby="c2t c2d">
+        <title id="c2t">Runtime sequence of a tf-consumer-e2e run</title>
+        <desc id="c2d">Twenty-nine steps on three lanes — eval harness, orchestrating skills, and subagents. Steps 1 to 4 and 23 to 29 belong to the harness only. The Stop hook is drawn as a span rather than numbered, because it recurs at every turn boundary rather than happening once. The clarification and human-approval gates are bypassed. Live infrastructure exists from the apply at step 17 until the harness teardown at step 27.</desc>
+
+        <rect x="64" y="56" width="128" height="290" fill="var(--rule)" opacity=".3"/>
+        <rect x="768" y="56" width="224" height="290" fill="var(--rule)" opacity=".3"/>
+        <text x="128" y="50" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.4" fill="var(--muted)">HARNESS ONLY</text>
+        <text x="880" y="50" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.4" fill="var(--muted)">HARNESS ONLY</text>
+
+        <g stroke="var(--rule-strong)" stroke-width="1">
+          <line x1="72" y1="120" x2="1048" y2="120"/>
+          <line x1="72" y1="210" x2="1048" y2="210"/>
+          <line x1="72" y1="300" x2="1048" y2="300"/>
+        </g>
+        <g font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--muted)">
+          <text x="4" y="117">HARNESS</text>
+          <text x="4" y="207">ORCHESTRATOR</text>
+          <text x="4" y="297">SUBAGENTS</text>
+        </g>
+
+
+
+        <polyline fill="none" stroke="var(--muted)" stroke-width="1" opacity=".45" stroke-linejoin="round" points="80,120 112,120 144,120 176,120 208,210 240,210 272,210 304,210 336,300 368,300 400,210 432,210 464,210 496,300 528,210 560,210 592,210 624,300 656,210 688,210 720,210 752,210 784,120 816,120 848,120 880,300 912,120 944,120 976,120"/>
+        <circle r="3.4" fill="var(--accent)" opacity="0">
+          <animateMotion dur="16s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.6 1" path="M80,120 L112,120 L144,120 L176,120 L208,210 L240,210 L272,210 L304,210 L336,300 L368,300 L400,210 L432,210 L464,210 L496,300 L528,210 L560,210 L592,210 L624,300 L656,210 L688,210 L720,210 L752,210 L784,120 L816,120 L848,120 L880,300 L912,120 L944,120 L976,120"/>
+          <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.03;.95;1" dur="16s" repeatCount="indefinite"/>
+        </circle>
+
+        <g>
+          <line x1="240" y1="102" x2="240" y2="306" stroke="var(--ink)" stroke-width="1" opacity=".35"/>
+          <line x1="304" y1="102" x2="304" y2="306" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3" opacity=".75"/>
+          <line x1="400" y1="96"  x2="400" y2="306" stroke="var(--accent)" stroke-width="1.8" stroke-dasharray="5 3">
+            <animate attributeName="opacity" values=".5;1;.5" dur="3.1s" repeatCount="indefinite"/>
+          </line>
+          <line x1="528" y1="102" x2="528" y2="306" stroke="var(--ink)" stroke-width="1" opacity=".35"/>
+        </g>
+        <g>
+          <rect x="200" y="166" width="144" height="1.5" fill="var(--rule-strong)"/>
+          <text x="272" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">PLAN &#167;1</text>
+          <rect x="360" y="166" width="48" height="1.5" fill="var(--rule-strong)"/>
+          <rect x="356" y="152" width="56" height="13" fill="var(--band)"/>
+          <text x="384" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">PLAN &#167;2</text>
+          <rect x="424" y="166" width="144" height="1.5" fill="var(--rule-strong)"/>
+          <text x="496" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">IMPL &#167;3</text>
+          <rect x="584" y="166" width="176" height="1.5" fill="var(--rule-strong)"/>
+          <text x="672" y="162" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">IMPL &#167;4 — VALIDATE &amp; DEPLOY</text>
+        </g>
+
+        <line x1="208" y1="252" x2="752" y2="252" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 4" opacity=".5"/>
+        <rect x="330" y="243" width="300" height="18" rx="3" fill="var(--band)"/>
+        <text x="480" y="255.5" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.1" fill="var(--accent)">STOP HOOK — tf-guard verify, EVERY TURN BOUNDARY</text>
+
+        <g stroke-width="1" opacity=".3" stroke-dasharray="2 3">
+          <line x1="240" y1="340" x2="240" y2="346" stroke="var(--ink)"/>
+          <line x1="304" y1="340" x2="304" y2="358" stroke="var(--accent)"/>
+          <line x1="400" y1="340" x2="400" y2="346" stroke="var(--accent)"/>
+          <line x1="528" y1="340" x2="528" y2="346" stroke="var(--ink)"/>
+        </g>
+        <g text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1">
+          <text x="240" y="358" fill="var(--muted)">ENV + TFE_TOKEN</text>
+          <text x="240" y="370" fill="var(--muted)">enforced</text>
+          <text x="304" y="378" fill="var(--accent)">CLARIFY &#215;5</text>
+          <text x="304" y="390" fill="var(--accent)">bypassed</text>
+          <text x="400" y="358" fill="var(--accent)" font-weight="700">HUMAN APPROVAL</text>
+          <text x="400" y="370" fill="var(--accent)">bypassed</text>
+          <text x="528" y="358" fill="var(--muted)">SECTION 5</text>
+          <text x="528" y="370" fill="var(--muted)">soft — may flag</text>
+        </g>
+
+        <g fill="var(--band)" stroke="var(--muted)" stroke-width="1.4">
+          <circle cx="80" cy="120" r="4"/><circle cx="112" cy="120" r="4"/><circle cx="144" cy="120" r="4"/><circle cx="176" cy="120" r="4"/><circle cx="784" cy="120" r="4"/><circle cx="816" cy="120" r="4"/><circle cx="848" cy="120" r="4"/><circle cx="912" cy="120" r="4"/><circle cx="944" cy="120" r="4"/><circle cx="976" cy="120" r="4"/>
+        </g>
+        <g fill="var(--ink)">
+          <circle cx="208" cy="210" r="3.4"/><circle cx="240" cy="210" r="3.4"/><circle cx="272" cy="210" r="3.4"/><circle cx="304" cy="210" r="3.4"/><circle cx="400" cy="210" r="3.4"/><circle cx="432" cy="210" r="3.4"/><circle cx="464" cy="210" r="3.4"/><circle cx="528" cy="210" r="3.4"/><circle cx="560" cy="210" r="3.4"/><circle cx="592" cy="210" r="3.4"/><circle cx="656" cy="210" r="3.4"/><circle cx="688" cy="210" r="3.4"/><circle cx="720" cy="210" r="3.4"/><circle cx="752" cy="210" r="3.4"/>
+        </g>
+        <circle cx="592" cy="210" r="7.5" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+        <g>
+          <circle cx="336" cy="300" r="5" fill="var(--h-research)"/><circle cx="368" cy="300" r="5" fill="var(--h-design)"/><circle cx="496" cy="300" r="5" fill="var(--h-dev)"/><circle cx="624" cy="300" r="5" fill="var(--h-val)"/>
+          <circle cx="880" cy="300" r="5" fill="var(--band)" stroke="var(--h-judge)" stroke-width="1.6"/>
+        </g>
+        <g font-family="var(--mono)" font-size="8" text-anchor="middle" letter-spacing=".6">
+          <text x="332" y="322" fill="var(--h-research)">research &#215;3–4</text>
+          <text x="384" y="336" fill="var(--h-design)">design</text>
+          <text x="496" y="322" fill="var(--h-dev)">developer &#215;N</text>
+          <text x="624" y="322" fill="var(--h-val)">validator &#8804;3</text>
+          <text x="880" y="336" fill="var(--h-judge)">judge · hooks off</text>
+        </g>
+
+        <g font-family="var(--mono)" font-size="8" text-anchor="middle" fill="var(--muted)">
+          <text x="80" y="100">case JSON</text>
+          <text x="120" y="86">throwaway repo</text>
+          <text x="154" y="100">render prompt</text>
+          <text x="198" y="86">claude -p</text>
+          <text x="800" y="100">harvest + TFE facts</text>
+          <text x="852" y="86">checks · judge</text>
+          <text x="944" y="100">teardown · merge · grade</text>
+        </g>
+
+        <rect x="522" y="56" width="140" height="15" rx="7.5" fill="var(--accent-soft)"/>
+        <text x="592" y="66.5" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">SANDBOX APPLY — step 17</text>
+        <path d="M592,71 C592,130 592,150 592,201" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".45"/>
+
+        <g font-family="var(--mono)" font-size="8" fill="var(--muted)" text-anchor="middle">
+          <text x="80" y="410">01</text><text x="240" y="410">06</text><text x="400" y="410">11</text>
+          <text x="560" y="410">16</text><text x="720" y="410">21</text><text x="880" y="410">26</text>
+          <text x="976" y="410">29</text>
+        </g>
+        <line x1="72" y1="398" x2="1048" y2="398" stroke="var(--rule-strong)" stroke-width="1" opacity=".7"/>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 2</b> — 29 runtime steps · lane = who is executing · shading = harness-owned · the ringed dot at step 17 is the apply</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>Both tracks run the same <code>run-eval.sh</code>; it contains no track branching, and forks only on whether the case asks for a deployment. What the consumer track adds is all cloud lifecycle: harvesting the HCP Terraform run facts, destroying the workspace through <code>teardown-sandbox.sh</code>, and merging that destroy result back into the verdict so a run which cannot prove it cleaned up cannot pass.</p>
+
+    <h3>Step by step</h3>
+    <div class="steps">
+      <div class="hx"><span class="n">01</span><span class="t"><span class="who">run-eval.sh</span>Parse the case, derive the run suffix, compute the workspace name, arm the teardown traps.</span></div>
+      <div class="hx"><span class="n">02</span><span class="t"><span class="who">run-eval.sh</span>Render the prompt. The <code>&lt;GITHUB_REPO_NAME&gt;</code> placeholder is filled with the run <b>suffix</b>, not a repo name — it becomes the workspace-name suffix.</span></div>
+      <div class="hx"><span class="n">03</span><span class="t"><span class="who">run-eval.sh</span>Create the throwaway repo from the same suffix, clone until the template finishes generating, set <b>core.hooksPath</b>.</span></div>
+      <div class="hx"><span class="n">04</span><span class="t"><span class="who">claude-code.sh</span>Launch <b>claude -p</b> headless with permissions skipped, in its own process group so an interrupt reaches its children.</span></div>
+      <div><span class="n">05</span><span class="t"><span class="who">tf-consumer-e2e</span>Take requirements from the prompt; it forbids clarifying questions.</span></div>
+      <div class="gate"><span class="n">06</span><span class="t"><span class="who">tf-consumer-plan</span><b>Env gate</b>, then an MCP <b>list_terraform_orgs</b> call to prove TFE_TOKEN works. Consumer-only.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">tf-consumer-plan</span>Create the issue titled “Consumer: …”, then the feature branch.</span></div>
+      <div class="gate"><span class="n">08</span><span class="t"><span class="who">tf-consumer-plan</span>Ambiguity scan, then <b>up to five</b> clarification questions — module selection, HCP project, workspace, security, scope.</span></div>
+      <div><span class="n">09</span><span class="t"><span class="who">tf-consumer-research ×3–4</span>Private modules, wiring, workspace config. Foreground only.</span></div>
+      <div><span class="n">10</span><span class="t"><span class="who">tf-consumer-design</span>Reads constitution, template and all research; writes <b>consumer-design.md</b>.</span></div>
+      <div class="gate"><span class="n">11</span><span class="t"><span class="who">tf-consumer-plan</span>Verify six sections, then the <b>human approval gate</b>. Skipped in E2E.</span></div>
+      <div><span class="n">12</span><span class="t"><span class="who">tf-consumer-implement</span>Resolve the feature, re-run the env gate, require the design file.</span></div>
+      <div><span class="n">13</span><span class="t"><span class="who">tf-consumer-implement</span>Grep the <b>cloud&#123;&#125;</b> block for <code>project</code> — keeps the workspace out of Default.</span></div>
+      <div><span class="n">14</span><span class="t"><span class="who">tf-consumer-developer ×N</span>One dispatch per Section 5 item, <b>sequentially</b> — items depend on each other.</span></div>
+      <div class="gate"><span class="n">15</span><span class="t"><span class="who">tf-consumer-implement</span>Global <code>terraform validate</code>, re-launch developers at specific errors, then the <b>Section 5 gate</b> — every item ticked, or the gap flagged and the run proceeds anyway.</span></div>
+      <div><span class="n">16</span><span class="t"><span class="who">tf-consumer-implement</span>Pre-deploy re-check of the same <code>project</code> attribute.</span></div>
+      <div class="gate"><span class="n">17</span><span class="t"><span class="who">tf-consumer-implement</span><b>terraform apply -auto-approve.</b> Real infrastructure now exists.</span></div>
+      <div><span class="n">18</span><span class="t"><span class="who">tf-consumer-validator</span>Inspects the live run over MCP, scores six dimensions, writes the deployment report.</span></div>
+      <div><span class="n">19</span><span class="t"><span class="who">tf-consumer-implement</span>If score &lt; 7.0: fix, <b>destroy</b>, redeploy, re-validate. Up to 3 rounds.</span></div>
+      <div><span class="n">20</span><span class="t"><span class="who">tf-consumer-implement</span>Push, create semver labels, open the PR.</span></div>
+      <div class="gate"><span class="n">21</span><span class="t"><span class="who">tf-consumer-implement</span>Ask the human “Destroy sandbox resources?” — <b>nobody answers in a headless run</b>.</span></div>
+      <div><span class="n">22</span><span class="t"><span class="who">tf-consumer-e2e</span>Report Section 5 completeness plus issue and PR links. Advisory only.</span></div>
+      <div class="hx"><span class="n">23</span><span class="t"><span class="who">harvest.sh</span>Collect the specs tree, git diff, Terraform snapshot and TFE run facts.</span></div>
+      <div class="hx"><span class="n">24</span><span class="t"><span class="who">run-eval.sh</span>Count issues and PRs now, before the repo is deleted.</span></div>
+      <div class="hx"><span class="n">25</span><span class="t"><span class="who">deterministic.sh</span>Re-run the gates independently. <b>destroy_clean is deliberately excluded here.</b></span></div>
+      <div class="hx"><span class="n">26</span><span class="t"><span class="who">tf-e2e-judge</span>Fresh read-only session, hooks disabled, consumer rubric.</span></div>
+      <div class="hx gate"><span class="n">27</span><span class="t"><span class="who">teardown-sandbox.sh</span><b>The guaranteed destroy.</b> Trap-armed and idempotent; polls to resource-count zero, then deletes the throwaway repo.</span></div>
+      <div class="hx"><span class="n">28</span><span class="t"><span class="who">run-eval.sh</span>Merge <b>destroy_clean</b> and recompute the gate — missing evidence is an automatic fail.</span></div>
+      <div class="hx"><span class="n">29</span><span class="t"><span class="who">run-eval.sh</span>Grade, append results.jsonl, remove the local workdir clone.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ 3 ============================ -->
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">03</div>
+    <h2 style="margin-bottom:8px">Three destroys, one guarantee</h2>
+    <p class="lead" style="margin-top:6px;max-width:72ch">This is the difference that matters. From step 17 the run owns billable cloud resources. Three separate mechanisms can destroy them, and only the last one always does.</p>
+
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1080 384" role="img" aria-labelledby="c3t c3d">
+        <title id="c3t">The three teardown paths and the window in which live infrastructure exists</title>
+        <desc id="c3d">Live billable infrastructure exists from step 17, the apply, until step 27, the harness teardown. Two earlier teardown paths exist but neither is guaranteed: the remediation destroy fires only when the quality score is below 7.0, and the in-session destroy is an interactive question that nobody answers in a headless run. Only the harness teardown, armed on the EXIT trap before provisioning, always runs.</desc>
+
+        <text x="60" y="40" font-family="var(--mono)" font-size="8" letter-spacing="1.6" fill="var(--muted)">SANDBOX LIFETIME</text>
+
+        <!-- exposure band -->
+        <defs>
+          <pattern id="c3hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--accent)" stroke-width="1.6" opacity=".28"/>
+          </pattern>
+        </defs>
+        <rect x="150" y="60" width="700" height="42" rx="4" fill="url(#c3hatch)"/>
+        <rect x="150" y="60" width="700" height="42" rx="4" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".5"/>
+        <text x="500" y="79" text-anchor="middle" font-family="var(--mono)" font-size="9" letter-spacing="1.4" fill="var(--accent)" font-weight="700">LIVE BILLABLE INFRASTRUCTURE</text>
+        <text x="500" y="93" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--body)">the workspace is never created by an API call — the cloud&#123;&#125; block conjures it on init or apply</text>
+
+        <line x1="150" y1="112" x2="150" y2="332" stroke="var(--accent)" stroke-width="1.2"/>
+        <line x1="850" y1="112" x2="850" y2="332" stroke="var(--accent)" stroke-width="1.2"/>
+        <rect x="118" y="116" width="64" height="26" fill="var(--band)"/>
+        <text x="150" y="126" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="700">STEP 17</text>
+        <text x="150" y="138" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--muted)">apply</text>
+        <rect x="812" y="116" width="76" height="26" fill="var(--band)"/>
+        <text x="850" y="126" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="700">STEP 27</text>
+        <text x="850" y="138" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--muted)">destroyed</text>
+
+        <!-- three rungs -->
+        <!-- rung 1 -->
+        <line x1="60" y1="176" x2="1020" y2="176" stroke="var(--rule-strong)" stroke-width="1" opacity=".5"/>
+        <rect x="56" y="161" width="152" height="13" fill="var(--band)"/>
+        <text x="60" y="170" font-family="var(--mono)" font-size="7.5" letter-spacing="1.4" fill="var(--muted)">1 · REMEDIATION DESTROY</text>
+        <circle cx="300" cy="200" r="6" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2.5 2"/>
+        <text x="318" y="198" font-family="var(--sans)" font-size="11" fill="var(--body)">inside the score loop — <tspan font-family="var(--mono)" font-size="10" fill="var(--ink)">implement:51</tspan></text>
+        <text x="318" y="212" font-family="var(--sans)" font-size="10" fill="var(--muted)">fires only when the quality score is below 7.0, then redeploys</text>
+        <text x="1020" y="204" text-anchor="end" font-family="var(--mono)" font-size="8" letter-spacing="1" fill="var(--muted)" font-weight="700">CONDITIONAL</text>
+
+        <!-- rung 2 -->
+        <line x1="60" y1="232" x2="1020" y2="232" stroke="var(--rule-strong)" stroke-width="1" opacity=".5"/>
+        <rect x="56" y="217" width="152" height="13" fill="var(--band)"/>
+        <text x="60" y="226" font-family="var(--mono)" font-size="7.5" letter-spacing="1.4" fill="var(--muted)">2 · IN-SESSION DESTROY</text>
+        <circle cx="300" cy="256" r="6" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="2.5 2"/>
+        <line x1="294" y1="262" x2="306" y2="250" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="318" y="254" font-family="var(--sans)" font-size="11" fill="var(--body)">“Destroy sandbox resources?” — <tspan font-family="var(--mono)" font-size="10" fill="var(--ink)">implement:55</tspan></text>
+        <text x="318" y="268" font-family="var(--sans)" font-size="10" fill="var(--muted)">interactive, sequenced after the PR, no finally semantics — nobody answers headless</text>
+        <text x="1020" y="260" text-anchor="end" font-family="var(--mono)" font-size="8" letter-spacing="1" fill="var(--accent)" font-weight="700">NEVER FIRES IN E2E</text>
+
+        <!-- rung 3 -->
+        <line x1="60" y1="288" x2="1020" y2="288" stroke="var(--rule-strong)" stroke-width="1" opacity=".5"/>
+        <rect x="56" y="273" width="146" height="13" fill="var(--band)"/>
+        <text x="60" y="282" font-family="var(--mono)" font-size="7.5" letter-spacing="1.4" fill="var(--accent)" font-weight="700">3 · HARNESS TEARDOWN</text>
+        <circle cx="300" cy="312" r="14" fill="var(--accent)" opacity=".12"/>
+        <circle cx="300" cy="312" r="6" fill="var(--accent)"/>
+        <text x="318" y="310" font-family="var(--sans)" font-size="11" fill="var(--body)"><tspan font-family="var(--mono)" font-size="10" fill="var(--ink)">teardown-sandbox.sh</tspan> — armed on the EXIT trap <tspan font-weight="600">before</tspan> provisioning</text>
+        <text x="318" y="324" font-family="var(--sans)" font-size="10" fill="var(--muted)">idempotent; polls to resource-count zero; also catches INT and TERM via exit 130</text>
+        <text x="1020" y="316" text-anchor="end" font-family="var(--mono)" font-size="8" letter-spacing="1" fill="var(--accent)" font-weight="700">ALWAYS RUNS</text>
+
+        <line x1="150" y1="344" x2="850" y2="344" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3" opacity=".45"/>
+        <text x="500" y="366" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--accent)">A run that deploys but records no destroy evidence is forced to fail — absent proof can never grade as a pass.</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 3</b> — teardown paths ranked by what actually guarantees them</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>The project’s own notes say eval runs “always destroy consumer sandbox deployments”. That is true — but it is true of the <em>harness</em>, not of the workflow. Read only the skills and you would conclude teardown is an optional question asked after the pull request is already open. Anyone reasoning about cost exposure needs to know which of the two paths they are on: a human running <code>/tf-consumer-implement</code> directly gets the opt-in prompt and nothing else behind it.</p>
+
+    <p>The harness earns the guarantee three ways. The trap is armed <strong>before</strong> the repo is provisioned, so even a failure during setup tears down. <code>INT</code> and <code>TERM</code> are routed through <code>exit 130</code> rather than handled in place, because a non-exiting handler would resume the script with teardown already marked done and silently leak later deploys. And <code>destroy_clean</code> is deliberately left out of the deterministic checks and merged afterwards, with a branch that hard-fails when a deploying case produces no destroy result at all.</p>
+  </div>
+</section>
+
+<!-- ============================================ 4 ============================ -->
+<section>
+  <div class="wrap">
+    <div class="snum">04</div>
+    <h2>What each actor knows</h2>
+    <p class="lead">Reference skills are preloaded through agent frontmatter rather than requested at runtime — one orchestrator aside, which loads its taxonomy from its own body. Eight skills, and the most telling thing about them is which one is missing.</p>
+
+    <figure>
+      <div class="scroller">
+      <svg viewBox="104 0 796 412" role="img" aria-labelledby="c4t c4d">
+        <title id="c4t">Which reference skills each actor loads on the consumer track</title>
+        <desc id="c4d">A matrix of eight actors against eight reference skills. tf-consumer-plan loads tf-domain-category from its own body; tf-consumer-implement loads none. tf-runtask is consumer-only, letting the validator read HCP Terraform run task results. tf-judge-criteria is the only skill loaded on both sides of the out-of-band boundary, by the validator and by the independent judge. terraform-test appears nowhere on this track. The full list of pairs is given as a table beneath the figure.</desc>
+
+        <g font-family="var(--mono)" font-size="9" fill="var(--muted)">
+          <text transform="translate(330,118) rotate(-52)">tf-research</text>
+          <text transform="translate(400,118) rotate(-52)">tf-architecture-patterns</text>
+          <text transform="translate(470,118) rotate(-52)">tf-security-baselines</text>
+          <text transform="translate(540,118) rotate(-52)">terraform-style-guide</text>
+          <text transform="translate(610,118) rotate(-52)" fill="var(--accent)" font-weight="600">tf-judge-criteria</text>
+          <text transform="translate(680,118) rotate(-52)" fill="var(--h-val)">tf-runtask</text>
+          <text transform="translate(750,118) rotate(-52)">tf-report-template</text>
+          <text transform="translate(820,118) rotate(-52)">tf-domain-category</text>
+        </g>
+
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".5">
+          <line x1="330" y1="126" x2="330" y2="360"/><line x1="400" y1="126" x2="400" y2="360"/>
+          <line x1="470" y1="126" x2="470" y2="360"/><line x1="540" y1="126" x2="540" y2="360"/>
+          <line x1="610" y1="126" x2="610" y2="360"/><line x1="680" y1="126" x2="680" y2="360"/>
+          <line x1="750" y1="126" x2="750" y2="360"/><line x1="820" y1="126" x2="820" y2="360"/>
+        </g>
+        <line x1="120" y1="126" x2="856" y2="126" stroke="var(--rule-strong)" stroke-width="1"/>
+
+        <g font-family="var(--mono)" font-size="9.5" text-anchor="end">
+          <text x="306" y="153" fill="var(--muted)">tf-consumer-plan</text>
+          <text x="306" y="185" fill="var(--muted)">tf-consumer-implement</text>
+          <text x="306" y="217" fill="var(--h-research)">tf-consumer-research</text>
+          <text x="306" y="249" fill="var(--h-design)">tf-consumer-design</text>
+          <text x="306" y="281" fill="var(--h-dev)">tf-consumer-developer</text>
+          <text x="306" y="313" fill="var(--h-val)">tf-consumer-validator</text>
+          <text x="306" y="347" fill="var(--h-judge)">tf-e2e-judge</text>
+        </g>
+        <g font-family="var(--mono)" font-size="7" text-anchor="end" fill="var(--muted)">
+          <text x="306" y="163">orchestrator · loads from its own body</text>
+          <text x="306" y="195">orchestrator</text>
+        </g>
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".45">
+          <line x1="120" y1="166" x2="856" y2="166"/><line x1="120" y1="198" x2="856" y2="198"/>
+          <line x1="120" y1="230" x2="856" y2="230"/><line x1="120" y1="262" x2="856" y2="262"/>
+          <line x1="120" y1="294" x2="856" y2="294"/>
+        </g>
+
+        <line x1="120" y1="327" x2="856" y2="327" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="5 4" opacity=".7"/>
+        <rect x="190" y="323" width="120" height="13" fill="var(--paper)"/>
+        <text x="306" y="332" text-anchor="end" font-family="var(--mono)" font-size="7" letter-spacing="1.3" fill="var(--accent)">OUT-OF-BAND BOUNDARY</text>
+
+        <circle cx="820" cy="150" r="5" fill="var(--muted)"/>
+        <text x="330" y="186" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">&#8212;</text>
+        <text x="352" y="186" font-family="var(--sans)" font-size="9" fill="var(--muted)">loads no reference skill</text>
+        <circle cx="330" cy="214" r="5" fill="var(--h-research)"/>
+        <circle cx="400" cy="246" r="5" fill="var(--h-design)"/>
+        <circle cx="470" cy="246" r="5" fill="var(--h-design)"/>
+        <circle cx="540" cy="278" r="5" fill="var(--h-dev)"/>
+        <circle cx="610" cy="310" r="5" fill="var(--h-val)"/>
+        <circle cx="680" cy="310" r="5" fill="var(--h-val)"/>
+        <circle cx="750" cy="310" r="5" fill="var(--h-val)"/>
+        <circle cx="610" cy="344" r="5" fill="none" stroke="var(--h-judge)" stroke-width="1.8"/>
+
+        <line x1="610" y1="315" x2="610" y2="339" stroke="var(--accent)" stroke-width="1.8">
+          <animate attributeName="stroke-opacity" values=".5;1;.5" dur="3.9s" repeatCount="indefinite"/>
+        </line>
+
+        <text x="500" y="384" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--accent)">tf-judge-criteria is the only skill loaded on both sides of the wall — the judge scores against the validator&#8217;s own rubric</text>
+        <text x="500" y="402" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--muted)">and <tspan font-family="var(--mono)" font-size="10" fill="var(--ink)">terraform-test</tspan> appears nowhere: on the module track it is loaded twice, here not at all</text>
+      </svg>
+      </div>
+      <figcaption><b>Fig. 4</b> — reference-skill loading · a dot means that actor loads that skill; all but the top row load it through agent frontmatter</figcaption>
+      <div class="sr-only">
+      <table>
+        <caption>Reference skills loaded by each actor on the consumer track</caption>
+        <tbody>
+          <tr><th scope="row">tf-consumer-plan (orchestrator)</th><td>tf-domain-category, loaded from the skill body rather than frontmatter</td></tr>
+          <tr><th scope="row">tf-consumer-implement (orchestrator)</th><td>none</td></tr>
+          <tr><th scope="row">tf-consumer-research</th><td>tf-research</td></tr>
+          <tr><th scope="row">tf-consumer-design</th><td>tf-architecture-patterns, tf-security-baselines</td></tr>
+          <tr><th scope="row">tf-consumer-developer</th><td>terraform-style-guide</td></tr>
+          <tr><th scope="row">tf-consumer-validator</th><td>tf-judge-criteria, tf-runtask, tf-report-template</td></tr>
+          <tr><th scope="row">tf-e2e-judge (out of band)</th><td>tf-judge-criteria</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </figure>
+
+    <p>Two cells carry the track&#8217;s identity. <code>tf-runtask</code> is loaded by nothing on the module track — it exists so the validator can read HCP Terraform run task results off a live deployment. And where the module matrix shows <code>terraform-test</code> shared by the design and test-writer agents, here the column does not exist at all: no actor on this track holds any test-authoring knowledge, which is the frontmatter-level consequence of having no test-writer.</p>
+  </div>
+</section>
+
+<!-- ============================================ 5 ============================ -->
+<section>
+  <div class="wrap">
+    <div class="snum">05</div>
+    <h2>What differs from the module track</h2>
+    <p class="lead">The two harnesses are structurally twins and behaviourally quite different. If you have read the module page, these are the deltas that matter.</p>
+
+    <div class="steps" style="columns:1">
+      <div><span class="n">01</span><span class="t"><span class="who">agent roster</span>Four subagents, not five. It is the only one of the four workflows with <b>no test-writer</b> — no <code>tf-consumer-test-writer.md</code> exists.</span></div>
+      <div><span class="n">02</span><span class="t"><span class="who">no tests at all</span>The developer states the rule outright: the consumer workflow does not write <code>.tftest.hcl</code> files. Validation is <code>terraform validate</code> plus a real deployment.</span></div>
+      <div><span class="n">03</span><span class="t"><span class="who">proof of correctness</span>The module track proves itself by failing tests first. This track proves itself by standing the infrastructure up and scoring the run.</span></div>
+      <div><span class="n">04</span><span class="t"><span class="who">deploy and destroy</span>Consumer only. All six cases set <code>sandbox.deploy=true</code>; both module cases set it false and have no workspace at all.</span></div>
+      <div><span class="n">05</span><span class="t"><span class="who">checklist section</span>Section <b>5</b> of six, not Section 6 of seven. The single easiest thing to get wrong moving between the two.</span></div>
+      <div><span class="n">06</span><span class="t"><span class="who">deterministic checks</span>An exact one-for-one swap: <code>destroy_clean</code> here, <code>terraform_test</code> there. The other eight are identical.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">private registry</span>Module composition is enforced at five layers — a mandatory clarification question, a research lane, the design rule, the developer’s five-glue-resource limit, and a validator conformance check.</span></div>
+      <div><span class="n">08</span><span class="t"><span class="who">clarification gate</span>Up to five questions with four mandated topics, against four questions and one mandated topic on the module side.</span></div>
+      <div><span class="n">09</span><span class="t"><span class="who">env gate</span>Adds an MCP <code>list_terraform_orgs</code> call to prove the token works before anything deploys. Present in the plan skill only.</span></div>
+      <div><span class="n">10</span><span class="t"><span class="who">validator powers</span>Given a run ID and workspace name and three HCP MCP tools; inspects a live run and is explicitly <b>non-destructive</b>, where the module validator auto-fixes.</span></div>
+      <div><span class="n">11</span><span class="t"><span class="who">rubric weighting</span>Same <code>tf-judge-criteria</code> skill, different table: Module Usage 25%, Security 30%, Code Quality 15%, Variables 10%, Wiring 10%, Constitution 10%.</span></div>
+      <div><span class="n">12</span><span class="t"><span class="who">eval coverage</span>Six prompts, six cases, one to one — the reverse of the module track, which ships eight prompts and grades two.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ 6 ============================ -->
+<section>
+  <div class="wrap">
+    <div class="snum">06</div>
+    <h2>Findings</h2>
+    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code.</p>
+
+    
+    <div class="finding">
+      <div class="sev md">Medium</div>
+      <div>
+        <h3>Only prompt text links the workspace the run creates to the one the harness grades</h3>
+        <p>No skill and no agent calls <code>create_workspace</code>, and none needs to: the Terraform CLI creates the HCP Terraform workspace from the <code>cloud&#123;&#125;</code> block’s organization, project and name on init or apply. That is the documented mechanism, not a gap. It is why the <code>project</code> attribute is grepped twice — once entering Phase 3 and again immediately pre-deploy — since the block is the only place the workspace’s project is decided, and getting it wrong silently lands the workspace in Default.</p>
+        <p>What is unguarded is the coupling. The name the design chooses and the <code>workspace_pattern</code> the harness expects are joined by nothing but prompt text substituted at render time, and no step asserts they agree. Let them drift and the run still succeeds — against a workspace the harness is not looking at.</p>
+        <span class="cite">.claude/skills/tf-consumer-implement/SKILL.md:24–33,46 · evals/e2e/cases/consumer/*.json</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev md">Medium</div>
+      <div>
+        <h3>The Section 5 gate is the weakest of three assertions on the same fact</h3>
+        <p>Three layers check that the implementation checklist is complete, at three different strictnesses. The orchestrator accepts “flag the gap” as a resolution, so Phase 4 can proceed with unchecked items. The e2e skill demands every item be <code>[x]</code>. The harness runs <code>checklist_complete</code> as a hard deterministic check. The layer closest to the work is the one that can be talked out of it.</p>
+        <span class="cite">.claude/skills/tf-consumer-implement/SKILL.md:42 · .claude/skills/tf-consumer-e2e/SKILL.md · evals/e2e/checks/deterministic.sh</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev lo">Low</div>
+      <div>
+        <h3>Outside the harness, nothing guarantees the sandbox is destroyed</h3>
+        <p>The workflow’s own teardown is <code>implement:55</code> — an interactive “Destroy sandbox resources?” placed <em>after</em> the pull request, with no <code>finally</code> semantics, no cleanup on failure paths and no budget guard. A human who runs <code>/tf-consumer-implement</code> and then closes the terminal, or whose run dies at any point between the apply and that question, leaves live billable infrastructure with nothing else scheduled to remove it.</p>
+        <p>Inside the harness this is fully covered by the EXIT trap. The gap is only in the direct-invocation path — which is exactly the path a developer takes when trying the workflow for the first time.</p>
+        <span class="cite">.claude/skills/tf-consumer-implement/SKILL.md:55 · evals/e2e/bin/run-eval.sh:71–99</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev lo">Low</div>
+      <div>
+        <h3>Subagents are not Stop-gated</h3>
+        <p>There is no <code>SubagentStop</code> entry in <code>.claude/settings.json</code>, so <code>tf-guard verify</code> never runs when a developer or validator subagent returns — only when the top-level orchestrator tries to end a turn. Findings therefore surface late and in aggregate, attributed to the orchestrator rather than to the subagent that caused them.</p>
+        <span class="cite">.claude/settings.json</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev lo">Low</div>
+      <div>
+        <h3>The developer cannot re-verify a module’s interface</h3>
+        <p><code>tf-consumer-developer</code> holds <code>search_private_modules</code> but not <code>get_private_module_details</code>, so at implementation time it can find a private module but cannot check its exact input and output types. That verification exists only in the research agent, whose findings reach the developer indirectly through <code>consumer-design.md</code>.</p>
+        <span class="cite">.claude/agents/tf-consumer-developer.md · .claude/agents/tf-consumer-research.md</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>How this page was produced.</strong> Six parallel extraction agents read the skill, its two parent skills, the four agent definitions, the hook layer and the consumer half of the eval harness independently. A reconciliation pass merged their output into a single graph of 52 nodes and 68 edges, re-opened the cited files for the most load-bearing relationships, and corrected or discarded the edges that did not hold up. Every claim above traces to a file and line; the diagrams are drawn from that graph rather than from prose. Siblings cover the <a href="tf-module-e2e.html">module</a>, <a href="tf-policy.html">policy</a> and <a href="tf-provider.html">provider</a> tracks.</p>
+    <div class="files">
+      <b>Skill</b> &nbsp;.claude/skills/tf-consumer-e2e/SKILL.md<br>
+      <b>Parents</b> &nbsp;.claude/skills/tf-consumer-plan/ · .claude/skills/tf-consumer-implement/<br>
+      <b>Agents</b> &nbsp;.claude/agents/tf-consumer-{research,design,developer,validator}.md · tf-e2e-judge.md<br>
+      <b>Hooks</b> &nbsp;.claude/settings.json · .claude/hooks/deny-config-files.sh · scripts/hooks/tf-guard.sh · .githooks/pre-commit<br>
+      <b>Harness</b> &nbsp;evals/e2e/bin/run-eval.sh · lib/teardown-sandbox.sh · checks/deterministic.sh · judge/ · cases/consumer/<br>
+      <b>Rules</b> &nbsp;AGENTS.md · .claude/CLAUDE.md · .foundations/memory/consumer-constitution.md</div>
+  </div>
+</footer>
+<script>
+/* prefers-reduced-motion: display:none does not stop SMIL in Chromium,
+   so pause the animation timeline on each SVG instead. */
+(function () {
+  var q = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function apply() {
+    document.querySelectorAll('svg').forEach(function (s) {
+      if (typeof s.pauseAnimations !== 'function') return;
+      if (q.matches) { s.setCurrentTime(0); s.pauseAnimations(); }
+      else { s.unpauseAnimations(); }
+    });
+  }
+  apply();
+  q.addEventListener ? q.addEventListener('change', apply) : q.addListener(apply);
+})();
+</script>
+</body>
+</html>

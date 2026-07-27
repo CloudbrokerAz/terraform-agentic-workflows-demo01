@@ -112,7 +112,14 @@ else changes.
 `cases/<track>/<name>.json` — documented by `cases/_schema.json`; run-suite
 enforces the required fields at selection time.
 Prompts stay canonical in `.claude/skills/tf-{module,consumer}-e2e/prompts/`;
-cases reference them by repo-relative path. `{SUFFIX}` in
+cases reference them by repo-relative path. Not every prompt has a case: the
+prompt directories are a library (also used for manual harness runs — see
+`docs/demo_quickstart.md`), and the committed 8-case suite (2 module + 6
+consumer) is a deliberate cost/coverage trade-off. Module cases run with
+`sandbox.deploy=false` — the module workflow is verified via `terraform test`
+and static analysis, while real deploy + teardown is exercised by the consumer
+track. A new case needs its own per-prompt judge assertions derived from the
+prompt's requirements; don't copy another case's assertions verbatim. `{SUFFIX}` in
 `sandbox.workspace_pattern` and `<GITHUB_REPO_NAME>` in the prompt receive the
 same run-unique value, which is how the runner knows the workspace to destroy
 without trusting the agent to report it.

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tf-provider — Workflow Anatomy</title>
+<meta name="description" content="How the tf-provider plan and implement workflow actually runs, and why its acceptance tests never execute.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --paper:#FAFAF8;      --band:#F2F0EB;
+  --ink:#16161A;        --body:#3C3A36;      --muted:#5C5952;   --faint:#6E6A63;
+  --rule:#E3DFD8;       --rule-soft:#EDEAE4; --rule-strong:#8F887C;
+  --accent:#C4283A;     --accent-soft:rgba(196,40,58,.09);
+  --h-research:#995F2A; --h-design:#6B3FA0;  --h-test:#1A6B7A;
+  --h-dev:#1F5C8B;      --h-val:#2D7A4F;     --h-judge:#5B5F6B;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --col:860px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#131316;    --band:#1A1A1E;
+    --ink:#F2F0EC;      --body:#C9C5BE;      --muted:#B0ABA3;   --faint:#8B867E;
+    --rule:#2E2E34;     --rule-soft:#26262B; --rule-strong:#6A6A75;
+    --accent:#F0596B;   --accent-soft:rgba(240,89,107,.13);
+    --h-research:#D99A57;--h-design:#A97DD8; --h-test:#4FA8BC;
+    --h-dev:#5C9BD1;    --h-val:#5FB585;     --h-judge:#9AA0AD;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131316;--band:#1A1A1E;--ink:#F2F0EC;--body:#C9C5BE;
+  --muted:#B0ABA3;--faint:#8B867E;--rule:#2E2E34;--rule-soft:#26262B;--rule-strong:#6A6A75;
+  --accent:#F0596B;--accent-soft:rgba(240,89,107,.13);
+  --h-research:#D99A57;--h-design:#A97DD8;--h-test:#4FA8BC;
+  --h-dev:#5C9BD1;--h-val:#5FB585;--h-judge:#9AA0AD;
+}
+:root[data-theme="light"]{
+  --paper:#FAFAF8;--band:#F2F0EB;--ink:#16161A;--body:#3C3A36;
+  --muted:#5C5952;--faint:#6E6A63;--rule:#E3DFD8;--rule-soft:#EDEAE4;--rule-strong:#8F887C;
+  --accent:#C4283A;--accent-soft:rgba(196,40,58,.09);
+  --h-research:#995F2A;--h-design:#6B3FA0;--h-test:#1A6B7A;
+  --h-dev:#1F5C8B;--h-val:#2D7A4F;--h-judge:#5B5F6B;
+}
+
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);color:var(--body);
+  font-family:var(--sans);font-size:17px;line-height:1.7;
+  overflow-x:hidden;
+}
+
+/* ---------- shell ---------- */
+.wrap{max-width:var(--col);margin:0 auto;padding:0 28px}
+.bleed{width:100%;padding:52px 0;border-top:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);background:var(--band);margin:56px 0}
+.bleed .wrap{max-width:1216px}
+
+/* ---------- masthead ---------- */
+header.mast{padding:76px 0 0}
+.eyebrow{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:2.6px;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(38px,6vw,62px);line-height:1.04;letter-spacing:-.02em;color:var(--ink);margin:18px 0 0}
+h1 .mono{font-family:var(--mono);font-weight:600;font-size:.62em;letter-spacing:-.01em}
+.dek{font-size:20px;line-height:1.6;color:var(--muted);max-width:640px;margin:22px 0 0;font-weight:300}
+.dek em{font-style:italic;color:var(--ink)}
+
+.meta{display:flex;flex-wrap:wrap;margin:40px 0 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.meta>div{flex:1 1 130px;padding:14px 18px 14px 0;border-left:1px solid var(--rule-soft);padding-left:18px}
+.meta>div:first-child{border-left:0;padding-left:0}
+.meta dt{font-family:var(--mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);display:block}
+.meta dd{font-family:var(--mono);font-size:13px;color:var(--ink);margin-top:5px;font-weight:500}
+
+/* ---------- sections ---------- */
+section{padding:58px 0 0}
+.snum{font-family:var(--mono);font-size:10px;letter-spacing:2.4px;color:var(--accent);font-weight:600}
+h2{font-family:var(--serif);font-weight:700;font-size:34px;line-height:1.18;letter-spacing:-.015em;color:var(--ink);margin:10px 0 0}
+h3{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.02em;color:var(--ink);margin:34px 0 8px}
+.finding h3{margin:0 0 6px}
+p{margin:18px 0 0;max-width:66ch}
+p.lead{font-size:19px;color:var(--muted);font-weight:300}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:currentColor}
+code{font-family:var(--mono);font-size:.86em;background:var(--rule-soft);padding:1.5px 5px;border-radius:3px;color:var(--ink);overflow-wrap:anywhere}
+strong{color:var(--ink);font-weight:600}
+
+/* ---------- figures ---------- */
+figure{margin:34px 0 0}
+.bleed figure{margin:0}
+figure svg{display:block;width:100%;height:auto;overflow:visible}
+figcaption{font-family:var(--mono);font-size:10px;letter-spacing:1.3px;color:var(--faint);margin-top:16px;text-transform:uppercase}
+figcaption b{color:var(--muted);font-weight:600}
+.scroller{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.scroller>svg{min-width:100%}
+.bleed .scroller>svg{min-width:1160px}
+.scrollnote{display:none;font-family:var(--mono);font-size:10px;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--muted);margin-top:10px}
+@media (max-width:1215px){.bleed .scrollnote{display:block}}
+
+/* ---------- findings ---------- */
+.finding{border-top:1px solid var(--rule);padding:22px 0 20px;display:grid;grid-template-columns:96px 1fr;gap:22px}
+.finding:last-of-type{border-bottom:1px solid var(--rule)}
+.sev{font-family:var(--mono);font-size:9px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;padding-top:3px}
+.sev.hi{color:var(--accent)}.sev.md{color:var(--h-research)}.sev.lo{color:var(--muted)}
+.finding h3{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--ink);margin:0 0 6px}
+.finding p{margin:0;font-size:15px;line-height:1.62}
+.finding p+p{margin-top:9px}
+.cite{font-family:var(--mono);font-size:11px;color:var(--faint);display:block;margin-top:9px;overflow-wrap:anywhere}
+
+/* ---------- step reference ---------- */
+.steps{columns:2;column-gap:44px;margin:30px 0 0;border-top:1px solid var(--rule);padding-top:22px}
+.steps div{break-inside:avoid;display:grid;grid-template-columns:26px 1fr;gap:10px;padding:5px 0;font-size:14px;line-height:1.5}
+.steps .n{font-family:var(--mono);font-size:10px;color:var(--faint);padding-top:4px;font-weight:600}
+.steps .t{color:var(--body)}
+.steps .t b{color:var(--ink);font-weight:600}
+.steps .t .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.3px;display:block;color:var(--muted)}
+.steps div.hx .n,.steps div.hx .t .who{color:var(--faint)}
+.steps div.hx .t{color:var(--muted)}
+.steps div.gate .n{color:var(--accent)}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0}
+
+/* ---------- footer ---------- */
+footer{margin-top:72px;border-top:1px solid var(--rule);padding:34px 0 80px}
+footer p{font-size:13.5px;color:var(--muted);max-width:70ch}
+footer .files{font-family:var(--mono);font-size:11.5px;line-height:1.9;color:var(--faint);margin-top:18px;overflow-wrap:anywhere}
+footer .files b{color:var(--muted);font-weight:500}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .steps{columns:1}
+  .meta div{flex-basis:50%}
+  .meta>div:nth-child(odd){border-left:0;padding-left:0}
+  .finding{grid-template-columns:1fr;gap:6px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="eyebrow">Workflow anatomy · Terraform agentic workflows</div>
+    <h1><span class="mono">tf-provider</span><br>What actually runs</h1>
+    <p class="dek">Plan and implement for Terraform provider development — the only track that produces Go rather than HCL. Thirty-four steps, five subagents, a real toolchain gate, and a test suite that compiles perfectly and never runs.</p>
+    <dl class="meta">
+      <div><dt>Entry point</dt><dd>/tf-provider-plan</dd></div>
+      <div><dt>Skill files</dt><dd>34 + 38 lines</dd></div>
+      <div><dt>Subagents</dt><dd>5</dd></div>
+      <div><dt>Ref. skills</dt><dd>7</dd></div>
+      <div><dt>Runtime steps</dt><dd>34</dd></div>
+      <div><dt>Eval coverage</dt><dd>none yet</dd></div>
+    </dl>
+  </div>
+</header>
+
+<main>
+
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">01</div>
+    <h2 style="margin-bottom:8px">From an API to a shipped provider resource</h2>
+    <p class="lead" style="margin-top:6px;max-width:74ch">There is no e2e skill on this track either, so the two halves are joined by <strong>you</strong> — and here the handoff carries two arguments rather than one, because the design artifact is named per resource.</p>
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1120 656" role="img" aria-labelledby="vdt vdd">
+        <title id="vdt">Delegation and hook interception for the tf-provider track</title>
+        <desc id="vdd">The human invokes each half of the workflow separately, occupying the row where an e2e skill and eval harness sit on the module and consumer tracks. Two orchestrating skills dispatch five subagents. The human approval gate between the halves actually fires here. Everything the agents write passes through four hooks, none of which understands Go.</desc>
+        <rect x="64" y="18" width="992" height="64" rx="6" fill="var(--rule)" opacity=".16"/>
+        <rect x="64" y="18" width="992" height="64" rx="6" fill="none" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="5 4" opacity=".55"/>
+        <text x="76" y="34" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">WHERE THE E2E SKILL AND EVAL HARNESS SIT ON THE MODULE AND CONSUMER TRACKS</text>
+        <circle cx="480" cy="58" r="15" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".3"/>
+        <circle cx="480" cy="58" r="7" fill="var(--accent)"/>
+        <text x="504" y="54" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--accent)" letter-spacing=".4">THE HUMAN</text>
+        <text x="504" y="68" font-family="var(--sans)" font-size="10" fill="var(--body)">you invoke each half separately, answer the questions and approve the design</text>
+        <path d="M480,73 C480,112 280,110 280,152" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/>
+        <path d="M480,73 C480,112 680,110 680,152" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/>
+        <text x="228" y="104" text-anchor="end" font-family="var(--mono)" font-size="8" fill="var(--accent)">invocation 1</text>
+        <text x="732" y="104" font-family="var(--mono)" font-size="8" fill="var(--accent)">invocation 2</text>
+        <circle r="3" fill="var(--accent)" opacity="0"><animateMotion dur="3.2s" repeatCount="indefinite" begin="0s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M480,73 C480,112 280,110 280,152"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.2s" repeatCount="indefinite" begin="0s"/></circle>
+        <circle r="3" fill="var(--accent)" opacity="0"><animateMotion dur="3.6s" repeatCount="indefinite" begin="1.6s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M480,73 C480,112 680,110 680,152"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.6s" repeatCount="indefinite" begin="1.6s"/></circle>
+        <circle cx="280" cy="158" r="6" fill="var(--ink)"/>
+        <text x="264" y="155" text-anchor="end" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">tf-provider-plan</text>
+        <text x="264" y="168" text-anchor="end" font-family="var(--sans)" font-size="9.5" fill="var(--muted)">SDD phases 1–2 · 34 lines</text>
+        <circle cx="680" cy="158" r="6" fill="var(--ink)"/>
+        <text x="696" y="155" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">tf-provider-implement</text>
+        <text x="696" y="168" font-family="var(--sans)" font-size="9.5" fill="var(--muted)">SDD phases 3–4 · 38 lines</text>
+        <line x1="366" y1="158" x2="446" y2="158" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <line x1="514" y1="158" x2="614" y2="158" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <rect x="450" y="140" width="64" height="36" rx="4" fill="var(--accent)" opacity=".1"/>
+        <rect x="450" y="140" width="64" height="36" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.6"><animate attributeName="stroke-opacity" values=".55;1;.55" dur="3.4s" repeatCount="indefinite"/></rect>
+        <text x="482" y="156" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">HUMAN</text>
+        <text x="482" y="167" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">GATE</text>
+        <text x="482" y="190" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">actually fires</text>
+        <path d="M280,164 C280,222 120,214 120,266" fill="none" stroke="var(--h-research)" stroke-width="1.1" opacity=".42"/>
+        <path d="M280,164 C280,222 300,214 300,266" fill="none" stroke="var(--h-design)" stroke-width="1.1" opacity=".42"/>
+        <path d="M680,164 C680,222 480,214 480,266" fill="none" stroke="var(--h-test)" stroke-width="1.1" opacity=".42"/>
+        <path d="M680,164 C680,222 660,214 660,266" fill="none" stroke="var(--h-dev)" stroke-width="1.1" opacity=".42"/>
+        <path d="M680,164 C680,222 840,214 840,266" fill="none" stroke="var(--h-val)" stroke-width="1.1" opacity=".42"/>
+        <circle r="3" fill="var(--h-research)" opacity="0"><animateMotion dur="2.9s" repeatCount="indefinite" begin="0s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M280,164 C280,222 120,214 120,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="2.9s" repeatCount="indefinite" begin="0s"/></circle>
+        <circle r="3" fill="var(--h-design)" opacity="0"><animateMotion dur="3.4s" repeatCount="indefinite" begin="0.5s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M280,164 C280,222 300,214 300,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.4s" repeatCount="indefinite" begin="0.5s"/></circle>
+        <circle r="3" fill="var(--h-test)" opacity="0"><animateMotion dur="3.1s" repeatCount="indefinite" begin="1.2s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M680,164 C680,222 480,214 480,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.1s" repeatCount="indefinite" begin="1.2s"/></circle>
+        <circle r="3" fill="var(--h-dev)" opacity="0"><animateMotion dur="2.6s" repeatCount="indefinite" begin="1.8s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M680,164 C680,222 660,214 660,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="2.6s" repeatCount="indefinite" begin="1.8s"/></circle>
+        <circle r="3" fill="var(--h-val)" opacity="0"><animateMotion dur="3.7s" repeatCount="indefinite" begin="2.4s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M680,164 C680,222 840,214 840,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.7s" repeatCount="indefinite" begin="2.4s"/></circle>
+        <circle cx="120" cy="272" r="16" fill="var(--h-research)" opacity=".12"/><circle cx="120" cy="272" r="6" fill="var(--h-research)"/>
+        <text x="120" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-research)">RESEARCH</text>
+        <text x="120" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">×3–4 concurrent</text>
+        <text x="120" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">WebSearch + WebFetch, no MCP</text>
+        <text x="120" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">API, SDK and framework docs</text>
+        <circle cx="300" cy="272" r="16" fill="var(--h-design)" opacity=".12"/><circle cx="300" cy="272" r="6" fill="var(--h-design)"/>
+        <text x="300" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-design)">DESIGN</text>
+        <text x="300" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">takes feature AND resource</text>
+        <text x="300" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">writes the per-resource design</text>
+        <text x="300" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">all 4 CRUD ops plus import</text>
+        <circle cx="480" cy="272" r="16" fill="var(--h-test)" opacity=".12"/><circle cx="480" cy="272" r="6" fill="var(--h-test)"/>
+        <text x="480" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-test)">TEST-WRITER</text>
+        <text x="480" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">no web tools of its own</text>
+        <text x="480" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">every test carries t.Skip</text>
+        <text x="480" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">verified by go test -c only</text>
+        <circle cx="660" cy="272" r="16" fill="var(--h-dev)" opacity=".12"/><circle cx="660" cy="272" r="6" fill="var(--h-dev)"/>
+        <text x="660" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-dev)">DEVELOPER</text>
+        <text x="660" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">one dispatch per item, serial</text>
+        <text x="660" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">gofmt → build → vet → test -c</text>
+        <text x="660" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">never removes a t.Skip</text>
+        <circle cx="840" cy="272" r="16" fill="var(--h-val)" opacity=".12"/><circle cx="840" cy="272" r="6" fill="var(--h-val)"/>
+        <text x="840" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-val)">VALIDATOR</text>
+        <text x="840" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">uncapped fix loop</text>
+        <text x="840" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">adds staticcheck</text>
+        <text x="840" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">acceptance tests: SKIPPED</text>
+        <rect x="92" y="368" width="936" height="112" rx="6" fill="var(--accent-soft)"/>
+        <text x="60" y="162" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">SKILLS</text>
+        <text x="60" y="276" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">AGENTS</text>
+        <text x="60" y="361" font-family="var(--mono)" font-size="8" letter-spacing="2" fill="var(--accent)" font-weight="700">HOOKS</text>
+        <g stroke-width="1.2" opacity=".5" stroke-dasharray="2 3"><line x1="120" y1="356" x2="120" y2="423" stroke="var(--h-research)"/><line x1="300" y1="356" x2="300" y2="423" stroke="var(--h-design)"/><line x1="480" y1="356" x2="480" y2="423" stroke="var(--h-test)"/><line x1="660" y1="356" x2="660" y2="423" stroke="var(--h-dev)"/><line x1="840" y1="356" x2="840" y2="423" stroke="var(--h-val)"/></g>
+        <circle cx="120" cy="396.5" r="2.6" fill="var(--h-research)"/><circle cx="300" cy="396.5" r="2.6" fill="var(--h-design)"/><circle cx="480" cy="396.5" r="2.6" fill="var(--h-test)"/><circle cx="660" cy="396.5" r="2.6" fill="var(--h-dev)"/><circle cx="840" cy="396.5" r="2.6" fill="var(--h-val)"/>
+        <rect x="100" y="374" width="920" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-opacity=".6"></rect>
+        <text x="110" y="387" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">PreToolUse</text>
+        <text x="560" y="387" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">deny-config-files</tspan> — path-based, so it works exactly as it does on every other track</text>
+        <text x="1010" y="387" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">FULLY EFFECTIVE</text>
+        <rect x="100" y="400" width="920" height="19" rx="9.5" fill="var(--band)" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"></rect>
+        <text x="110" y="413" font-family="var(--mono)" font-size="8" fill="var(--muted)" font-weight="600">PostToolUse</text>
+        <text x="560" y="413" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard fix</tspan> — a <tspan font-family="var(--mono)" font-size="9">.go</tspan> write matches no branch at all; it receives a trailing newline</text>
+        <text x="1010" y="413" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--muted)" font-weight="700">NEWLINE ONLY</text>
+        <rect x="100" y="426" width="920" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"><animate attributeName="stroke-opacity" values=".45;1;.45" dur="3.3s" repeatCount="indefinite"/></rect>
+        <text x="110" y="439" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">Stop</text>
+        <text x="560" y="439" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard verify</tspan> — validate and tflint glob <tspan font-family="var(--mono)" font-size="9">*.tf</tspan> and exit 0; trivy config does not read Go</text>
+        <text x="1010" y="439" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">PRIVATE-KEY GREP ONLY</text>
+        <rect x="100" y="452" width="920" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"></rect>
+        <text x="110" y="465" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">git pre-commit</text>
+        <text x="560" y="465" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard commit</tspan> — Vault Radar and staged-file hygiene are content-based, so both apply normally</text>
+        <text x="1010" y="465" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">FULLY EFFECTIVE</text>
+        <text x="560" y="496" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.1" fill="var(--muted)">NO go build, go vet, gofmt OR staticcheck APPEARS ANYWHERE IN scripts/hooks/</text>
+        <line x1="60" y1="516" x2="1060" y2="516" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <text x="60" y="510" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">WRITES</text>
+        <text x="120" y="534" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">research-*.md</text>
+        <text x="480" y="534" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">*_test.go (stubs)</text>
+        <text x="660" y="534" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">internal/service/**</text>
+        <text x="840" y="534" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">reports/*.md</text>
+        <rect x="214" y="522" width="172" height="18" rx="9" fill="var(--ink)" opacity=".08"/>
+        <text x="300" y="535" text-anchor="middle" font-family="var(--mono)" font-size="9" font-weight="700" fill="var(--ink)">provider-design-{resource}.md</text>
+        <text x="300" y="554" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.3" fill="var(--ink)">SINGLE SOURCE OF TRUTH</text>
+        <path d="M310,560 C380,602 400,602 480,562" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".3" stroke-dasharray="3 3"/>
+        <path d="M310,562 C380,612 580,612 660,562" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".3" stroke-dasharray="3 3"/>
+        <path d="M310,564 C380,622 760,622 840,562" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".3" stroke-dasharray="3 3"/>
+        <text x="620" y="638" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--muted)">read back by every downstream agent</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 1</b> — delegation, the one artifact everyone reads, and the guard layers between an agent and the disk</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>The human in that top row is doing more work than on the other tracks. Besides approving the design, they are the only thing that carries <code>$RESOURCE</code> from the first invocation to the second: it appears in the design filename but not in the branch name, so a forgotten second argument breaks the design-exists check at the start of the implement half.</p>
+  </div>
+</section>
+
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">02</div>
+    <h2 style="margin-bottom:8px">The runtime spine, and the lane that is not there</h2>
+    <p class="lead" style="margin-top:6px;max-width:74ch">Thirty-four steps across two lanes, expanded from the shortest pair of skill files in the repo — 23 numbered steps against the module track’s 26. The third lane is drawn empty because this track has no harness at all.</p>
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1120 424" role="img" aria-labelledby="v1t v1d">
+        <title id="v1t">Runtime sequence of a full tf-provider plan and implement run</title>
+        <desc id="v1d">Thirty-four steps on two lanes, orchestrator and subagents. A third lane is drawn empty to show that this track has no eval harness, no eval cases, no judge and no deterministic checks. Five markers are called out: the clarification round, the human approval gate, the compile-only test verification, the Section 6 checklist gate, and the acceptance-test step which never executes.</desc>
+        <rect x="64" y="78" width="992" height="60" rx="6" fill="var(--rule)" opacity=".18"/>
+        <line x1="72" y1="110" x2="316" y2="110" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="4 5" opacity=".5"/><line x1="804" y1="110" x2="1048" y2="110" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="4 5" opacity=".5"/>
+        <text x="4" y="107" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--muted)">HARNESS</text>
+        <text x="560" y="114" text-anchor="middle" font-family="var(--mono)" font-size="9" letter-spacing="1.6" fill="var(--accent)" font-weight="700">NO E2E HARNESS · NO EVAL CASES · NO JUDGE · NO DETERMINISTIC CHECKS</text>
+        <text x="560" y="128" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--muted)">this track is never run end to end, so nothing outside the session ever checks its output</text>
+        <g stroke="var(--rule-strong)" stroke-width="1"><line x1="72" y1="200" x2="1048" y2="200"/><line x1="72" y1="300" x2="1048" y2="300"/></g>
+        <text x="4" y="197" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--muted)">ORCHESTRATOR</text>
+        <text x="4" y="297" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--muted)">SUBAGENTS</text>
+        <polyline fill="none" stroke="var(--muted)" stroke-width="1" opacity=".45" stroke-linejoin="round" points="80,200 109,200 138,200 167,200 196,200 225,200 254,200 283,300 312,200 341,200 370,300 399,200 428,200 457,200 486,200 515,200 544,200 573,200 602,200 631,300 660,200 689,200 718,200 747,300 776,200 805,200 834,200 863,300 892,200 921,200 950,200 979,200 1008,200 1037,200"/>
+        <circle r="3.4" fill="var(--accent)" opacity="0"><animateMotion dur="15s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.6 1" path="M80,200 L109,200 L138,200 L167,200 L196,200 L225,200 L254,200 L283,300 L312,200 L341,200 L370,300 L399,200 L428,200 L457,200 L486,200 L515,200 L544,200 L573,200 L602,200 L631,300 L660,200 L689,200 L718,200 L747,300 L776,200 L805,200 L834,200 L863,300 L892,200 L921,200 L950,200 L979,200 L1008,200 L1037,200"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.03;.95;1" dur="15s" repeatCount="indefinite"/></circle>
+        <line x1="225" y1="158" x2="225" y2="306" stroke="var(--ink)" stroke-width="1" opacity="0.35"/>
+        <line x1="225" y1="340" x2="225" y2="352" stroke="var(--ink)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="225" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--muted)">CLARIFY &#215;5</text>
+        <text x="225" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">3 mandated</text>
+        <line x1="457" y1="158" x2="457" y2="306" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.75"/>
+        <line x1="457" y1="340" x2="457" y2="352" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="457" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--accent)" font-weight="700">HUMAN APPROVAL</text>
+        <text x="457" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">blocks all code</text>
+        <line x1="631" y1="158" x2="631" y2="306" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.75"/>
+        <line x1="631" y1="340" x2="631" y2="352" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="631" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--accent)" font-weight="700">GO TEST -c</text>
+        <text x="631" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">compile only</text>
+        <line x1="805" y1="158" x2="805" y2="306" stroke="var(--ink)" stroke-width="1" opacity="0.35"/>
+        <line x1="805" y1="340" x2="805" y2="352" stroke="var(--ink)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="805" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--muted)">SECTION 6</text>
+        <text x="805" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">all items ticked</text>
+        <line x1="950" y1="158" x2="950" y2="306" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.75"/>
+        <line x1="950" y1="340" x2="950" y2="352" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="950" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--accent)" font-weight="700">ACCEPTANCE</text>
+        <text x="950" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">never executes</text>
+        <g fill="var(--ink)"><circle cx="80" cy="200" r="3.4"/><circle cx="109" cy="200" r="3.4"/><circle cx="138" cy="200" r="3.4"/><circle cx="167" cy="200" r="3.4"/><circle cx="196" cy="200" r="3.4"/><circle cx="225" cy="200" r="3.4"/><circle cx="254" cy="200" r="3.4"/><circle cx="312" cy="200" r="3.4"/><circle cx="341" cy="200" r="3.4"/><circle cx="399" cy="200" r="3.4"/><circle cx="428" cy="200" r="3.4"/><circle cx="457" cy="200" r="3.4"/><circle cx="486" cy="200" r="3.4"/><circle cx="515" cy="200" r="3.4"/><circle cx="544" cy="200" r="3.4"/><circle cx="573" cy="200" r="3.4"/><circle cx="602" cy="200" r="3.4"/><circle cx="660" cy="200" r="3.4"/><circle cx="689" cy="200" r="3.4"/><circle cx="718" cy="200" r="3.4"/><circle cx="776" cy="200" r="3.4"/><circle cx="805" cy="200" r="3.4"/><circle cx="834" cy="200" r="3.4"/><circle cx="892" cy="200" r="3.4"/><circle cx="921" cy="200" r="3.4"/><circle cx="950" cy="200" r="3.4"/><circle cx="979" cy="200" r="3.4"/><circle cx="1008" cy="200" r="3.4"/><circle cx="1037" cy="200" r="3.4"/></g>
+        <circle cx="283" cy="300" r="5" fill="var(--h-research)"/>
+        <circle cx="370" cy="300" r="5" fill="var(--h-design)"/>
+        <circle cx="631" cy="300" r="5" fill="var(--h-test)"/>
+        <circle cx="747" cy="300" r="5" fill="var(--h-dev)"/>
+        <circle cx="863" cy="300" r="5" fill="var(--h-val)"/>
+        <text x="283" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-research)">research</text>
+        <text x="370" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-design)">design</text>
+        <text x="631" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-test)">test-writer</text>
+        <text x="747" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-dev)">developer</text>
+        <text x="863" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-val)">validator</text>
+        <line x1="72" y1="396" x2="1048" y2="396" stroke="var(--rule-strong)" stroke-width="1" opacity=".7"/>
+        <text x="80" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">01</text>
+        <text x="225" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">06</text>
+        <text x="370" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">11</text>
+        <text x="515" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">16</text>
+        <text x="660" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">21</text>
+        <text x="805" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">26</text>
+        <text x="950" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">31</text>
+        <text x="1037" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">34</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 2</b> — 34 runtime steps · the ghosted top lane is the harness this track does not have</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>The TDD loop here never turns red to green. It turns <em>non-compiling to compiling</em>. The test-writer emits every acceptance test with <code>t.Skip("not implemented")</code> over a commented-out skeleton, and the only verification the track performs <em>on those tests</em> is <code>go test -c -o /dev/null</code> — which builds the test binary and throws it away.</p>
+
+    <h3>Step by step</h3>
+    <div class="steps">
+      <div><span class="n">01</span><span class="t"><span class="who">tf-provider-plan</span>Bootstrap <code>.foundations</code>, env gate, then <code>go version</code> — Go ≥ 1.21 required. The only language-toolchain gate in the repo.</span></div>
+      <div><span class="n">02</span><span class="t"><span class="who">tf-provider-plan</span>Create the issue titled <code>Provider Resource: {provider}_{service}_{resource}</code>.</span></div>
+      <div><span class="n">03</span><span class="t"><span class="who">tf-provider-plan</span>Create the feature branch with <code>--workflow provider</code>.</span></div>
+      <div><span class="n">04</span><span class="t"><span class="who">tf-provider-plan</span>Scan for API-behaviour and state-management ambiguity via <code>tf-domain-category</code>.</span></div>
+      <div><span class="n">05</span><span class="t"><span class="who">tf-provider-plan</span>Prepare the clarification set.</span></div>
+      <div class="gate"><span class="n">06</span><span class="t"><span class="who">tf-provider-plan</span><b>Clarification gate</b> — up to five questions; update behaviour (ForceNew vs in-place), test environment and security are mandated.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">tf-provider-plan</span>Dispatch the research fan-out.</span></div>
+      <div><span class="n">08</span><span class="t"><span class="who">tf-provider-research ×3–4</span>API and SDK docs, Plugin Framework patterns, existing implementations, import and state. <b>WebSearch and WebFetch</b>, not MCP.</span></div>
+      <div><span class="n">09</span><span class="t"><span class="who">tf-provider-plan</span>Glob-verify the research files.</span></div>
+      <div><span class="n">10</span><span class="t"><span class="who">tf-provider-plan</span>Launch the design agent with <b>three</b> inputs — feature, resource and requirements.</span></div>
+      <div><span class="n">11</span><span class="t"><span class="who">tf-provider-design</span>Writes <code>provider-design-{resource}.md</code> — all four CRUD operations plus import, six scenario groups, a coarse checklist.</span></div>
+      <div><span class="n">12</span><span class="t"><span class="who">tf-provider-plan</span>Glob-verify the design; re-launch once if missing.</span></div>
+      <div><span class="n">13</span><span class="t"><span class="who">tf-provider-plan</span>Confirm all seven sections are present.</span></div>
+      <div class="gate"><span class="n">14</span><span class="t"><span class="who">tf-provider-plan</span><b>Human approval gate</b> — attribute counts, CRUD operations, scenario counts, checklist items.</span></div>
+      <div><span class="n">15</span><span class="t"><span class="who">tf-provider-plan</span>Hand off <code>/tf-provider-implement $FEATURE $RESOURCE</code> — the only two-argument handoff in the repo.</span></div>
+      <div><span class="n">16</span><span class="t"><span class="who">tf-provider-implement</span>Re-run the env gate and <code>go version</code>, resolve the feature, and derive the resource from the design filename if the second argument was omitted.</span></div>
+      <div><span class="n">17</span><span class="t"><span class="who">tf-provider-implement</span>Require the per-resource design file.</span></div>
+      <div><span class="n">18</span><span class="t"><span class="who">tf-provider-implement</span>Resolve the issue number.</span></div>
+      <div><span class="n">19</span><span class="t"><span class="who">tf-provider-implement</span>Dispatch the test-writer.</span></div>
+      <div class="gate"><span class="n">20</span><span class="t"><span class="who">tf-provider-test-writer</span>One Go test function per scenario, each carrying <code>t.Skip("not implemented")</code> over a commented-out skeleton. Verified by <code>go test -c</code> — <b>compiled and discarded</b>.</span></div>
+      <div><span class="n">21</span><span class="t"><span class="who">tf-provider-implement</span>Verify the test file exists; checkpoint.</span></div>
+      <div><span class="n">22</span><span class="t"><span class="who">tf-provider-implement</span>Grep Section 6 for the checklist items.</span></div>
+      <div><span class="n">23</span><span class="t"><span class="who">tf-provider-implement</span>Begin the per-item loop, strictly serial — the schema item blocks the rest.</span></div>
+      <div><span class="n">24</span><span class="t"><span class="who">tf-provider-developer</span>Plugin Framework code, then <code>gofmt</code> → <code>go build</code> (hard stop) → <code>go vet</code> → <code>go test -c</code>. It writes the helpers the test-writer refused, and never removes a <code>t.Skip</code>.</span></div>
+      <div><span class="n">25</span><span class="t"><span class="who">tf-provider-implement</span>Re-run build and test-compile, then checkpoint. <b>No test executes in this loop.</b></span></div>
+      <div class="gate"><span class="n">26</span><span class="t"><span class="who">tf-provider-implement</span>Final <code>go vet</code>; <b>Section 6 gate</b> — every item ticked.</span></div>
+      <div><span class="n">27</span><span class="t"><span class="who">tf-provider-implement</span>Launch the validator — <b>without</b> <code>run_acceptance_tests=true</code>.</span></div>
+      <div><span class="n">28</span><span class="t"><span class="who">tf-provider-validator</span>Design conformance, the Go gate chain plus <code>staticcheck</code>, scenario counting, constitution review, conservative auto-fix. Acceptance tests report SKIPPED.</span></div>
+      <div><span class="n">29</span><span class="t"><span class="who">tf-provider-implement</span>Re-build if auto-fixes landed.</span></div>
+      <div><span class="n">30</span><span class="t"><span class="who">tf-provider-implement</span>Remediate remaining issues and re-validate — <b>max 3 rounds</b>, then stop short of the PR.</span></div>
+      <div class="gate"><span class="n">31</span><span class="t"><span class="who">tf-provider-implement</span>Acceptance tests: opt-in. A real <code>TF_ACC=1</code> command, gated on passing <code>run_acceptance_tests=true</code> and exporting credentials.</span></div>
+      <div><span class="n">32</span><span class="t"><span class="who">tf-provider-implement</span>Write the validation report — here the orchestrator writes it, not the validator.</span></div>
+      <div><span class="n">33</span><span class="t"><span class="who">tf-provider-implement</span>Checkpoint, push, open the PR. No <code>semver:*</code> label.</span></div>
+      <div><span class="n">34</span><span class="t"><span class="who">tf-guard hooks</span>Throughout: a <code>.go</code> write matches no fix branch; at Stop, validate and tflint glob <code>*.tf</code> and exit 0, trivy reads IaC not Go, and only the private-key grep touches the file.</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="snum">03</div>
+    <h2>What each actor knows</h2>
+    <p class="lead">Seven reference skills, and a distinct family from every other track — the <code>provider-*</code> skills rather than the <code>tf-*</code> ones.</p>
+    <figure>
+      <div class="scroller">
+      <svg data-wide viewBox="104 -18 796 420" role="img" aria-labelledby="v2t v2d">
+        <title id="v2t">Which reference skills each actor loads on the provider track</title>
+        <desc id="v2d">A matrix of seven actors against seven reference skills. Only tf-provider-validator loads provider-run-acceptance-tests, and it is the one agent that does not load provider-test-patterns despite judging test structure. The implement orchestrator loads tf-report-template because it writes the validation report itself.</desc>
+        <g font-family="var(--mono)" font-size="9" fill="var(--muted)">
+          <text transform="translate(330,118) rotate(-52)">tf-domain-category</text>
+          <text transform="translate(400,118) rotate(-52)">provider-resources</text>
+          <text transform="translate(470,118) rotate(-52)">provider-actions</text>
+          <text transform="translate(540,118) rotate(-52)">provider-test-patterns</text>
+          <text transform="translate(610,118) rotate(-52)">provider-run-acceptance-tests</text>
+          <text transform="translate(680,118) rotate(-52)">tf-report-template</text>
+          <text transform="translate(750,118) rotate(-52)" fill="var(--accent)" font-weight="600">tf-judge-criteria</text>
+        </g>
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".5"><line x1="330" y1="126" x2="330" y2="358"/><line x1="400" y1="126" x2="400" y2="358"/><line x1="470" y1="126" x2="470" y2="358"/><line x1="540" y1="126" x2="540" y2="358"/><line x1="610" y1="126" x2="610" y2="358"/><line x1="680" y1="126" x2="680" y2="358"/><line x1="750" y1="126" x2="750" y2="358"/></g>
+        <line x1="120" y1="126" x2="856" y2="126" stroke="var(--rule-strong)" stroke-width="1"/>
+        <line x1="120" y1="358" x2="856" y2="358" stroke="var(--rule-strong)" stroke-width="1" opacity=".45"/>
+        <g font-family="var(--mono)" font-size="9.5" text-anchor="end">
+          <text x="306" y="153" fill="var(--muted)">tf-provider-plan</text>
+          <text x="306" y="185" fill="var(--muted)">tf-provider-implement</text>
+          <text x="306" y="217" fill="var(--h-research)">tf-provider-research</text>
+          <text x="306" y="249" fill="var(--h-design)">tf-provider-design</text>
+          <text x="306" y="281" fill="var(--h-test)">tf-provider-test-writer</text>
+          <text x="306" y="313" fill="var(--h-dev)">tf-provider-developer</text>
+          <text x="306" y="345" fill="var(--h-val)">tf-provider-validator</text>
+        </g>
+        <g font-family="var(--mono)" font-size="7" text-anchor="end" fill="var(--muted)">
+          <text x="306" y="163">orchestrator · loads from its own body</text>
+          <text x="306" y="195">orchestrator · writes the report itself</text>
+          <text x="306" y="291">no web tools — the only one</text>
+        </g>
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".45"><line x1="120" y1="166" x2="856" y2="166"/><line x1="120" y1="198" x2="856" y2="198"/><line x1="120" y1="230" x2="856" y2="230"/><line x1="120" y1="262" x2="856" y2="262"/><line x1="120" y1="294" x2="856" y2="294"/><line x1="120" y1="326" x2="856" y2="326"/></g>
+        <circle cx="330" cy="150" r="5" fill="var(--muted)"/>
+        <circle cx="680" cy="182" r="5" fill="var(--muted)"/>
+        <circle cx="400" cy="214" r="5" fill="var(--h-research)"/>
+        <circle cx="470" cy="214" r="5" fill="var(--h-research)"/>
+        <circle cx="540" cy="214" r="5" fill="var(--h-research)"/>
+        <circle cx="400" cy="246" r="5" fill="var(--h-design)"/>
+        <circle cx="540" cy="278" r="5" fill="var(--h-test)"/>
+        <circle cx="400" cy="310" r="5" fill="var(--h-dev)"/>
+        <circle cx="470" cy="310" r="5" fill="var(--h-dev)"/>
+        <circle cx="540" cy="310" r="5" fill="var(--h-dev)"/>
+        <circle cx="400" cy="342" r="5" fill="var(--h-val)"/>
+        <circle cx="610" cy="342" r="5" fill="var(--h-val)"/>
+        <circle cx="680" cy="342" r="5" fill="var(--h-val)"/>
+        <circle cx="750" cy="342" r="5" fill="var(--h-val)"/>
+      </svg>
+      </div>
+      <figcaption><b>Fig. 3</b> — reference-skill loading · a dot means that actor loads that skill</figcaption>
+      <div class="sr-only"><table><caption>Reference skills loaded by each actor on the provider track</caption><tbody>
+        <tr><th scope="row">tf-provider-plan</th><td>tf-domain-category</td></tr>
+        <tr><th scope="row">tf-provider-implement</th><td>tf-report-template</td></tr>
+        <tr><th scope="row">tf-provider-research</th><td>provider-resources, provider-actions, provider-test-patterns</td></tr>
+        <tr><th scope="row">tf-provider-design</th><td>provider-resources</td></tr>
+        <tr><th scope="row">tf-provider-test-writer</th><td>provider-test-patterns</td></tr>
+        <tr><th scope="row">tf-provider-developer</th><td>provider-resources, provider-actions, provider-test-patterns</td></tr>
+        <tr><th scope="row">tf-provider-validator</th><td>provider-resources, provider-run-acceptance-tests, tf-judge-criteria, tf-report-template</td></tr>
+      </tbody></table></div>
+    </figure>
+    <p>Two cells are worth reading against each other. <code>provider-run-acceptance-tests</code> is loaded by the validator alone — the one agent positioned to run them, and the one the orchestrator never asks to. And the validator is the only test-touching agent that does <em>not</em> load <code>provider-test-patterns</code>, so it judges test structure against the constitution rather than against the skill that generated the tests. It now also loads <code>tf-judge-criteria</code>, the shared rubric the other three tracks score against; until recently it was the only validator that did not.</p>
+  </div>
+</section>
+
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">04</div>
+    <h2 style="margin-bottom:8px">Three reasons no acceptance test ever runs</h2>
+    <p class="lead" style="margin-top:6px;max-width:72ch">The track ships a complete acceptance-test scaffold. Three independent things stop any of it executing, and removing any one of them would not be enough.</p>
+
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1060 336" role="img" aria-labelledby="v3t v3d">
+        <title id="v3t">The three independent reasons acceptance tests never execute</title>
+        <desc id="v3d">Three gates in series. First, the implement skill's acceptance-test step is four words with no command. Second, the only real TF_ACC invocation lives in the validator and is gated on a run_acceptance_tests flag the orchestrator never passes. Third, every generated test function carries t.Skip, and while the constitution expects the developer to fill the stubs in, nothing ever verifies that one was removed. All three must be fixed for a single test to run.</desc>
+
+        <text x="60" y="40" font-family="var(--mono)" font-size="8" letter-spacing="1.6" fill="var(--muted)">A TEST WOULD HAVE TO PASS ALL THREE</text>
+
+        <line x1="150" y1="66" x2="150" y2="76" stroke="var(--rule-strong)" stroke-width="1" opacity=".5"/>
+        <line x1="520" y1="66" x2="520" y2="76" stroke="var(--rule-strong)" stroke-width="1" opacity=".5"/>
+        <line x1="890" y1="66" x2="890" y2="76" stroke="var(--rule-strong)" stroke-width="1" opacity=".5"/>
+
+        <g>
+          <rect x="60" y="80" width="180" height="20" rx="10" fill="var(--accent)" opacity=".1"/>
+          <text x="150" y="94" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--accent)" font-weight="700">BLOCK 1 · BY DESIGN</text>
+          <text x="150" y="126" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--body)">
+            <tspan x="150" dy="0">Step 10 is now explicit, but</tspan>
+            <tspan x="150" dy="15">deliberately opt-in:</tspan>
+          </text>
+          <rect x="66" y="140" width="168" height="22" rx="4" fill="var(--ink)" opacity=".07"/>
+          <text x="150" y="155" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)" font-weight="600">not run by default</text>
+          <text x="150" y="182" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--muted)">
+            <tspan x="150" dy="0">They provision billable</tspan>
+            <tspan x="150" dy="13">cloud resources.</tspan>
+          </text>
+        </g>
+
+        <g>
+          <rect x="430" y="80" width="180" height="20" rx="10" fill="var(--accent)" opacity=".1"/>
+          <text x="520" y="94" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--accent)" font-weight="700">BLOCK 2 · THE FLAG</text>
+          <text x="520" y="126" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--body)">
+            <tspan x="520" dy="0">The one real TF_ACC invocation</tspan>
+            <tspan x="520" dy="15">lives in the validator, gated on</tspan>
+          </text>
+          <rect x="436" y="140" width="168" height="22" rx="4" fill="var(--ink)" opacity=".07"/>
+          <text x="520" y="155" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)" font-weight="600">run_acceptance_tests=true</text>
+          <text x="520" y="182" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--muted)">
+            <tspan x="520" dy="0">The orchestrator never passes it,</tspan>
+            <tspan x="520" dy="13">so the validator reports SKIPPED.</tspan>
+          </text>
+        </g>
+
+        <g>
+          <rect x="800" y="80" width="180" height="20" rx="10" fill="var(--accent)" opacity=".1"/>
+          <text x="890" y="94" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--accent)" font-weight="700">BLOCK 3 · THE CODE</text>
+          <text x="890" y="126" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--body)">
+            <tspan x="890" dy="0">Every generated test function</tspan>
+            <tspan x="890" dy="15">still carries</tspan>
+          </text>
+          <rect x="806" y="140" width="168" height="22" rx="4" fill="var(--ink)" opacity=".07"/>
+          <text x="890" y="155" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)" font-weight="600">t.Skip("not implemented")</text>
+          <text x="890" y="182" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--muted)">
+            <tspan x="890" dy="0">Nothing anywhere ever checks</tspan>
+            <tspan x="890" dy="13">that one was removed.</tspan>
+          </text>
+        </g>
+
+        <g fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3" opacity=".6">
+          <path d="M244,151 L426,151"/>
+          <path d="M614,151 L796,151"/>
+        </g>
+        <text x="335" y="145" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="var(--accent)">and even if fixed</text>
+        <text x="705" y="145" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="var(--accent)">and even if fixed</text>
+
+        <line x1="60" y1="228" x2="1000" y2="228" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>
+        <text x="530" y="252" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--accent)">The scaffold is real, complete and correct. Nothing that runs automatically ever asks it to prove anything.</text>
+        <text x="530" y="272" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--muted)">The only verification the whole track performs on its tests is <tspan font-family="var(--mono)" font-size="10" fill="var(--ink)">go test -c -o /dev/null</tspan> — compile, then discard.</text>
+        <text x="530" y="306" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.2" fill="var(--muted)">THE DONE BLOCK NOW REPORTS THE POSITION EXPLICITLY: NOT RUN, OR RAN/SKIPPED COUNTS</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 4</b> — the acceptance-test chain, and why fixing any single link changes nothing</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>The guard layer cannot compensate, because it is equally blind here. A <code>.go</code> write matches no branch in the fix hook and receives only a trailing-newline repair; at the turn boundary <code>validate.sh</code> and <code>lint.sh</code> build their file set from a <code>*.tf</code> glob and exit 0 on the empty set; <code>trivy config</code> is an IaC misconfiguration scanner and does not read Go. Searching <code>scripts/hooks/</code> for <code>go build</code>, <code>gofmt</code> or <code>staticcheck</code> returns nothing. The net enforced guarantee for a provider turn is a trailing newline and a private-key grep — every Go quality gate exists only as agent prose.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="snum">05</div>
+    <h2>What differs from the module track</h2>
+    <p class="lead">Same skeleton, different language, and a materially different level of assurance.</p>
+    <div class="steps" style="columns:1">
+      <div><span class="n">01</span><span class="t"><span class="who">language</span>Go under <code>internal/service/&lt;service&gt;/</code> using the Plugin Framework. The verification vocabulary is <code>gofmt</code>, <code>go build</code>, <code>go vet</code>, <code>staticcheck</code> — none of which any hook runs.</span></div>
+      <div><span class="n">02</span><span class="t"><span class="who">two arguments</span><code>provider-design-{resource}.md</code> is the only design artifact whose filename carries a second identifier, and it propagates through the whole call shape.</span></div>
+      <div><span class="n">03</span><span class="t"><span class="who">toolchain gate</span>The only track that gates on a language runtime — <code>go version</code>, Go ≥ 1.21 — though only at plan time; implement never re-checks.</span></div>
+      <div><span class="n">04</span><span class="t"><span class="who">two-stage gate</span>The only track that gates on a language runtime, now at both plan and implement time.</span></div>
+      <div><span class="n">05</span><span class="t"><span class="who">research tools</span>WebSearch and WebFetch instead of the terraform MCP server — reasonable, since registry and workspace tools cannot help author Go. The test-writer has neither — the only agent on the track without both.</span></div>
+      <div><span class="n">06</span><span class="t"><span class="who">tests</span>Compile-only. The module track executes <code>terraform test</code> after every checklist item and again at the end; nothing here ever executes a test.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">fix loop</span>Capped at three rounds, matching every sibling track.</span></div>
+      <div><span class="n">08</span><span class="t"><span class="who">report owner</span>Inverted: the orchestrator writes the validation report, where the module validator writes its own.</span></div>
+      <div><span class="n">09</span><span class="t"><span class="who">PR</span>No <code>semver:*</code> label and no label bootstrap.</span></div>
+      <div><span class="n">10</span><span class="t"><span class="who">measurement</span>No e2e skill, no eval cases, no judge — though the harness is closer than it looks: the case schema already lists <code>provider</code> as a track and a Provider rubric already exists.</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="snum">06</div>
+    <h2>Findings</h2>
+    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code. Four further findings — the missing plan step, unrecoverable <code>$RESOURCE</code>, the uncapped fix loop and the overstated parity in <code>AGENTS.md</code> — were fixed at source rather than documented here.</p>
+
+    <div class="finding">
+      <div class="sev hi">High</div>
+      <div>
+        <h3>The acceptance-test suite still does not run by default</h3>
+        <p>One of the three blocks in Fig. 3 is now gone: the skill’s step 10 carries a real command, states the credential precondition, and explains that a green run with every test skipped is not a passing suite. The other two stand. Acceptance tests remain opt-in — deliberately, since they provision billable cloud resources — and the test-writer still emits every function with <code>t.Skip</code>, with nothing anywhere verifying that a single skip was removed.</p>
+        <p>So the default outcome is unchanged — a complete, compiling, correctly-structured test suite that asserts nothing — but it is now a documented choice with an escape hatch rather than a dead four-word instruction.</p>
+        <span class="cite">.claude/skills/tf-provider-implement/SKILL.md step 10 · .claude/agents/tf-provider-validator.md · tf-provider-test-writer.md</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev hi">High</div>
+      <div>
+        <h3>The guard layer enforces nothing on a Go codebase</h3>
+        <p>Verified three ways: the fix hook branches only on <code>*.tf|*.tfvars</code> and <code>*.yaml|*.yml</code>, so a <code>.go</code> write gets a trailing newline; <code>validate.sh</code> and <code>lint.sh</code> exit 0 on an empty <code>*.tf</code> set; and grepping <code>scripts/hooks/</code> for <code>go build</code>, <code>go vet</code>, <code>gofmt</code>, <code>golangci</code> or <code>staticcheck</code> returns no matches.</p>
+        <p>Combined with the absence of an eval harness, no automated mechanism at any layer confirms that a provider run compiled, vetted cleanly, or passed anything.</p>
+        <span class="cite">scripts/hooks/tf-guard.sh · scripts/hooks/checks/{validate,lint,trivy}.sh</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>How this page was produced.</strong> Six parallel extraction agents read the two skills, the five agent definitions, the hook layer and the shared harness independently. A reconciliation pass merged their output into a single graph, re-opened the cited files for the load-bearing relationships, and discarded the edges that did not hold up. Every claim traces to a file and line. Siblings cover the <a href="tf-module-e2e.html">module</a>, <a href="tf-consumer-e2e.html">consumer</a> and <a href="tf-policy.html">policy</a> tracks.</p>
+    <div class="files">
+      <b>Skills</b> &nbsp;.claude/skills/tf-provider-plan/ · tf-provider-implement/ · provider-*<br>
+      <b>Agents</b> &nbsp;.claude/agents/tf-provider-{research,design,test-writer,developer,validator}.md<br>
+      <b>Hooks</b> &nbsp;.claude/settings.json · scripts/hooks/tf-guard.sh · scripts/hooks/checks/ · .githooks/pre-commit<br>
+      <b>Rules</b> &nbsp;AGENTS.md · .claude/CLAUDE.md · .foundations/memory/provider-constitution.md</div>
+  </div>
+</footer>
+<script>
+/* prefers-reduced-motion: display:none does not stop SMIL in Chromium,
+   so pause the animation timeline on each SVG instead. */
+(function () {
+  var q = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function apply() {
+    document.querySelectorAll('svg').forEach(function (s) {
+      if (typeof s.pauseAnimations !== 'function') return;
+      if (q.matches) { s.setCurrentTime(0); s.pauseAnimations(); }
+      else { s.unpauseAnimations(); }
+    });
+  }
+  apply();
+  q.addEventListener ? q.addEventListener('change', apply) : q.addListener(apply);
+})();
+</script>
+</body>
+</html>

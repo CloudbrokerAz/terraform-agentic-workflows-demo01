@@ -1,23 +1,38 @@
 ---
 name: tf-module-e2e
-description: "Non-interactive test harness for end-to-end Terraform workflow testing. Runs full `/tf-module-plan` -> `/tf-module-implement` cycle with test defaults, bypassing user prompts for automated validation. Pass the prompt filename as the skill argument."
+description: "End-to-end test harness for the Terraform module workflow. Runs the full `/tf-module-plan` -> `/tf-module-implement` cycle in a single session, then verifies every design.md Section 6 checklist item is complete. Optionally takes the name of a ready-made prompt from this skill's prompts/ directory. Non-interactive runs take their defaults from that prompt and from the eval runner, not from this skill."
 user-invocable: true
-argument-hint: "[prompt-file] - Run E2E test from prompts/ directory"
+argument-hint: "[prompt-name] - Optional; a prompt in prompts/, e.g. example_s3. Omit to take requirements from the invoking prompt"
 ---
 
 # E2E Test Orchestrator — Module
 
 ---
 
+## INPUT
+
+If given an argument, treat it as the name of a file in this skill's `prompts/`
+directory, with or without the `.md` suffix — `/tf-module-e2e example_s3` reads
+`prompts/example_s3.md`. Read that file and use it as the requirements for this
+run. Those prompts also instruct you not to ask clarifying questions, which is
+what makes the run non-interactive. If the named prompt does not exist, list the
+available prompts and stop.
+
+With no argument, take the requirements from the invoking prompt. This is the
+path the eval harness uses: it renders the prompt file itself and passes it as
+the session prompt.
+
+---
+
 ## PART 1: PLANNING
 
-Follow `/tf-module-plan` skill phases with these E2E-specific differences:
+Follow `/tf-module-plan` skill phases.
 
 ---
 
 ## PART 2: IMPLEMENTATION
 
-Follow `/tf-module-implement` skill phases (reads design.md) with these E2E-specific differences:
+Follow `/tf-module-implement` skill phases (reads design.md).
 
 ### Implementation Validation Expectations
 
@@ -25,4 +40,4 @@ After implementation completes, verify:
 
 - All checklist items from design.md Section 6 are marked `[x]`
 
-Display: > E2E module test complete. Status: [PASSED|FAILED]. See issue #<number> for details.
+Report: whether every design.md Section 6 checklist item is `[x]` (and which are not), plus the issue and PR links. This summary is for the human reader — the eval harness derives its verdict from its own checks, not from this text.
