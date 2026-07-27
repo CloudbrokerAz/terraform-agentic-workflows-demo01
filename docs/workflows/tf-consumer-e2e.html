@@ -727,22 +727,13 @@ footer .files b{color:var(--muted);font-weight:500}
     <h2>Findings</h2>
     <p class="lead">Produced by an independent review pass over the same source files, then verified against the code.</p>
 
-    <div class="finding">
-      <div class="sev hi">High</div>
-      <div>
-        <h3>Outside the harness, nothing guarantees the sandbox is destroyed</h3>
-        <p>The workflow’s own teardown is <code>implement:55</code> — an interactive “Destroy sandbox resources?” placed <em>after</em> the pull request, with no <code>finally</code> semantics, no cleanup on failure paths and no budget guard. A human who runs <code>/tf-consumer-implement</code> and then closes the terminal, or whose run dies at any point between the apply and that question, leaves live billable infrastructure with nothing else scheduled to remove it.</p>
-        <p>Inside the harness this is fully covered by the EXIT trap. The gap is only in the direct-invocation path — which is exactly the path a developer takes when trying the workflow for the first time.</p>
-        <span class="cite">.claude/skills/tf-consumer-implement/SKILL.md:55 · evals/e2e/bin/run-eval.sh:71–99</span>
-      </div>
-    </div>
-
+    
     <div class="finding">
       <div class="sev md">Medium</div>
       <div>
-        <h3>Nothing ever creates the workspace explicitly</h3>
-        <p>No skill and no agent calls <code>create_workspace</code>. The HCP Terraform workspace materialises from the <code>cloud&#123;&#125;</code> block’s organization, project and name on init or apply. That indirection is why the <code>project</code> attribute is grepped twice — once entering Phase 3 and again immediately pre-deploy — to keep the workspace out of the Default project.</p>
-        <p>It also means a run can succeed against the <em>wrong</em> workspace if the name the design chooses ever drifts from the <code>workspace_pattern</code> the harness expects, since the only thing linking them is prompt text substituted at render time.</p>
+        <h3>Only prompt text links the workspace the run creates to the one the harness grades</h3>
+        <p>No skill and no agent calls <code>create_workspace</code>, and none needs to: the Terraform CLI creates the HCP Terraform workspace from the <code>cloud&#123;&#125;</code> block’s organization, project and name on init or apply. That is the documented mechanism, not a gap. It is why the <code>project</code> attribute is grepped twice — once entering Phase 3 and again immediately pre-deploy — since the block is the only place the workspace’s project is decided, and getting it wrong silently lands the workspace in Default.</p>
+        <p>What is unguarded is the coupling. The name the design chooses and the <code>workspace_pattern</code> the harness expects are joined by nothing but prompt text substituted at render time, and no step asserts they agree. Let them drift and the run still succeeds — against a workspace the harness is not looking at.</p>
         <span class="cite">.claude/skills/tf-consumer-implement/SKILL.md:24–33,46 · evals/e2e/cases/consumer/*.json</span>
       </div>
     </div>
@@ -753,6 +744,16 @@ footer .files b{color:var(--muted);font-weight:500}
         <h3>The Section 5 gate is the weakest of three assertions on the same fact</h3>
         <p>Three layers check that the implementation checklist is complete, at three different strictnesses. The orchestrator accepts “flag the gap” as a resolution, so Phase 4 can proceed with unchecked items. The e2e skill demands every item be <code>[x]</code>. The harness runs <code>checklist_complete</code> as a hard deterministic check. The layer closest to the work is the one that can be talked out of it.</p>
         <span class="cite">.claude/skills/tf-consumer-implement/SKILL.md:42 · .claude/skills/tf-consumer-e2e/SKILL.md · evals/e2e/checks/deterministic.sh</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev lo">Low</div>
+      <div>
+        <h3>Outside the harness, nothing guarantees the sandbox is destroyed</h3>
+        <p>The workflow’s own teardown is <code>implement:55</code> — an interactive “Destroy sandbox resources?” placed <em>after</em> the pull request, with no <code>finally</code> semantics, no cleanup on failure paths and no budget guard. A human who runs <code>/tf-consumer-implement</code> and then closes the terminal, or whose run dies at any point between the apply and that question, leaves live billable infrastructure with nothing else scheduled to remove it.</p>
+        <p>Inside the harness this is fully covered by the EXIT trap. The gap is only in the direct-invocation path — which is exactly the path a developer takes when trying the workflow for the first time.</p>
+        <span class="cite">.claude/skills/tf-consumer-implement/SKILL.md:55 · evals/e2e/bin/run-eval.sh:71–99</span>
       </div>
     </div>
 
