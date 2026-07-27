@@ -137,6 +137,18 @@ else
     || die "clone of $REPO_FULL never became ready (template generation incomplete?)"
 fi
 
+# core.hooksPath is local repo config, so a fresh clone does not inherit it from
+# the template and falls back to an empty .git/hooks. Without this the commit
+# gate in .githooks/pre-commit (vault-radar + staged-file hygiene) never runs on
+# the workflow's checkpoint commits, and an eval run enforces a weaker standard
+# than a devcontainer run. Mirrors .devcontainer/*/scripts/post-create.sh.
+if [[ -d "$WORKDIR/.githooks" ]]; then
+  git -C "$WORKDIR" config core.hooksPath .githooks
+  log "git core.hooksPath set to .githooks (commit gate enabled)"
+else
+  log "WARNING: no .githooks/ in $WORKDIR — commit gate disabled for this run"
+fi
+
 # ------------------------------------------------------------------- run ----
 TIMEOUT_SECS=$(( $(case_get "$CASE_FILE" '.timeout_minutes') * 60 ))
 MODEL=$(case_get "$CASE_FILE" '.runtime.model')
