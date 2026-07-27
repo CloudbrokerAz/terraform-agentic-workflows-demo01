@@ -57,6 +57,27 @@
     "--security-opt=unmask=ALL", // nested container must mount its own /proc
     "--device=/dev/net/tun", // slirp4netns nested outbound networking
 
+    // --- docker-outside-of-podman ---
+    // Mount the podman-machine socket so `docker run` inside the container
+    // creates SIBLING containers on the machine rather than nested ones. This
+    // is what Docker devcontainers do with /var/run/docker.sock, and it is why
+    // the Terraform MCP server "just works" there.
+    //
+    // Nesting does not work in the amd64 container even with Rosetta: the
+    // image PULLS fine but starting one fails three different ways --
+    //   default net      slirp4netns: seccomp_load(): Operation canceled
+    //   --network=host   crun: Failed to re-execute libcrun via memfd
+    //   + runc           read init-p: connection reset by peer
+    // Siblings sidestep all of it: the container runs natively on the arm64
+    // machine, no translation involved.
+    //
+    // The uid in the path is the podman-machine user, NOT your macOS uid.
+    // Confirm it with:
+    //   podman machine ssh <machine> 'echo $XDG_RUNTIME_DIR/podman/podman.sock'
+    "--volume=/run/user/502/podman/podman.sock:/run/podman/podman.sock",
+    "--env=DOCKER_HOST=unix:///run/podman/podman.sock",
+    "--env=CONTAINER_HOST=unix:///run/podman/podman.sock",
+
     // --- stands in for the ignored containerEnv ---
     "--env=XDG_CONFIG_HOME=/workspace/${localWorkspaceFolderBasename}",
 
@@ -84,16 +105,14 @@
   // blocking post-start.
   //
   // Do NOT use ${localWorkspaceFolderBasename} in this value. The extension has
-  // TWO config readers and only one of them substitutes variables:
-  //   su()  -- local, at container-create time; pipes values through ne(),
-  //            so ${...} IS expanded. This is why the runArgs above work.
-  //   at()  -- used by gu() to run postStartCommand INSIDE the container;
-  //            `return Ae(o)` is a raw JSON5 parse with NO substitution.
-  // The literal "${localWorkspaceFolderBasename}" therefore reaches bash,
-  // expands to the empty string, and the cd lands in /workspace:
-  //   bash: .devcontainer/bob-podman/scripts/post-create.sh: No such file or directory
+  // two config readers: su() runs values through ne() and expands ${...}, but
+  // postStartCommand is executed in the container by gu(), which reads the file
+  // with at() -- a raw JSON5 parse with no substitution. The literal
+  // "${localWorkspaceFolderBasename}" then reaches bash, expands to the empty
+  // string, and the cd lands in /workspace instead of the repo:
+  //   bash: .devcontainer/bob-podman/scripts/post-create.sh: No such file
   // CODIUM_WS is injected by the extension as -e CODIUM_WS=/workspace/<basename>
-  // and is correct inside the container. The container's default cwd is already
-  // the workspace folder, so $PWD is a safe fallback.
+  // and is correct inside the container. The default cwd is already the
+  // workspace folder, so $PWD is a safe fallback.
   "postStartCommand": "cd \"${CODIUM_WS:-$PWD}\"; bash .devcontainer/bob-podman/scripts/post-create.sh || echo 'post-create failed (continuing)'; bash .devcontainer/bob-podman/scripts/post-start.sh"
 }
