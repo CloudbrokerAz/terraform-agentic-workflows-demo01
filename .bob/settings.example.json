@@ -21,7 +21,8 @@
       "subtask",
       "subagent",
       "skill",
-      "todo"
+      "todo",
+      "artifact"
     ],
     "permissionOptions": [
       {
@@ -113,7 +114,9 @@
           "docker",
           "podman",
           "shellcheck",
-          "pre-commit"
+          "pre-commit",
+          "curl",
+          "golangci-lint"
         ],
         "deniedCommands": [
           "rm",
