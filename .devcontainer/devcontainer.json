@@ -1,0 +1,86 @@
+// Root entry point for the IBM Bob IDE (Insiders) + rootless Podman.
+//
+// WHY THIS FILE IS AT THE ROOT OF .devcontainer/
+// Every other variant in this repo lives in its own subfolder and is selected
+// from VS Code's "Reopen in Container" picker. Bob IDE has no built-in Dev
+// Containers support; the `mythreyak.open-remote-devcontainer` extension
+// provides "Devcontainer: Open Folder in container", and at v0.4.2 it resolves
+// the config from exactly ONE hardcoded path:
+//     path.join(workspaceFolder, ".devcontainer", "devcontainer.json")
+// It has no subfolder scan and no picker, so it cannot see
+// ./bob-podman/devcontainer.json and fails with "No devcontainer.json found".
+// This file is that entry point; it reuses ./bob-podman-amd64/Dockerfile.
+//
+// SPEC SUBSET SUPPORTED BY v0.4.2 (verified against the extension bundle)
+//   Honoured: dockerFile, runArgs, mounts, remoteUser, postCreateCommand,
+//             postStartCommand.
+//   Ignored:  remoteEnv, containerEnv, workspaceMount, workspaceFolder,
+//             features, customizations, initializeCommand, forwardPorts,
+//             updateRemoteUserUID.
+// Consequences, all worked around below:
+//   * remoteEnv/containerEnv ignored -> every variable is passed as an --env
+//     entry in runArgs instead; ${localEnv:...} IS expanded there.
+//   * workspaceMount ignored -> the extension hardcodes
+//     `-v <repo>:/workspace/<basename> -w /workspace/<basename>`, so paths
+//     below are written against that location and workspaceFolder is omitted
+//     (the key is never read).
+//   * postCreateCommand is NOT run in the container: the extension appends it
+//     to a temporary Dockerfile as `RUN <cmd>` layers at BUILD time, where the
+//     workspace is not mounted and no tokens exist. Both scripts are therefore
+//     chained into postStartCommand, which IS run inside the container.
+//
+// Uses the amd64 image so Bob's GUI can attach on Apple Silicon -- see
+// ./bob-podman-amd64/readme.md. On an x86_64 Linux host you may point
+// dockerFile at ../bob-podman/Dockerfile and drop --platform for native speed.
+{
+  "name": "${localWorkspaceFolderBasename} - Bob IDE (Podman, amd64)",
+
+  // Resolved relative to this .devcontainer directory.
+  // Top-level "dockerFile" (capital F), NOT the modern
+  // "build": { "dockerfile": ... } object: v0.4.2 implements the legacy
+  // pre-2020 schema and its config normalizer is a shallow spread that never
+  // flattens build.dockerfile, so the modern form fails with
+  //   'devcontainer.json: "image" or "dockerFile" must be specified.'
+  "dockerFile": "bob-podman-amd64/Dockerfile",
+
+  "runArgs": [
+    // Must match the Dockerfile's FROM --platform. The extension does not pass
+    // --platform to `podman build`, and Podman 6 removed the global
+    // --override-arch, so the platform is pinned in the Dockerfile for build
+    // and here for run.
+    "--platform=linux/amd64",
+
+    // --- rootless Podman tuning (see ../bob-podman/readme.md for rationale) ---
+    "--userns=keep-id:uid=1000,gid=1000", // host UID -> in-container node (1000)
+    "--security-opt=label=disable", // no SELinux relabel on the bind mount
+    "--security-opt=seccomp=unconfined", // let nested podman run containers
+    "--security-opt=unmask=ALL", // nested container must mount its own /proc
+    "--device=/dev/net/tun", // slirp4netns nested outbound networking
+
+    // --- stands in for the ignored containerEnv ---
+    "--env=XDG_CONFIG_HOME=/workspace/${localWorkspaceFolderBasename}",
+
+    // --- stands in for the ignored remoteEnv ---
+    // These read the Bob IDE process environment; anything unset on the host
+    // expands to an empty string rather than failing.
+    "--env=GITHUB_TOKEN=${localEnv:GITHUB_TOKEN}",
+    "--env=GH_TOKEN=${localEnv:GITHUB_TOKEN}",
+    "--env=TFE_TOKEN=${localEnv:TEAM_TFE_TOKEN}",
+    "--env=TF_TOKEN_app_terraform_io=${localEnv:TEAM_TFE_TOKEN}",
+    "--env=AWS_ACCESS_KEY_ID=${localEnv:AWS_ACCESS_KEY_ID}",
+    "--env=AWS_SECRET_ACCESS_KEY=${localEnv:AWS_SECRET_ACCESS_KEY}",
+    "--env=AWS_SESSION_TOKEN=${localEnv:AWS_SESSION_TOKEN}",
+    "--env=AWS_SESSION_EXPIRATION=${localEnv:AWS_SESSION_EXPIRATION}",
+    "--env=VAULT_RADAR_LICENSE=${localEnv:VAULT_RADAR_LICENSE}",
+    "--env=BOBSHELL_API_KEY=${localEnv:BOBSHELL_API_KEY}",
+    // bobshell resolves its key via GOOGLE_API_KEY || GEMINI_API_KEY, so this
+    // alias is required by its own docs -- intentional, not a leak.
+    "--env=GEMINI_API_KEY=${localEnv:BOBSHELL_API_KEY}"
+  ],
+
+  "remoteUser": "node",
+
+  // post-create is chained here (see note above) and allowed to fail without
+  // blocking post-start.
+  "postStartCommand": "cd /workspace/${localWorkspaceFolderBasename}; bash .devcontainer/bob-podman/scripts/post-create.sh || echo 'post-create failed (continuing)'; bash .devcontainer/bob-podman/scripts/post-start.sh"
+}
