@@ -20,19 +20,27 @@ SCRIPT_DIR="$(dirname "$0")"
 
 # Pre-pull the images used by the Terraform MCP server and Bob Shell's sandbox.
 #
-# Probe the nested runtime first. `|| true` is not enough on its own: when this
-# amd64 image runs under QEMU emulation (Apple Silicon host, see
-# ../../bob-podman-amd64/Dockerfile), the bundled podman binary aborts during Go
-# runtime init with
-#   runtime: lfstack.push invalid packing: node=0x... -> node=0xffffffff...
-#   fatal error: lfstack.push
-# and dumps a ~100-line goroutine trace per invocation. Go packs pointers into
-# 48 bits assuming Linux x86-64 userspace addresses; QEMU hands out addresses
-# above that range. Redirecting the probe keeps that trace out of the log.
+# Probe the container runtime first, and probe it by actually RUNNING something
+# -- `docker info` alone is not sufficient. On the amd64 image under Rosetta,
+# `docker info` succeeds while `docker run` still fails, so an info-only probe
+# reports success and then leaves the MCP server broken at use time.
 #
-# On a native arm64 host podman works, the probe succeeds, and the pulls run
-# exactly as before.
-if docker info >/dev/null 2>&1; then
+# Both output streams are redirected because a failing probe can be noisy: under
+# QEMU (rather than Rosetta) the bundled podman aborts during Go runtime init
+# with "fatal error: lfstack.push" and dumps a ~100-line goroutine trace per
+# invocation, which `|| true` does not suppress.
+#
+# This succeeds when the podman-machine socket is mounted (see the
+# docker-outside-of-podman runArgs in ../../devcontainer.json), where `docker`
+# creates sibling containers on the machine, and on a native arm64 host.
+probe_runtime() {
+    docker info >/dev/null 2>&1 || return 1
+    # A real run: catches the case where the daemon answers but cannot start
+    # containers. Uses an image already needed below, so it costs nothing extra.
+    docker run --rm hashicorp/terraform-mcp-server:latest --help >/dev/null 2>&1
+}
+
+if probe_runtime; then
   docker image pull hashicorp/terraform-mcp-server:latest || true
 
   # Derived from the installed bobshell's package config so it tracks whatever
@@ -41,8 +49,10 @@ if docker info >/dev/null 2>&1; then
     || echo "docker.io/library/node:25-trixie")
   docker image pull "${sandbox_image}" || true
 else
-  echo "  Container runtime unavailable (emulated arch?) — skipping image pre-pulls"
+  echo "  Container runtime cannot start containers — skipping image pre-pulls"
   echo "  Terraform MCP server and Bob Shell's sandbox will not be available"
+  echo "  Check the podman-machine socket mount in .devcontainer/devcontainer.json"
+  echo "  (podman machine ssh <machine> 'echo \$XDG_RUNTIME_DIR/podman/podman.sock')"
 fi
 
 echo "=== Post-Start Complete ==="

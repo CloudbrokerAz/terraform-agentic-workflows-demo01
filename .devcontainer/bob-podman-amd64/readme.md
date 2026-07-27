@@ -35,36 +35,86 @@ because the extension does not pass `--platform` to `podman build`, and Podman
 Everything below the `FROM` line is identical to
 [`../bob-podman/Dockerfile`](../bob-podman/Dockerfile). **Keep the two in sync.**
 
-## Known limitations under emulation
+## Use Rosetta, not QEMU
 
-Verified on Podman 6.0.2 / Apple Silicon:
-
-| | |
-| --- | --- |
-| ✅ Works | Bob GUI attach, Terraform, node, npm, git, python3, `keep-id` UID mapping, bind-mount writes |
-| ❌ Broken | nested `podman`/`docker`, `gh` |
-
-Affected binaries abort during Go runtime init:
+**This variant requires Rosetta.** Under QEMU user-mode emulation, Go binaries
+inside the container abort during runtime init:
 
 ```
 runtime: lfstack.push invalid packing: node=0x… -> node=0xffffffff…
 fatal error: lfstack.push
 ```
 
-Go packs pointers into 48 bits assuming Linux x86-64 userspace addresses; QEMU
-hands out addresses above that range. It is **selective, not universal** —
-Terraform is also Go and works fine. `QEMU_RESERVED_VA` does not help (it fails
-earlier with `Cannot allocate vsyscall page`).
+Go packs a pointer plus a counter into one 64-bit word for its lock-free
+stacks, assuming Linux x86-64 userspace addresses fit in 48 bits (bit 47
+clear). `qemu-user` on an arm64 host hands the guest addresses above 2^47, so
+the unpack sign-extends and the round-trip check fails. It is **selective, not
+universal** — Terraform is also Go and survives. `QEMU_RESERVED_VA` does not
+help (it fails earlier with `Cannot allocate vsyscall page`).
 
-Practical impact: **no Terraform MCP server, no Bob Shell sandbox, no `gh`
-CLI** in this container. `post-start.sh` probes the runtime and skips the image
-pre-pulls rather than emitting a ~100-line goroutine trace per pull.
+Rosetta translates under the VM's normal Linux memory layout, so addresses stay
+canonical. Measured on Podman 6.0.2 / Apple Silicon:
 
-Run those on the host, or keep a native `../bob-podman` container alongside.
+| Binary | QEMU | Rosetta |
+| --- | --- | --- |
+| `podman` | `fatal error: lfstack.push` | 4.3.1 |
+| `gh` | `fatal error: lfstack.push` | 2.23.0 |
+| `go` | `SIGSEGV` | go1.24.13 |
+| `terraform` | v1.15.2 | v1.15.2 |
+
+Rosetta can only be enabled when a machine is **created**:
+
+```jsonc
+// ~/.config/containers/containers.conf
+[machine]
+rosetta=true
+```
+```bash
+podman machine rm -f <name>
+podman machine init --cpus 6 --memory 8192 --disk-size 100 <name>
+```
+
+**Do not trust `podman machine inspect --format '{{.Rosetta}}'`** — on 6.0.2 it
+reports `false` even when Rosetta is active. Verify against the VM:
+
+```bash
+podman machine ssh <name> 'ls /proc/sys/fs/binfmt_misc/; mount | grep -i rosetta'
+```
+
+Working looks like a `rosetta` binfmt entry, a `rosetta on /var/mnt type
+virtiofs` mount, and **no** `qemu-x86_64` entry.
+
+## Containers: siblings, not nesting
+
+Even with Rosetta, running a **nested** container inside this one fails. The
+image pulls fine, but starting one fails three different ways:
+
+| Attempt | Failure |
+| --- | --- |
+| default network | `slirp4netns: seccomp_load(): Operation canceled` |
+| `--network=host` (crun) | `Failed to re-execute libcrun via memory file descriptor` |
+| `--network=host` (runc) | `read init-p: connection reset by peer` |
+
+So this config does what Docker devcontainers do with `/var/run/docker.sock`:
+it mounts the **podman-machine socket**, and `docker run` creates *sibling*
+containers on the machine instead of nested ones. Those run natively on arm64,
+so no translation is involved and the Terraform MCP server works unchanged —
+`.bob/mcp.json` needs no edits.
+
+The uid in the socket path is the podman-machine user, **not** your macOS uid:
+
+```bash
+podman machine ssh <machine> 'echo $XDG_RUNTIME_DIR/podman/podman.sock'
+```
+
+Adjust the `--volume=` entry in [`../devcontainer.json`](../devcontainer.json)
+if yours differs. The in-image podman-in-podman stack is left in place for the
+native `../bob-podman` variant but is unused here.
 
 ## Prerequisites
 
-- Podman 4.x+ (rootless) with the socket service running
+- Podman 4.x+ (rootless) with the socket service running, and **Rosetta enabled**
+  (see above)
 - The `mythreyak.open-remote-devcontainer` extension installed in Bob, with:
   ```jsonc
   // Bob User/settings.json — absolute path, not bare "podman": a Dock-launched
