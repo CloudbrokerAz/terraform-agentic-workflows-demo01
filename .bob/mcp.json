@@ -10,6 +10,7 @@
         "--rm",
         "-e",
         "TFE_TOKEN",
+        "-e",
         "ENABLE_TF_OPERATIONS=true",
         "hashicorp/terraform-mcp-server:latest",
         "--toolsets=all"
