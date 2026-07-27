@@ -134,6 +134,7 @@ footer .files b{color:var(--muted);font-weight:500}
   body{font-size:16px}
   .steps{columns:1}
   .meta div{flex-basis:50%}
+  .meta>div:nth-child(odd){border-left:0;padding-left:0}
   .finding{grid-template-columns:1fr;gap:6px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -765,15 +766,14 @@ footer .files b{color:var(--muted);font-weight:500}
 
 <footer>
   <div class="wrap">
-    <p><strong>How this page was produced.</strong> Six parallel extraction agents read the skill, its two parent skills, the four agent definitions, the hook layer and the consumer half of the eval harness independently. A reconciliation pass merged their output into a single graph of 52 nodes and 68 edges, re-opened the cited files for the most load-bearing relationships, and corrected or discarded the edges that did not hold up. Every claim above traces to a file and line; the diagrams are drawn from that graph rather than from prose. Its sibling covers the <a href="tf-module-e2e.html">module track</a>.</p>
+    <p><strong>How this page was produced.</strong> Six parallel extraction agents read the skill, its two parent skills, the four agent definitions, the hook layer and the consumer half of the eval harness independently. A reconciliation pass merged their output into a single graph of 52 nodes and 68 edges, re-opened the cited files for the most load-bearing relationships, and corrected or discarded the edges that did not hold up. Every claim above traces to a file and line; the diagrams are drawn from that graph rather than from prose. Siblings cover the <a href="tf-module-e2e.html">module</a>, <a href="tf-policy.html">policy</a> and <a href="tf-provider.html">provider</a> tracks.</p>
     <div class="files">
       <b>Skill</b> &nbsp;.claude/skills/tf-consumer-e2e/SKILL.md<br>
       <b>Parents</b> &nbsp;.claude/skills/tf-consumer-plan/ · .claude/skills/tf-consumer-implement/<br>
       <b>Agents</b> &nbsp;.claude/agents/tf-consumer-{research,design,developer,validator}.md · tf-e2e-judge.md<br>
       <b>Hooks</b> &nbsp;.claude/settings.json · .claude/hooks/deny-config-files.sh · scripts/hooks/tf-guard.sh · .githooks/pre-commit<br>
       <b>Harness</b> &nbsp;evals/e2e/bin/run-eval.sh · lib/teardown-sandbox.sh · checks/deterministic.sh · judge/ · cases/consumer/<br>
-      <b>Rules</b> &nbsp;AGENTS.md · .claude/CLAUDE.md
-    </div>
+      <b>Rules</b> &nbsp;AGENTS.md · .claude/CLAUDE.md · .foundations/memory/consumer-constitution.md</div>
   </div>
 </footer>
 <script>

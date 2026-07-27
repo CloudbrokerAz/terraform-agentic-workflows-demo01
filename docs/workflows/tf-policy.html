@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tf-policy — Workflow Anatomy</title>
+<meta name="description" content="How the tf-policy plan and implement workflow actually runs: skills, subagents, gates, and what the guard layer does not check.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --paper:#FAFAF8;      --band:#F2F0EB;
+  --ink:#16161A;        --body:#3C3A36;      --muted:#5C5952;   --faint:#6E6A63;
+  --rule:#E3DFD8;       --rule-soft:#EDEAE4; --rule-strong:#8F887C;
+  --accent:#C4283A;     --accent-soft:rgba(196,40,58,.09);
+  --h-research:#995F2A; --h-design:#6B3FA0;  --h-test:#1A6B7A;
+  --h-dev:#1F5C8B;      --h-val:#2D7A4F;     --h-judge:#5B5F6B;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --col:860px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#131316;    --band:#1A1A1E;
+    --ink:#F2F0EC;      --body:#C9C5BE;      --muted:#B0ABA3;   --faint:#8B867E;
+    --rule:#2E2E34;     --rule-soft:#26262B; --rule-strong:#6A6A75;
+    --accent:#F0596B;   --accent-soft:rgba(240,89,107,.13);
+    --h-research:#D99A57;--h-design:#A97DD8; --h-test:#4FA8BC;
+    --h-dev:#5C9BD1;    --h-val:#5FB585;     --h-judge:#9AA0AD;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131316;--band:#1A1A1E;--ink:#F2F0EC;--body:#C9C5BE;
+  --muted:#B0ABA3;--faint:#8B867E;--rule:#2E2E34;--rule-soft:#26262B;--rule-strong:#6A6A75;
+  --accent:#F0596B;--accent-soft:rgba(240,89,107,.13);
+  --h-research:#D99A57;--h-design:#A97DD8;--h-test:#4FA8BC;
+  --h-dev:#5C9BD1;--h-val:#5FB585;--h-judge:#9AA0AD;
+}
+:root[data-theme="light"]{
+  --paper:#FAFAF8;--band:#F2F0EB;--ink:#16161A;--body:#3C3A36;
+  --muted:#5C5952;--faint:#6E6A63;--rule:#E3DFD8;--rule-soft:#EDEAE4;--rule-strong:#8F887C;
+  --accent:#C4283A;--accent-soft:rgba(196,40,58,.09);
+  --h-research:#995F2A;--h-design:#6B3FA0;--h-test:#1A6B7A;
+  --h-dev:#1F5C8B;--h-val:#2D7A4F;--h-judge:#5B5F6B;
+}
+
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);color:var(--body);
+  font-family:var(--sans);font-size:17px;line-height:1.7;
+  overflow-x:hidden;
+}
+
+/* ---------- shell ---------- */
+.wrap{max-width:var(--col);margin:0 auto;padding:0 28px}
+.bleed{width:100%;padding:52px 0;border-top:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);background:var(--band);margin:56px 0}
+.bleed .wrap{max-width:1216px}
+
+/* ---------- masthead ---------- */
+header.mast{padding:76px 0 0}
+.eyebrow{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:2.6px;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(38px,6vw,62px);line-height:1.04;letter-spacing:-.02em;color:var(--ink);margin:18px 0 0}
+h1 .mono{font-family:var(--mono);font-weight:600;font-size:.62em;letter-spacing:-.01em}
+.dek{font-size:20px;line-height:1.6;color:var(--muted);max-width:640px;margin:22px 0 0;font-weight:300}
+.dek em{font-style:italic;color:var(--ink)}
+
+.meta{display:flex;flex-wrap:wrap;margin:40px 0 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.meta>div{flex:1 1 130px;padding:14px 18px 14px 0;border-left:1px solid var(--rule-soft);padding-left:18px}
+.meta>div:first-child{border-left:0;padding-left:0}
+.meta dt{font-family:var(--mono);font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);display:block}
+.meta dd{font-family:var(--mono);font-size:13px;color:var(--ink);margin-top:5px;font-weight:500}
+
+/* ---------- sections ---------- */
+section{padding:58px 0 0}
+.snum{font-family:var(--mono);font-size:10px;letter-spacing:2.4px;color:var(--accent);font-weight:600}
+h2{font-family:var(--serif);font-weight:700;font-size:34px;line-height:1.18;letter-spacing:-.015em;color:var(--ink);margin:10px 0 0}
+h3{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.02em;color:var(--ink);margin:34px 0 8px}
+.finding h3{margin:0 0 6px}
+p{margin:18px 0 0;max-width:66ch}
+p.lead{font-size:19px;color:var(--muted);font-weight:300}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:currentColor}
+code{font-family:var(--mono);font-size:.86em;background:var(--rule-soft);padding:1.5px 5px;border-radius:3px;color:var(--ink);overflow-wrap:anywhere}
+strong{color:var(--ink);font-weight:600}
+
+/* ---------- figures ---------- */
+figure{margin:34px 0 0}
+.bleed figure{margin:0}
+figure svg{display:block;width:100%;height:auto;overflow:visible}
+figcaption{font-family:var(--mono);font-size:10px;letter-spacing:1.3px;color:var(--faint);margin-top:16px;text-transform:uppercase}
+figcaption b{color:var(--muted);font-weight:600}
+.scroller{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.scroller>svg{min-width:100%}
+.bleed .scroller>svg{min-width:1160px}
+.scrollnote{display:none;font-family:var(--mono);font-size:10px;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--muted);margin-top:10px}
+@media (max-width:1215px){.bleed .scrollnote{display:block}}
+
+/* ---------- findings ---------- */
+.finding{border-top:1px solid var(--rule);padding:22px 0 20px;display:grid;grid-template-columns:96px 1fr;gap:22px}
+.finding:last-of-type{border-bottom:1px solid var(--rule)}
+.sev{font-family:var(--mono);font-size:9px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;padding-top:3px}
+.sev.hi{color:var(--accent)}.sev.md{color:var(--h-research)}.sev.lo{color:var(--muted)}
+.finding h3{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--ink);margin:0 0 6px}
+.finding p{margin:0;font-size:15px;line-height:1.62}
+.finding p+p{margin-top:9px}
+.cite{font-family:var(--mono);font-size:11px;color:var(--faint);display:block;margin-top:9px;overflow-wrap:anywhere}
+
+/* ---------- step reference ---------- */
+.steps{columns:2;column-gap:44px;margin:30px 0 0;border-top:1px solid var(--rule);padding-top:22px}
+.steps div{break-inside:avoid;display:grid;grid-template-columns:26px 1fr;gap:10px;padding:5px 0;font-size:14px;line-height:1.5}
+.steps .n{font-family:var(--mono);font-size:10px;color:var(--faint);padding-top:4px;font-weight:600}
+.steps .t{color:var(--body)}
+.steps .t b{color:var(--ink);font-weight:600}
+.steps .t .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.3px;display:block;color:var(--muted)}
+.steps div.hx .n,.steps div.hx .t .who{color:var(--faint)}
+.steps div.hx .t{color:var(--muted)}
+.steps div.gate .n{color:var(--accent)}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);border:0}
+
+/* ---------- footer ---------- */
+footer{margin-top:72px;border-top:1px solid var(--rule);padding:34px 0 80px}
+footer p{font-size:13.5px;color:var(--muted);max-width:70ch}
+footer .files{font-family:var(--mono);font-size:11.5px;line-height:1.9;color:var(--faint);margin-top:18px;overflow-wrap:anywhere}
+footer .files b{color:var(--muted);font-weight:500}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .steps{columns:1}
+  .meta div{flex-basis:50%}
+  .meta>div:nth-child(odd){border-left:0;padding-left:0}
+  .finding{grid-template-columns:1fr;gap:6px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="eyebrow">Workflow anatomy · Terraform agentic workflows</div>
+    <h1><span class="mono">tf-policy</span><br>What actually runs</h1>
+    <p class="dek">Plan and implement for the tfpolicy track. Five subagents, six reference skills and the strictest quality gate in the repo — a failing validation genuinely blocks the pull request. And almost none of it is verifiable, because nothing outside the agent session ever checks that the policy engine ran.</p>
+    <dl class="meta">
+      <div><dt>Entry point</dt><dd>/tf-policy-plan</dd></div>
+      <div><dt>Skill files</dt><dd>47 + 68 lines</dd></div>
+      <div><dt>Subagents</dt><dd>5</dd></div>
+      <div><dt>Ref. skills</dt><dd>6</dd></div>
+      <div><dt>Runtime steps</dt><dd>20</dd></div>
+      <div><dt>Eval coverage</dt><dd>none yet</dd></div>
+    </dl>
+  </div>
+</header>
+
+<main>
+
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">01</div>
+    <h2 style="margin-bottom:8px">Who calls whom, and where the hooks fire</h2>
+    <p class="lead" style="margin-top:6px;max-width:74ch">There is no e2e skill on this track, so nobody automates the two halves into one run — <strong>you do</strong>. You invoke the plan skill, answer its questions, approve the design, then invoke the implement skill. That makes the human approval gate a real gate rather than something a prompt file waves through.</p>
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1120 656" role="img" aria-labelledby="pdt pdd">
+        <title id="pdt">Delegation and hook interception for the tf-policy track</title>
+        <desc id="pdd">The human invokes each half of the workflow separately, occupying the row where an e2e skill and eval harness sit on the module and consumer tracks. Two orchestrating skills dispatch five subagents. The human approval gate between the halves actually fires here. Everything the agents write passes through four hooks, three of which do almost nothing for policy files.</desc>
+        <rect x="64" y="18" width="992" height="64" rx="6" fill="var(--rule)" opacity=".16"/>
+        <rect x="64" y="18" width="992" height="64" rx="6" fill="none" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="5 4" opacity=".55"/>
+        <text x="76" y="34" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">WHERE THE E2E SKILL AND EVAL HARNESS SIT ON THE MODULE AND CONSUMER TRACKS</text>
+        <circle cx="480" cy="58" r="15" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".3"/>
+        <circle cx="480" cy="58" r="7" fill="var(--accent)"/>
+        <text x="504" y="54" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--accent)" letter-spacing=".4">THE HUMAN</text>
+        <text x="504" y="68" font-family="var(--sans)" font-size="10" fill="var(--body)">you invoke each half separately, answer the questions and approve the design</text>
+        <path d="M480,73 C480,112 280,110 280,152" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/>
+        <path d="M480,73 C480,112 680,110 680,152" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/>
+        <text x="228" y="104" text-anchor="end" font-family="var(--mono)" font-size="8" fill="var(--accent)">invocation 1</text>
+        <text x="732" y="104" font-family="var(--mono)" font-size="8" fill="var(--accent)">invocation 2</text>
+        <circle r="3" fill="var(--accent)" opacity="0"><animateMotion dur="3.2s" repeatCount="indefinite" begin="0s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M480,73 C480,112 280,110 280,152"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.2s" repeatCount="indefinite" begin="0s"/></circle>
+        <circle r="3" fill="var(--accent)" opacity="0"><animateMotion dur="3.6s" repeatCount="indefinite" begin="1.6s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M480,73 C480,112 680,110 680,152"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.6s" repeatCount="indefinite" begin="1.6s"/></circle>
+        <circle cx="280" cy="158" r="6" fill="var(--ink)"/>
+        <text x="264" y="155" text-anchor="end" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">tf-policy-plan</text>
+        <text x="264" y="168" text-anchor="end" font-family="var(--sans)" font-size="9.5" fill="var(--muted)">SDD phases 1–2 · 47 lines</text>
+        <circle cx="680" cy="158" r="6" fill="var(--ink)"/>
+        <text x="696" y="155" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">tf-policy-implement</text>
+        <text x="696" y="168" font-family="var(--sans)" font-size="9.5" fill="var(--muted)">SDD phases 3–4 · 68 lines · the longest in the repo</text>
+        <line x1="366" y1="158" x2="446" y2="158" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <line x1="514" y1="158" x2="614" y2="158" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <rect x="450" y="140" width="64" height="36" rx="4" fill="var(--accent)" opacity=".1"/>
+        <rect x="450" y="140" width="64" height="36" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.6"><animate attributeName="stroke-opacity" values=".55;1;.55" dur="3.4s" repeatCount="indefinite"/></rect>
+        <text x="482" y="156" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">HUMAN</text>
+        <text x="482" y="167" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">GATE</text>
+        <text x="482" y="190" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">actually fires</text>
+        <path d="M280,164 C280,222 120,214 120,266" fill="none" stroke="var(--h-research)" stroke-width="1.1" opacity=".42"/>
+        <path d="M280,164 C280,222 300,214 300,266" fill="none" stroke="var(--h-design)" stroke-width="1.1" opacity=".42"/>
+        <path d="M680,164 C680,222 480,214 480,266" fill="none" stroke="var(--h-test)" stroke-width="1.1" opacity=".42"/>
+        <path d="M680,164 C680,222 660,214 660,266" fill="none" stroke="var(--h-dev)" stroke-width="1.1" opacity=".42"/>
+        <path d="M680,164 C680,222 840,214 840,266" fill="none" stroke="var(--h-val)" stroke-width="1.1" opacity=".42"/>
+        <circle r="3" fill="var(--h-research)" opacity="0"><animateMotion dur="2.9s" repeatCount="indefinite" begin="0s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M280,164 C280,222 120,214 120,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="2.9s" repeatCount="indefinite" begin="0s"/></circle>
+        <circle r="3" fill="var(--h-design)" opacity="0"><animateMotion dur="3.4s" repeatCount="indefinite" begin="0.5s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M280,164 C280,222 300,214 300,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.4s" repeatCount="indefinite" begin="0.5s"/></circle>
+        <circle r="3" fill="var(--h-test)" opacity="0"><animateMotion dur="3.1s" repeatCount="indefinite" begin="1.2s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M680,164 C680,222 480,214 480,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.1s" repeatCount="indefinite" begin="1.2s"/></circle>
+        <circle r="3" fill="var(--h-dev)" opacity="0"><animateMotion dur="2.6s" repeatCount="indefinite" begin="1.8s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M680,164 C680,222 660,214 660,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="2.6s" repeatCount="indefinite" begin="1.8s"/></circle>
+        <circle r="3" fill="var(--h-val)" opacity="0"><animateMotion dur="3.7s" repeatCount="indefinite" begin="2.4s" calcMode="spline" keyTimes="0;1" keySplines="0.215 0.61 0.355 1" path="M680,164 C680,222 840,214 840,266"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.7s" repeatCount="indefinite" begin="2.4s"/></circle>
+        <circle cx="120" cy="272" r="16" fill="var(--h-research)" opacity=".12"/><circle cx="120" cy="272" r="6" fill="var(--h-research)"/>
+        <text x="120" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-research)">RESEARCH</text>
+        <text x="120" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">×3–4, foreground</text>
+        <text x="120" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">4 terraform + 3 AWS-doc MCP</text>
+        <text x="120" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">must use the compliance YAML</text>
+        <circle cx="300" cy="272" r="16" fill="var(--h-design)" opacity=".12"/><circle cx="300" cy="272" r="6" fill="var(--h-design)"/>
+        <text x="300" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-design)">DESIGN</text>
+        <text x="300" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">one pass, retried once</text>
+        <text x="300" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">no MCP — research is its only</text>
+        <text x="300" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">route to registry evidence</text>
+        <circle cx="480" cy="272" r="16" fill="var(--h-test)" opacity=".12"/><circle cx="480" cy="272" r="6" fill="var(--h-test)"/>
+        <text x="480" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-test)">TEST-WRITER</text>
+        <text x="480" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">one .policytest.hcl per policy</text>
+        <text x="480" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">no Bash — cannot run tfpolicy</text>
+        <text x="480" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">writes before any policy exists</text>
+        <circle cx="660" cy="272" r="16" fill="var(--h-dev)" opacity=".12"/><circle cx="660" cy="272" r="6" fill="var(--h-dev)"/>
+        <text x="660" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-dev)">DEVELOPER</text>
+        <text x="660" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">one dispatch per item, serial</text>
+        <text x="660" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">validate blocks, max 2 retries</text>
+        <text x="660" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">authors .policy.hcl</text>
+        <circle cx="840" cy="272" r="16" fill="var(--h-val)" opacity=".12"/><circle cx="840" cy="272" r="6" fill="var(--h-val)"/>
+        <text x="840" y="304" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="700" letter-spacing=".4" fill="var(--h-val)">VALIDATOR</text>
+        <text x="840" y="318" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">up to three rounds</text>
+        <text x="840" y="330" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">six dimensions + Security override</text>
+        <text x="840" y="342" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--muted)">a FAIL blocks the PR</text>
+        <rect x="92" y="368" width="936" height="112" rx="6" fill="var(--accent-soft)"/>
+        <text x="60" y="361" font-family="var(--mono)" font-size="8" letter-spacing="2" fill="var(--accent)" font-weight="700">HOOKS</text>
+        <g stroke-width="1.2" opacity=".5" stroke-dasharray="2 3"><line x1="120" y1="356" x2="120" y2="423" stroke="var(--h-research)"/><line x1="300" y1="356" x2="300" y2="423" stroke="var(--h-design)"/><line x1="480" y1="356" x2="480" y2="423" stroke="var(--h-test)"/><line x1="660" y1="356" x2="660" y2="423" stroke="var(--h-dev)"/><line x1="840" y1="356" x2="840" y2="423" stroke="var(--h-val)"/></g>
+        <circle cx="120" cy="396.5" r="2.6" fill="var(--h-research)"/><circle cx="300" cy="396.5" r="2.6" fill="var(--h-design)"/><circle cx="480" cy="396.5" r="2.6" fill="var(--h-test)"/><circle cx="660" cy="396.5" r="2.6" fill="var(--h-dev)"/><circle cx="840" cy="396.5" r="2.6" fill="var(--h-val)"/>
+        <rect x="100" y="374" width="920" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-opacity=".6"></rect>
+        <text x="110" y="387" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">PreToolUse</text>
+        <text x="560" y="387" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">deny-config-files</tspan> — path-based, so it works exactly as it does on every other track</text>
+        <text x="1010" y="387" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">FULLY EFFECTIVE</text>
+        <rect x="100" y="400" width="920" height="19" rx="9.5" fill="var(--band)" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"></rect>
+        <text x="110" y="413" font-family="var(--mono)" font-size="8" fill="var(--muted)" font-weight="600">PostToolUse</text>
+        <text x="560" y="413" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard fix</tspan> — the fmt branch matches <tspan font-family="var(--mono)" font-size="9">*.tf|*.tfvars</tspan> only; a .policy.hcl write gets a trailing newline</text>
+        <text x="1010" y="413" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--muted)" font-weight="700">NEWLINE ONLY</text>
+        <rect x="100" y="426" width="920" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"><animate attributeName="stroke-opacity" values=".45;1;.45" dur="3.3s" repeatCount="indefinite"/></rect>
+        <text x="110" y="439" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">Stop</text>
+        <text x="560" y="439" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard verify</tspan> — validate and tflint glob <tspan font-family="var(--mono)" font-size="9">*.tf</tspan> and exit 0 on the empty set; trivy cannot parse policy HCL</text>
+        <text x="1010" y="439" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">PRIVATE-KEY GREP ONLY</text>
+        <rect x="100" y="452" width="920" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"></rect>
+        <text x="110" y="465" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">git pre-commit</text>
+        <text x="560" y="465" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard commit</tspan> — Vault Radar and staged-file hygiene are content-based, so both apply normally</text>
+        <text x="1010" y="465" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">FULLY EFFECTIVE</text>
+        <text x="560" y="496" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.1" fill="var(--muted)">THE STRING tfpolicy APPEARS NOWHERE IN scripts/hooks/ — NOTHING OUTSIDE THE AGENT CONFIRMS THE ENGINE RAN</text>
+        <line x1="60" y1="516" x2="1060" y2="516" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <text x="60" y="510" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">WRITES</text>
+        <text x="120" y="534" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">research-*.md</text>
+        <text x="480" y="534" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">tests/*.policytest.hcl</text>
+        <text x="660" y="534" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">policies/*.policy.hcl</text>
+        <text x="840" y="534" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)">validation_*.md</text>
+        <rect x="242" y="522" width="116" height="18" rx="9" fill="var(--ink)" opacity=".08"/>
+        <text x="300" y="535" text-anchor="middle" font-family="var(--mono)" font-size="9" font-weight="700" fill="var(--ink)">policy-design.md</text>
+        <text x="300" y="554" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.3" fill="var(--ink)">SINGLE SOURCE OF TRUTH</text>
+        <path d="M310,560 C380,602 400,602 480,562" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".3" stroke-dasharray="3 3"/>
+        <path d="M310,562 C380,612 580,612 660,562" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".3" stroke-dasharray="3 3"/>
+        <path d="M310,564 C380,622 760,622 840,562" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".3" stroke-dasharray="3 3"/>
+        <text x="620" y="638" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--muted)">read back by every downstream agent</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 1</b> — delegation, the one artifact everyone reads, and the guard layers between an agent and the disk</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>This is the same five-agent shape as the module track, with one structural consequence of having a person in the loop: the approval gate between the halves genuinely stops the run. On the module and consumer e2e paths it is skipped, because a prompt file has already answered it. Here nothing proceeds to code until you say so.</p>
+  </div>
+</section>
+
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">02</div>
+    <h2 style="margin-bottom:8px">The runtime spine, and the lane that is not there</h2>
+    <p class="lead" style="margin-top:6px;max-width:74ch">Twenty steps across two lanes. The module and consumer tracks have a third — an eval harness that provisions a repo, re-runs the gates independently and grades the result. This track has nothing above the orchestrator at all.</p>
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1060 424" role="img" aria-labelledby="p1t p1d">
+        <title id="p1t">Runtime sequence of a full tf-policy plan and implement run</title>
+        <desc id="p1d">Twenty steps on two lanes, orchestrator and subagents. A third lane is drawn empty to show that although the harness, judge and Policy Workflow rubric are all track-agnostic and already accept a policy track, no eval case ever points them at it. Five gates are marked: the clarification round, the human approval gate, the TDD red baseline which is asserted rather than executed, the Section 6 checklist gate, and the validation gate which blocks the pull request on failure.</desc>
+        <rect x="64" y="78" width="932" height="60" rx="6" fill="var(--rule)" opacity=".18"/>
+        <line x1="72" y1="110" x2="286" y2="110" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="4 5" opacity=".5"/><line x1="774" y1="110" x2="988" y2="110" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="4 5" opacity=".5"/>
+        <text x="4" y="107" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--muted)">HARNESS</text>
+        <text x="530" y="114" text-anchor="middle" font-family="var(--mono)" font-size="9" letter-spacing="1.6" fill="var(--accent)" font-weight="700">NO EVAL CASE · NO POLICY E2E SKILL · NO tfpolicy CHECK IN deterministic.sh</text>
+        <text x="530" y="128" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--muted)">the harness, judge and Policy Workflow rubric all exist and accept a policy track — no case ever points them at it</text>
+        <g stroke="var(--rule-strong)" stroke-width="1"><line x1="72" y1="200" x2="988" y2="200"/><line x1="72" y1="300" x2="988" y2="300"/></g>
+        <text x="4" y="197" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--muted)">ORCHESTRATOR</text>
+        <text x="4" y="297" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--muted)">SUBAGENTS</text>
+        <polyline fill="none" stroke="var(--muted)" stroke-width="1" opacity=".45" stroke-linejoin="round" points="80,200 127,200 174,200 221,200 268,200 315,200 362,300 409,300 456,200 503,200 550,200 597,300 644,200 691,200 738,300 785,200 832,200 879,300 926,200 973,200"/>
+        <circle r="3.4" fill="var(--accent)" opacity="0"><animateMotion dur="15s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.6 1" path="M80,200 L127,200 L174,200 L221,200 L268,200 L315,200 L362,300 L409,300 L456,200 L503,200 L550,200 L597,300 L644,200 L691,200 L738,300 L785,200 L832,200 L879,300 L926,200 L973,200"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.03;.95;1" dur="15s" repeatCount="indefinite"/></circle>
+        <line x1="315" y1="158" x2="315" y2="306" stroke="var(--ink)" stroke-width="1" opacity="0.35"/>
+        <line x1="315" y1="340" x2="315" y2="352" stroke="var(--ink)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="315" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--muted)">CLARIFY &#215;4</text>
+        <text x="315" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">3 mandated</text>
+        <line x1="503" y1="158" x2="503" y2="306" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.75"/>
+        <line x1="503" y1="340" x2="503" y2="352" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="503" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--accent)" font-weight="700">HUMAN APPROVAL</text>
+        <text x="503" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">blocks all code</text>
+        <line x1="644" y1="158" x2="644" y2="306" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.75"/>
+        <line x1="644" y1="340" x2="644" y2="352" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="644" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--accent)" font-weight="700">RED BASELINE</text>
+        <text x="644" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">asserted, not run</text>
+        <line x1="832" y1="158" x2="832" y2="306" stroke="var(--ink)" stroke-width="1" opacity="0.35"/>
+        <line x1="832" y1="340" x2="832" y2="352" stroke="var(--ink)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="832" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--muted)">SECTION 6</text>
+        <text x="832" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">soft — may flag</text>
+        <line x1="926" y1="158" x2="926" y2="306" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.75"/>
+        <line x1="926" y1="340" x2="926" y2="352" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 3" opacity=".3"/>
+        <text x="926" y="364" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.1" fill="var(--accent)" font-weight="700">VALIDATION</text>
+        <text x="926" y="376" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">FAIL blocks the PR</text>
+        <g fill="var(--ink)"><circle cx="80" cy="200" r="3.4"/><circle cx="127" cy="200" r="3.4"/><circle cx="174" cy="200" r="3.4"/><circle cx="221" cy="200" r="3.4"/><circle cx="268" cy="200" r="3.4"/><circle cx="315" cy="200" r="3.4"/><circle cx="456" cy="200" r="3.4"/><circle cx="503" cy="200" r="3.4"/><circle cx="550" cy="200" r="3.4"/><circle cx="644" cy="200" r="3.4"/><circle cx="691" cy="200" r="3.4"/><circle cx="785" cy="200" r="3.4"/><circle cx="832" cy="200" r="3.4"/><circle cx="926" cy="200" r="3.4"/><circle cx="973" cy="200" r="3.4"/></g>
+        <circle cx="362" cy="300" r="5" fill="var(--h-research)"/>
+        <circle cx="409" cy="300" r="5" fill="var(--h-design)"/>
+        <circle cx="597" cy="300" r="5" fill="var(--h-test)"/>
+        <circle cx="738" cy="300" r="5" fill="var(--h-dev)"/>
+        <circle cx="879" cy="300" r="5" fill="var(--h-val)"/>
+        <text x="362" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-research)">research</text>
+        <text x="409" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-design)">design</text>
+        <text x="597" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-test)">test-writer</text>
+        <text x="738" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-dev)">developer</text>
+        <text x="879" y="322" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-val)">validator</text>
+        <line x1="72" y1="396" x2="988" y2="396" stroke="var(--rule-strong)" stroke-width="1" opacity=".7"/>
+        <text x="80" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">01</text>
+        <text x="315" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">06</text>
+        <text x="550" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">11</text>
+        <text x="785" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">16</text>
+        <text x="973" y="408" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--muted)">20</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 2</b> — 20 runtime steps · the ghosted top lane is the harness this track does not have</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p>The shape is the module track minus its measurement. Everything from the ambiguity scan through the validator is present and in places stricter — but the row of checks that would confirm any of it happened is absent, and so is the independent judge that would score the result without sharing the agent&#8217;s context.</p>
+
+    <h3>Step by step</h3>
+    <div class="steps">
+      <div><span class="n">01</span><span class="t"><span class="who">tf-policy-plan</span>Bootstrap <code>.foundations</code>, then the env gate. It never checks that the <b>tfpolicy binary exists</b>.</span></div>
+      <div><span class="n">02</span><span class="t"><span class="who">tf-policy-plan</span>Parse arguments into a compliance rule or policy grouping, provider and description.</span></div>
+      <div><span class="n">03</span><span class="t"><span class="who">tf-policy-plan</span>Create the GitHub issue from the template, adapted for policy context.</span></div>
+      <div><span class="n">04</span><span class="t"><span class="who">tf-policy-plan</span>Create the feature branch with <code>--workflow policy</code>.</span></div>
+      <div><span class="n">05</span><span class="t"><span class="who">tf-domain-category</span>Scan requirements for policy-domain ambiguity.</span></div>
+      <div class="gate"><span class="n">06</span><span class="t"><span class="who">tf-policy-plan</span><b>Clarification gate</b> — up to four questions, three of them mandated: enforcement level, compliance framework, scope.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">tf-policy-research ×3–4</span>Parallel, foreground. If the compliance YAML is missing it must invoke <code>tf-research-policy-aws</code> rather than research ad hoc.</span></div>
+      <div><span class="n">08</span><span class="t"><span class="who">tf-policy-design</span>Reads the constitution, template and all research; writes <b>policy-design.md</b>.</span></div>
+      <div><span class="n">09</span><span class="t"><span class="who">tf-policy-plan</span>Glob-verify the design; confirm all seven sections.</span></div>
+      <div class="gate"><span class="n">10</span><span class="t"><span class="who">tf-policy-plan</span><b>Human approval gate</b> — policy count, enforcement breakdown, test count, compliance coverage. No code exists yet.</span></div>
+      <div><span class="n">11</span><span class="t"><span class="who">tf-policy-implement</span>Resolve the feature, re-run the env gate, require the design file.</span></div>
+      <div><span class="n">12</span><span class="t"><span class="who">tf-policy-test-writer</span>One <code>.policytest.hcl</code> per policy file, before any policy exists. It has <b>no Bash tool</b>, so it cannot run what it writes.</span></div>
+      <div class="gate"><span class="n">13</span><span class="t"><span class="who">tf-policy-implement</span><b>Red baseline</b> — run <code>tfpolicy validate</code> only if <code>policies/</code> already exists, and explicitly do not run <code>tfpolicy test</code>. The red state is asserted, never observed.</span></div>
+      <div><span class="n">14</span><span class="t"><span class="who">tf-policy-implement</span>Grep Section 6 for the lettered checklist items.</span></div>
+      <div><span class="n">15</span><span class="t"><span class="who">tf-policy-developer</span>One dispatch per item, sequential. <code>tfpolicy validate</code> blocks per item, max two retries; <code>tfpolicy test</code> runs but does not block yet.</span></div>
+      <div><span class="n">16</span><span class="t"><span class="who">tf-policy-implement</span>Final <code>tfpolicy test</code>. Failures route to the developer for logic bugs, the test-writer for fixture bugs. Max three rounds.</span></div>
+      <div class="gate"><span class="n">17</span><span class="t"><span class="who">tf-policy-implement</span><b>Section 6 gate</b> — every item ticked, or the gap flagged.</span></div>
+      <div><span class="n">18</span><span class="t"><span class="who">tf-policy-validator</span>Design conformance, engine runs, six-dimension scoring with a Security override, conservative auto-fix, report.</span></div>
+      <div class="gate"><span class="n">19</span><span class="t"><span class="who">tf-policy-implement</span><b>Validation gate</b> — on FAIL, fix and re-validate up to three rounds. Still failing, and it <b>does not open the PR</b>.</span></div>
+      <div><span class="n">20</span><span class="t"><span class="who">tf-policy-implement</span>Checkpoint, push, open the PR titled <code>Policy: &lt;name&gt; (closes #N)</code>.</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="snum">03</div>
+    <h2>What each actor knows</h2>
+    <p class="lead">Six reference skills. The <code>tf-policy</code> skill — the engine reference — is loaded by four of the five agents, which is what keeps the track&#8217;s syntax consistent without any tool enforcing it.</p>
+    <figure>
+      <div class="scroller">
+      <svg data-wide viewBox="104 -18 796 420" role="img" aria-labelledby="p2t p2d">
+        <title id="p2t">Which reference skills each actor loads on the policy track</title>
+        <desc id="p2d">A matrix of seven actors against six reference skills. tf-policy-plan loads tf-domain-category from its own body; tf-policy-implement loads none. The tf-policy engine reference is loaded by the design, test-writer, developer and validator agents. tf-research-policy-aws is loaded only by the research agent, and its Azure counterpart is loaded by nobody.</desc>
+        <g font-family="var(--mono)" font-size="9" fill="var(--muted)">
+          <text transform="translate(330,118) rotate(-52)">tf-domain-category</text>
+          <text transform="translate(400,118) rotate(-52)">tf-research-policy-aws</text>
+          <text transform="translate(470,118) rotate(-52)">tf-security-baselines</text>
+          <text transform="translate(540,118) rotate(-52)">tf-policy</text>
+          <text transform="translate(610,118) rotate(-52)">tf-judge-criteria</text>
+          <text transform="translate(680,118) rotate(-52)">tf-report-template</text>
+        </g>
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".5"><line x1="330" y1="126" x2="330" y2="358"/><line x1="400" y1="126" x2="400" y2="358"/><line x1="470" y1="126" x2="470" y2="358"/><line x1="540" y1="126" x2="540" y2="358"/><line x1="610" y1="126" x2="610" y2="358"/><line x1="680" y1="126" x2="680" y2="358"/></g>
+        <line x1="120" y1="126" x2="856" y2="126" stroke="var(--rule-strong)" stroke-width="1"/>
+        <line x1="120" y1="358" x2="856" y2="358" stroke="var(--rule-strong)" stroke-width="1" opacity=".45"/>
+        <g font-family="var(--mono)" font-size="9.5" text-anchor="end">
+          <text x="306" y="153" fill="var(--muted)">tf-policy-plan</text>
+          <text x="306" y="185" fill="var(--muted)">tf-policy-implement</text>
+          <text x="306" y="217" fill="var(--h-research)">tf-policy-research</text>
+          <text x="306" y="249" fill="var(--h-design)">tf-policy-design</text>
+          <text x="306" y="281" fill="var(--h-test)">tf-policy-test-writer</text>
+          <text x="306" y="313" fill="var(--h-dev)">tf-policy-developer</text>
+          <text x="306" y="345" fill="var(--h-val)">tf-policy-validator</text>
+        </g>
+        <g font-family="var(--mono)" font-size="7" text-anchor="end" fill="var(--muted)">
+          <text x="306" y="163">orchestrator · loads from its own body</text>
+          <text x="306" y="195">orchestrator</text>
+          <text x="306" y="291">no Bash — cannot run tfpolicy</text>
+        </g>
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".45"><line x1="120" y1="166" x2="856" y2="166"/><line x1="120" y1="198" x2="856" y2="198"/><line x1="120" y1="230" x2="856" y2="230"/><line x1="120" y1="262" x2="856" y2="262"/><line x1="120" y1="294" x2="856" y2="294"/><line x1="120" y1="326" x2="856" y2="326"/></g>
+        <circle cx="330" cy="150" r="5" fill="var(--muted)"/>
+        <text x="330" y="186" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">&#8212;</text>
+        <text x="856" y="186" text-anchor="end" font-family="var(--sans)" font-size="9" fill="var(--muted)">loads no reference skill</text>
+        <circle cx="400" cy="214" r="5" fill="var(--h-research)"/>
+        <circle cx="470" cy="214" r="5" fill="var(--h-research)"/>
+        <circle cx="540" cy="246" r="5" fill="var(--h-design)"/>
+        <circle cx="470" cy="246" r="5" fill="var(--h-design)"/>
+        <circle cx="540" cy="278" r="5" fill="var(--h-test)"/>
+        <circle cx="540" cy="310" r="5" fill="var(--h-dev)"/>
+        <circle cx="610" cy="342" r="5" fill="var(--h-val)"/>
+        <circle cx="540" cy="342" r="5" fill="var(--h-val)"/>
+        <circle cx="680" cy="342" r="5" fill="var(--h-val)"/>
+      </svg>
+      </div>
+      <figcaption><b>Fig. 3</b> — reference-skill loading · a dot means that actor loads that skill</figcaption>
+      <div class="sr-only"><table><caption>Reference skills loaded by each actor on the policy track</caption><tbody>
+        <tr><th scope="row">tf-policy-plan</th><td>tf-domain-category</td></tr>
+        <tr><th scope="row">tf-policy-implement</th><td>none</td></tr>
+        <tr><th scope="row">tf-policy-research</th><td>tf-research-policy-aws, tf-security-baselines</td></tr>
+        <tr><th scope="row">tf-policy-design</th><td>tf-policy, tf-security-baselines</td></tr>
+        <tr><th scope="row">tf-policy-test-writer</th><td>tf-policy</td></tr>
+        <tr><th scope="row">tf-policy-developer</th><td>tf-policy</td></tr>
+        <tr><th scope="row">tf-policy-validator</th><td>tf-judge-criteria, tf-policy, tf-report-template</td></tr>
+      </tbody></table></div>
+    </figure>
+    <p>One cell is missing rather than present. <code>tf-research-policy-azure</code> ships as a skill alongside its AWS twin, but no agent preloads it and <code>tf-policy-research</code> hard-codes the AWS one — so the Azure research path exists as a document and is unreachable from the workflow.</p>
+  </div>
+</section>
+
+<div class="bleed">
+  <div class="wrap">
+    <div class="snum">04</div>
+    <h2 style="margin-bottom:8px">The guard layer is blind to this track</h2>
+    <p class="lead" style="margin-top:6px;max-width:72ch">The same four hooks fire as on the module track. On a turn that writes only <code>.policy.hcl</code> and <code>.policytest.hcl</code>, almost none of them do anything.</p>
+    <figure>
+      <div class="scroller">
+      <svg viewBox="0 0 1060 300" role="img" aria-labelledby="p3t p3d">
+        <title id="p3t">What the tf-guard hooks actually enforce on a policy-only turn</title>
+        <desc id="p3d">Four hooks fire. The PreToolUse deny hook works normally. The PostToolUse fix hook applies only a trailing-newline repair because its terraform-fmt branch matches .tf and .tfvars only. At Stop, terraform validate and tflint build their file set from a star-dot-tf glob and exit zero on the empty set, and trivy config does not parse policy HCL, leaving only the private-key scan. The commit hook works normally.</desc>
+
+        <rect x="88" y="52" width="884" height="176" rx="6" fill="var(--accent-soft)"/>
+        <text x="88" y="44" font-family="var(--mono)" font-size="8" letter-spacing="2" fill="var(--accent)" font-weight="700">HOOKS ON A POLICY-ONLY TURN</text>
+
+        <rect x="96" y="60" width="868" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-opacity=".55"/>
+        <text x="106" y="73" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">PreToolUse</text>
+        <text x="530" y="73" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">deny-config-files</tspan> — path-based, so it works exactly as it does on every other track</text>
+        <text x="954" y="73" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">FULLY EFFECTIVE</text>
+
+        <rect x="96" y="94" width="868" height="19" rx="9.5" fill="var(--band)" stroke="var(--muted)" stroke-width="1" stroke-opacity=".5" stroke-dasharray="4 3"/>
+        <text x="106" y="107" font-family="var(--mono)" font-size="8" fill="var(--muted)" font-weight="600">PostToolUse</text>
+        <text x="530" y="107" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard fix</tspan> — the fmt branch matches <tspan font-family="var(--mono)" font-size="9">*.tf|*.tfvars</tspan> only; a .policy.hcl write gets a trailing newline</text>
+        <text x="954" y="107" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--muted)" font-weight="700">NEWLINE ONLY</text>
+
+        <rect x="96" y="128" width="868" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3">
+          <animate attributeName="stroke-opacity" values=".45;1;.45" dur="3.3s" repeatCount="indefinite"/>
+        </rect>
+        <text x="106" y="141" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">Stop</text>
+        <text x="530" y="141" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard verify</tspan> — validate and tflint glob <tspan font-family="var(--mono)" font-size="9">*.tf</tspan> and exit 0 on the empty set; trivy config cannot parse policy HCL</text>
+        <text x="954" y="141" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">PRIVATE-KEY GREP ONLY</text>
+
+        <rect x="96" y="162" width="868" height="19" rx="9.5" fill="var(--band)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 3" stroke-opacity=".6"/>
+        <text x="106" y="175" font-family="var(--mono)" font-size="8" fill="var(--accent)" font-weight="600">git pre-commit</text>
+        <text x="530" y="175" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard commit</tspan> — Vault Radar and staged-file hygiene are content-based, so both apply normally</text>
+        <text x="954" y="175" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">FULLY EFFECTIVE</text>
+
+        <text x="530" y="206" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--accent)">The string <tspan font-family="var(--mono)" font-size="10">tfpolicy</tspan> appears nowhere in scripts/hooks/ — nothing outside the agent confirms the engine ran, or passed.</text>
+        <text x="530" y="222" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--muted)">Secret scanning and the config-file deny are path- and content-based, so those two carry across unchanged.</text>
+
+        <line x1="88" y1="252" x2="972" y2="252" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <text x="530" y="274" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.2" fill="var(--muted)">EVERY POLICY-SPECIFIC QUALITY GATE ON THIS TRACK EXISTS ONLY AS AGENT PROSE</text>
+      </svg>
+      </div>
+      <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
+      <figcaption><b>Fig. 4</b> — what the shared hook layer enforces when the artifacts are not .tf files</figcaption>
+    </figure>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="snum">05</div>
+    <h2>What differs from the module track</h2>
+    <p class="lead">The two tracks are the same skeleton. These are the deltas worth knowing.</p>
+    <div class="steps" style="columns:1">
+      <div><span class="n">01</span><span class="t"><span class="who">artifact</span>Declarative guardrails — <code>policies/&lt;domain&gt;.policy.hcl</code> paired with a same-named <code>.policytest.hcl</code> — rather than the infrastructure itself.</span></div>
+      <div><span class="n">02</span><span class="t"><span class="who">engine</span><code>tfpolicy validate</code> and <code>tfpolicy test</code> replace the terraform trio. The engine is hard-locked: a request for a different one is routed to the constitution, not treated as a clarification.</span></div>
+      <div><span class="n">03</span><span class="t"><span class="who">blocking</span>Stricter than the module track in one important way — a validation still FAILing after three rounds <b>does not open a PR</b>. The module track opens one regardless.</span></div>
+      <div><span class="n">04</span><span class="t"><span class="who">clarification</span>Three of four question slots are mandated, against one of four on the module side.</span></div>
+      <div><span class="n">05</span><span class="t"><span class="who">upstream reuse</span>A compliance-driven mode auto-discovers the YAML rule set produced by <code>tf-research-policy-aws</code> and threads it through research and design. No other track reuses an upstream artifact.</span></div>
+      <div><span class="n">06</span><span class="t"><span class="who">test-writer</span>Bash-less on both tracks, but it bites harder here: <code>tfpolicy test</code> is the only signal that the design’s scenarios were transcribed correctly.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">toolchain gate</span>Never checks the <code>tfpolicy</code> binary is installed. The provider track gates on <code>go version</code>; this one discovers the absence deep inside the build loop.</span></div>
+      <div><span class="n">08</span><span class="t"><span class="who">PR</span>No <code>semver:*</code> label and no label bootstrap — the module track needs both because its CI blocks unlabelled PRs.</span></div>
+      <div><span class="n">09</span><span class="t"><span class="who">measurement</span>No e2e skill and no eval case, so the track-agnostic harness and judge are never pointed at this track, and <code>deterministic.sh</code> has no <code>tfpolicy</code> check. The decisive asymmetry.</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="snum">06</div>
+    <h2>Findings</h2>
+    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code.</p>
+
+    <div class="finding">
+      <div class="sev hi">High</div>
+      <div>
+        <h3>Nothing outside the agent verifies the policy engine ran</h3>
+        <p>The string <code>tfpolicy</code> appears nowhere in <code>scripts/hooks/</code>. Two of the four Stop checks — <code>terraform validate</code> and <code>tflint</code> — build their file set from a <code>*.tf</code> glob and exit 0 on the empty set. <code>trivy config</code> still scans the repo but cannot parse policy HCL. So on a policy-only turn the only check that reads the new files is the private-key grep. There is no eval case for this track and no <code>tfpolicy</code> check in <code>deterministic.sh</code> either, so nothing re-runs the engine independently — even though the harness, judge and rubric already exist and already accept <code>track: "policy"</code>.</p>
+        <p>The consequence is that <code>tfpolicy validate</code> and <code>tfpolicy test</code> passing is an <em>assertion made by the agent about its own work</em>. On the module track the same claim is checked twice more — by the Stop hook and by the harness. Here it is checked nowhere.</p>
+        <span class="cite">scripts/hooks/tf-guard.sh · scripts/hooks/checks/{validate,lint,trivy,secrets}.sh · evals/e2e/cases/</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev md">Medium</div>
+      <div>
+        <h3>The plan skill contradicts itself about its own output filename</h3>
+        <p><code>tf-policy-plan</code> calls its design artifact <code>tf-policy-design.md</code> in the description and opening line, but <code>policy-design.md</code> in step 9 and the Done line. The design agent and all four downstream readers use <code>policy-design.md</code>, so the working path is the correct one — but the two names sit in the same 47-line file.</p>
+        <span class="cite">.claude/skills/tf-policy-plan/SKILL.md:3,10 vs. :40,47</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev md">Medium</div>
+      <div>
+        <h3>The Azure research path is unreachable</h3>
+        <p><code>tf-research-policy-azure</code> ships as a full skill beside its AWS twin, but no agent preloads it and <code>tf-policy-research</code> names the AWS skill directly — including in the rule that makes skipping it “a defect”. An Azure policy set would either fall back to ad-hoc research or silently follow AWS framing.</p>
+        <span class="cite">.claude/skills/tf-research-policy-azure/ · .claude/agents/tf-policy-research.md</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev lo">Low</div>
+      <div>
+        <h3>No toolchain gate for the engine the whole track depends on</h3>
+        <p>Both orchestrators run the generic <code>validate-env.sh</code> and stop on failure, but neither checks that <code>tfpolicy</code> is installed. The provider track sets the precedent with an explicit <code>go version</code> check. Without it, a missing binary surfaces as a confusing failure inside the per-item build loop rather than as a clean precondition stop.</p>
+        <span class="cite">.claude/skills/tf-policy-plan/SKILL.md:19 · tf-policy-implement/SKILL.md:18 vs. tf-provider-plan/SKILL.md:17</span>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="sev lo">Low</div>
+      <div>
+        <h3>An undefined carve-out weakens the per-item gate</h3>
+        <p>Step 8 makes <code>tfpolicy validate</code> blocking per checklist item “unless the failure is the documented hard-block-gate exception”. That exception is defined nowhere in the skill, so the one genuinely blocking check in Phase 3 carries an escape hatch whose scope a reader cannot determine.</p>
+        <span class="cite">.claude/skills/tf-policy-implement/SKILL.md:32</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>How this page was produced.</strong> Six parallel extraction agents read the two skills, the five agent definitions, the hook layer and the shared harness independently. A reconciliation pass merged their output into a single graph, re-opened the cited files for the load-bearing relationships, and discarded the edges that did not hold up. Every claim traces to a file and line. Siblings cover the <a href="tf-module-e2e.html">module</a>, <a href="tf-consumer-e2e.html">consumer</a> and <a href="tf-provider.html">provider</a> tracks.</p>
+    <div class="files">
+      <b>Skills</b> &nbsp;.claude/skills/tf-policy-plan/ · tf-policy-implement/ · tf-policy/<br>
+      <b>Agents</b> &nbsp;.claude/agents/tf-policy-{research,design,test-writer,developer,validator}.md<br>
+      <b>Hooks</b> &nbsp;.claude/settings.json · scripts/hooks/tf-guard.sh · scripts/hooks/checks/ · .githooks/pre-commit<br>
+      <b>Rules</b> &nbsp;AGENTS.md · .claude/CLAUDE.md · .foundations/memory/policy-constitution.md</div>
+  </div>
+</footer>
+<script>
+/* prefers-reduced-motion: display:none does not stop SMIL in Chromium,
+   so pause the animation timeline on each SVG instead. */
+(function () {
+  var q = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function apply() {
+    document.querySelectorAll('svg').forEach(function (s) {
+      if (typeof s.pauseAnimations !== 'function') return;
+      if (q.matches) { s.setCurrentTime(0); s.pauseAnimations(); }
+      else { s.unpauseAnimations(); }
+    });
+  }
+  apply();
+  q.addEventListener ? q.addEventListener('change', apply) : q.addListener(apply);
+})();
+</script>
+</body>
+</html>

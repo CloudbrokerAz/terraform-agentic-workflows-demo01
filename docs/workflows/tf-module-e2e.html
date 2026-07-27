@@ -134,6 +134,7 @@ footer .files b{color:var(--muted);font-weight:500}
   body{font-size:16px}
   .steps{columns:1}
   .meta div{flex-basis:50%}
+  .meta>div:nth-child(odd){border-left:0;padding-left:0}
   .finding{grid-template-columns:1fr;gap:6px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -147,11 +148,11 @@ footer .files b{color:var(--muted);font-weight:500}
   <div class="wrap">
     <div class="eyebrow">Workflow anatomy · Terraform agentic workflows</div>
     <h1><span class="mono">tf-module-e2e</span><br>What actually runs</h1>
-    <p class="dek">A 28-line skill file that reaches five subagents, eight reference skills, four guard hooks and four gates — almost none of which it mentions. This is the map of what the <em>run</em> does, traced from source rather than from the description.</p>
+    <p class="dek">A 43-line skill file that reaches five subagents, eight reference skills, four guard hooks and four gates — almost none of which it mentions. This is the map of what the <em>run</em> does, traced from source rather than from the description.</p>
 
     <dl class="meta">
       <div><dt>Entry point</dt><dd>/tf-module-e2e</dd></div>
-      <div><dt>Skill file</dt><dd>28 lines</dd></div>
+      <div><dt>Skill file</dt><dd>43 lines</dd></div>
       <div><dt>Subagents</dt><dd>5 + 1 judge</dd></div>
       <div><dt>Ref. skills</dt><dd>8</dd></div>
       <div><dt>Hooks</dt><dd>3 + 1 git</dd></div>
@@ -184,7 +185,7 @@ footer .files b{color:var(--muted);font-weight:500}
         <circle cx="480" cy="58" r="14" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".22"/>
         <circle cx="480" cy="58" r="6.5" fill="var(--ink)"/>
         <text x="480" y="30" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--ink)" letter-spacing=".4">tf-module-e2e</text>
-        <text x="480" y="44" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--faint)">28 lines · two sentences of delegation · one assertion</text>
+        <text x="480" y="44" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--faint)">43 lines · two sentences of delegation · one assertion</text>
 
         <text x="1030" y="46" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--h-judge)">prompts/*.md</text>
         <path d="M930,50 C780,50 640,54 498,56" fill="none" stroke="var(--h-judge)" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>
@@ -202,8 +203,8 @@ footer .files b{color:var(--muted);font-weight:500}
         <text x="676" y="168" font-family="var(--sans)" font-size="9.5" fill="var(--faint)">SDD phases 3–4 · 46 lines</text>
 
         <!-- human gate -->
-        <line x1="372" y1="158" x2="446" y2="158" stroke="var(--rule)" stroke-width="1"/>
-        <line x1="514" y1="158" x2="592" y2="158" stroke="var(--rule)" stroke-width="1"/>
+        <line x1="372" y1="158" x2="446" y2="158" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
+        <line x1="514" y1="158" x2="592" y2="158" stroke="var(--rule-strong)" stroke-width="1" opacity=".6"/>
         <rect x="450" y="142" width="60" height="34" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3">
           <animate attributeName="opacity" values=".45;1;.45" dur="3.4s" repeatCount="indefinite"/>
         </rect>
@@ -331,7 +332,7 @@ footer .files b{color:var(--muted);font-weight:500}
         <text x="500" y="461" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)"><tspan font-family="var(--mono)" font-size="9" fill="var(--ink)" font-weight="600">tf-guard verify</tspan> — validate · tflint · trivy · private-key scan, all four unconditionally</text>
         <text x="890" y="461" text-anchor="end" font-family="var(--mono)" font-size="7.5" letter-spacing="1" fill="var(--accent)" font-weight="700">BLOCKS THE TURN END</text>
 
-        <text x="500" y="490" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.1" fill="var(--muted)">SOLID — EVERY AGENT TOOL CALL &#160;·&#160; DASHED — SESSION LEVEL &#160;·&#160; ALL FOUR DECLARED OUTSIDE ANY SKILL</text>
+        <text x="500" y="490" text-anchor="middle" font-family="var(--mono)" font-size="7.5" letter-spacing="1.1" fill="var(--muted)">SOLID — EVERY WRITE/EDIT TOOL CALL &#160;·&#160; DASHED — SESSION LEVEL &#160;·&#160; ALL FOUR DECLARED OUTSIDE ANY SKILL</text>
         <text x="1030" y="392" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-judge)">no hooks fire —</text>
         <text x="1030" y="404" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--h-judge)">launched with hooks off</text>
 
@@ -460,7 +461,7 @@ footer .files b{color:var(--muted);font-weight:500}
         </g>
 
         <!-- step dots: harness -->
-        <g fill="var(--paper)" stroke="var(--muted)" stroke-width="1.4">
+        <g fill="var(--band)" stroke="var(--muted)" stroke-width="1.4">
           <circle cx="80" cy="120" r="4"/><circle cx="112" cy="120" r="4"/><circle cx="144" cy="120" r="4"/>
           <circle cx="976" cy="120" r="4"/><circle cx="1040" cy="120" r="4"/>
         </g>
@@ -481,7 +482,7 @@ footer .files b{color:var(--muted);font-weight:500}
           <circle cx="720"  cy="300" r="5" fill="var(--h-dev)"/>
           <circle cx="752"  cy="300" r="4" fill="var(--h-test)" opacity=".55"/>
           <circle cx="816"  cy="300" r="5" fill="var(--h-val)"/>
-          <circle cx="1008" cy="300" r="5" fill="var(--paper)" stroke="var(--h-judge)" stroke-width="1.6"/>
+          <circle cx="1008" cy="300" r="5" fill="var(--band)" stroke="var(--h-judge)" stroke-width="1.6"/>
         </g>
 
         <!-- subagent labels -->
@@ -549,7 +550,7 @@ footer .files b{color:var(--muted);font-weight:500}
       <div><span class="n">18</span><span class="t"><span class="who">tf-module-test-writer</span>Scaffolding plus four <b>.tftest.hcl</b> files — before any code exists.</span></div>
       <div><span class="n">19</span><span class="t"><span class="who">tf-module-implement</span>init + <b>validate only</b>. Running the tests here is explicitly forbidden.</span></div>
       <div><span class="n">20</span><span class="t"><span class="who">tf-module-implement</span>Grep design.md Section 6 for the checklist items.</span></div>
-      <div><span class="n">21</span><span class="t"><span class="who">tf-module-developer ×N</span>One dispatch per checklist item; writes code, ticks its own box.</span></div>
+      <div><span class="n">21</span><span class="t"><span class="who">tf-module-developer ×N</span>One dispatch per checklist item; writes code, ticks its own box. The orchestrator then re-runs <b>validate and test</b>.</span></div>
       <div><span class="n">22</span><span class="t"><span class="who">tf-module-test-writer</span>Re-launched with failures and reported data sources, to add mocks.</span></div>
       <div class="gate"><span class="n">23</span><span class="t"><span class="who">tf-module-implement</span><b>Section 6 gate</b> — any unticked item must be ticked or the gap flagged; it may proceed either way.</span></div>
       <div><span class="n">24</span><span class="t"><span class="who">tf-module-validator</span>Conformance, static analysis, 6-dimension score, auto-fix, report.</span></div>
@@ -688,15 +689,14 @@ footer .files b{color:var(--muted);font-weight:500}
 
 <footer>
   <div class="wrap">
-    <p><strong>How this page was produced.</strong> Six parallel extraction agents read the skill, its two parent skills, the six agent definitions, the hook layer and the project’s orchestration rules independently. A reconciliation pass merged their output into a single graph of 69 nodes and 118 edges, re-opened the cited files for the most load-bearing relationships, and discarded the edges that did not hold up. Every claim above traces to a file and line; the diagrams are drawn from that graph rather than from prose. Its sibling covers the <a href="tf-consumer-e2e.html">consumer track</a>.</p>
+    <p><strong>How this page was produced.</strong> Six parallel extraction agents read the skill, its two parent skills, the six agent definitions, the hook layer and the project’s orchestration rules independently. A reconciliation pass merged their output into a single graph of 69 nodes and 118 edges, re-opened the cited files for the most load-bearing relationships, and discarded the edges that did not hold up. Every claim above traces to a file and line; the diagrams are drawn from that graph rather than from prose. Siblings cover the <a href="tf-consumer-e2e.html">consumer</a>, <a href="tf-policy.html">policy</a> and <a href="tf-provider.html">provider</a> tracks.</p>
     <div class="files">
       <b>Skill</b> &nbsp;.claude/skills/tf-module-e2e/SKILL.md<br>
       <b>Parents</b> &nbsp;.claude/skills/tf-module-plan/ · .claude/skills/tf-module-implement/<br>
       <b>Agents</b> &nbsp;.claude/agents/tf-module-{research,design,test-writer,developer,validator}.md · tf-e2e-judge.md<br>
       <b>Hooks</b> &nbsp;.claude/settings.json · .claude/hooks/deny-config-files.sh · scripts/hooks/tf-guard.sh · .githooks/pre-commit<br>
       <b>Harness</b> &nbsp;evals/e2e/bin/run-eval.sh · adapters/ · cases/ · judge/<br>
-      <b>Rules</b> &nbsp;AGENTS.md · .claude/CLAUDE.md
-    </div>
+      <b>Rules</b> &nbsp;AGENTS.md · .claude/CLAUDE.md · .foundations/memory/module-constitution.md</div>
   </div>
 </footer>
 
