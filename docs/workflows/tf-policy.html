@@ -352,7 +352,7 @@ footer .files b{color:var(--muted);font-weight:500}
 
     <h3>Step by step</h3>
     <div class="steps">
-      <div><span class="n">01</span><span class="t"><span class="who">tf-policy-plan</span>Bootstrap <code>.foundations</code>, then the env gate. It never checks that the <b>tfpolicy binary exists</b>.</span></div>
+      <div><span class="n">01</span><span class="t"><span class="who">tf-policy-plan</span>Bootstrap <code>.foundations</code>, the env gate, then <code>tfpolicy version</code> — the engine gate.</span></div>
       <div><span class="n">02</span><span class="t"><span class="who">tf-policy-plan</span>Parse arguments into a compliance rule or policy grouping, provider and description.</span></div>
       <div><span class="n">03</span><span class="t"><span class="who">tf-policy-plan</span>Create the GitHub issue from the template, adapted for policy context.</span></div>
       <div><span class="n">04</span><span class="t"><span class="who">tf-policy-plan</span>Create the feature branch with <code>--workflow policy</code>.</span></div>
@@ -502,7 +502,7 @@ footer .files b{color:var(--muted);font-weight:500}
       <div><span class="n">04</span><span class="t"><span class="who">clarification</span>Three of four question slots are mandated, against one of four on the module side.</span></div>
       <div><span class="n">05</span><span class="t"><span class="who">upstream reuse</span>A compliance-driven mode auto-discovers the YAML rule set produced by <code>tf-research-policy-aws</code> and threads it through research and design. No other track reuses an upstream artifact.</span></div>
       <div><span class="n">06</span><span class="t"><span class="who">test-writer</span>Bash-less on both tracks, but it bites harder here: <code>tfpolicy test</code> is the only signal that the design’s scenarios were transcribed correctly.</span></div>
-      <div><span class="n">07</span><span class="t"><span class="who">toolchain gate</span>Never checks the <code>tfpolicy</code> binary is installed. The provider track gates on <code>go version</code>; this one discovers the absence deep inside the build loop.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">toolchain gate</span>Both tracks now gate on their engine — <code>tfpolicy version</code> here, <code>go version</code> on the provider side — so a missing binary stops the run up front rather than mid-loop.</span></div>
       <div><span class="n">08</span><span class="t"><span class="who">PR</span>No <code>semver:*</code> label and no label bootstrap — the module track needs both because its CI blocks unlabelled PRs.</span></div>
       <div><span class="n">09</span><span class="t"><span class="who">measurement</span>No e2e skill and no eval case, so the track-agnostic harness and judge are never pointed at this track, and <code>deterministic.sh</code> has no <code>tfpolicy</code> check. The decisive asymmetry.</span></div>
     </div>
@@ -513,7 +513,7 @@ footer .files b{color:var(--muted);font-weight:500}
   <div class="wrap">
     <div class="snum">06</div>
     <h2>Findings</h2>
-    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code.</p>
+    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code. Four further findings — a contradictory design filename, an unreachable Azure research path, a missing engine gate and an undefined carve-out in the per-item gate — were fixed in the skills rather than documented here.</p>
 
     <div class="finding">
       <div class="sev hi">High</div>
@@ -525,41 +525,6 @@ footer .files b{color:var(--muted);font-weight:500}
       </div>
     </div>
 
-    <div class="finding">
-      <div class="sev md">Medium</div>
-      <div>
-        <h3>The plan skill contradicts itself about its own output filename</h3>
-        <p><code>tf-policy-plan</code> calls its design artifact <code>tf-policy-design.md</code> in the description and opening line, but <code>policy-design.md</code> in step 9 and the Done line. The design agent and all four downstream readers use <code>policy-design.md</code>, so the working path is the correct one — but the two names sit in the same 47-line file.</p>
-        <span class="cite">.claude/skills/tf-policy-plan/SKILL.md:3,10 vs. :40,47</span>
-      </div>
-    </div>
-
-    <div class="finding">
-      <div class="sev md">Medium</div>
-      <div>
-        <h3>The Azure research path is unreachable</h3>
-        <p><code>tf-research-policy-azure</code> ships as a full skill beside its AWS twin, but no agent preloads it and <code>tf-policy-research</code> names the AWS skill directly — including in the rule that makes skipping it “a defect”. An Azure policy set would either fall back to ad-hoc research or silently follow AWS framing.</p>
-        <span class="cite">.claude/skills/tf-research-policy-azure/ · .claude/agents/tf-policy-research.md</span>
-      </div>
-    </div>
-
-    <div class="finding">
-      <div class="sev lo">Low</div>
-      <div>
-        <h3>No toolchain gate for the engine the whole track depends on</h3>
-        <p>Both orchestrators run the generic <code>validate-env.sh</code> and stop on failure, but neither checks that <code>tfpolicy</code> is installed. The provider track sets the precedent with an explicit <code>go version</code> check. Without it, a missing binary surfaces as a confusing failure inside the per-item build loop rather than as a clean precondition stop.</p>
-        <span class="cite">.claude/skills/tf-policy-plan/SKILL.md:19 · tf-policy-implement/SKILL.md:18 vs. tf-provider-plan/SKILL.md:17</span>
-      </div>
-    </div>
-
-    <div class="finding">
-      <div class="sev lo">Low</div>
-      <div>
-        <h3>An undefined carve-out weakens the per-item gate</h3>
-        <p>Step 8 makes <code>tfpolicy validate</code> blocking per checklist item “unless the failure is the documented hard-block-gate exception”. That exception is defined nowhere in the skill, so the one genuinely blocking check in Phase 3 carries an escape hatch whose scope a reader cannot determine.</p>
-        <span class="cite">.claude/skills/tf-policy-implement/SKILL.md:32</span>
-      </div>
-    </div>
   </div>
 </section>
 

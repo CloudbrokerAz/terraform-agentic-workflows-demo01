@@ -1,10 +1,11 @@
 ---
 name: tf-policy-research
-description: Investigate AWS compliance baselines, provider resource schemas, and policy patterns for tfpolicy design. Each instance answers ONE research question. Use during planning phase to resolve compliance rule mappings, attribute paths, enforcement patterns, and cross-resource relationship needs.
+description: Investigate cloud compliance baselines (AWS or Azure), provider resource schemas, and policy patterns for tfpolicy design. Each instance answers ONE research question. Use during planning phase to resolve compliance rule mappings, attribute paths, enforcement patterns, and cross-resource relationship needs.
 model: opus
 color: green
 skills:
   - tf-research-policy-aws
+  - tf-research-policy-azure
   - tf-security-baselines
 tools:
   - Skill
@@ -24,12 +25,12 @@ tools:
 
 # Policy Research Investigator
 
-Answer ONE research question per instance. Research areas include AWS compliance baselines (via tf-research-policy-aws YAML rules), provider resource schemas (for correct attribute paths)
+Answer ONE research question per instance. Research areas include cloud compliance baselines (via the tf-research-policy-aws or tf-research-policy-azure YAML rules), provider resource schemas (for correct attribute paths)
 
 ## Instructions
 
 1. **Parse**: Understand the research question and context from `$ARGUMENTS`. Identify the FEATURE path and determine the research category:
-   - **Compliance rules**: Extract applicable rules from existing `tf-research-policy-aws` YAML files or research compliance framework controls
+   - **Compliance rules**: Extract applicable rules from existing compliance YAML files or research the framework's controls
    - **Provider schemas**: Research resource attribute paths, nested block structures, plan-time vs apply-time availability
 
 2. **Research by category**:
@@ -37,7 +38,7 @@ Answer ONE research question per instance. Research areas include AWS compliance
    ### Compliance Rules
    - Check for existing YAML rule files at `policy-research/{framework-slug}*.yaml`
    - If found, read the YAML and extract: rule IDs, descriptions, resource types, severity, condition logic, remediation guidance
-   - **If not found, invoke the `tf-research-policy-aws` skill to generate the YAML at `policy-research/{framework-slug}.yaml` first, then read it as in the prior step.** Do NOT skip straight to ad-hoc AWS documentation research — the YAML is the canonical artifact and must exist on disk so downstream design and audit work has a structured source of truth. Only fall back to direct AWS documentation research if the `tf-research-policy-aws` skill genuinely cannot produce a YAML for the requested framework (e.g., framework is not AWS-published), and call that out explicitly in the findings.
+   - **If not found, invoke the research skill matching the target cloud — `tf-research-policy-aws` for AWS, `tf-research-policy-azure` for Azure — to generate the YAML at `policy-research/{framework-slug}.yaml` first, then read it as in the prior step.** Do NOT skip straight to ad-hoc documentation research — the YAML is the canonical artifact and must exist on disk so downstream design and audit work has a structured source of truth. Only fall back to direct documentation research if the matching skill genuinely cannot produce a YAML for the requested framework (for example, the framework is not published by the cloud vendor), and call that out explicitly in the findings.
    - Also run `mcp__terraform__search_policies` with the framework + resource scope (e.g., `aws-s3-cis`, `nist-800-53-aws`) to surface any HashiCorp- or community-published policy packages whose rule inventory can be cross-referenced. Note that registry results are often Sentinel rather than tfpolicy; use them for control inventory cross-checks, not syntax.
    - Map compliance controls to Terraform resource types and attribute paths
    - Note which controls can be expressed as simple attribute checks vs those requiring cross-resource relationships
@@ -101,12 +102,12 @@ Write research findings to `specs/{FEATURE}/research-{slug}.md` where `{FEATURE}
 ## Constraints
 
 - **ONE question per instance**: Each research agent answers exactly one question
-- **Compliance YAML first, generate when missing**: If the question involves a compliance framework, check `policy-research/*.yaml`. If the expected YAML is missing, you MUST invoke the `tf-research-policy-aws` skill to produce it before continuing. Going straight to ad-hoc AWS-doc research when the skill could have generated a canonical YAML is a defect — the YAML is a reusable artifact and downstream agents (design, validation, audit) expect it on disk.
+- **Compliance YAML first, generate when missing**: If the question involves a compliance framework, check `policy-research/*.yaml`. If the expected YAML is missing, you MUST invoke the research skill for the target cloud (`tf-research-policy-aws` or `tf-research-policy-azure`) to produce it before continuing. Going straight to ad-hoc documentation research when the skill could have generated a canonical YAML is a defect — the YAML is a reusable artifact and downstream agents (design, validation, audit) expect it on disk.
 - **Registry policy discovery**: For compliance-rule research, always call `mcp__terraform__search_policies` once with the framework + cloud scope to surface published policy packages whose rule inventory can be cross-referenced (HashiCorp, community). Document what was found (or that nothing relevant matched).
 - **Provider docs for attributes**: Always verify attribute paths against provider documentation — do not guess
 - **Write to disk**: Write findings to `specs/{FEATURE}/research-{slug}.md` — the design agent reads these files directly
 - **MUST run in foreground** (uses MCP tools)
-- **Never fabricate compliance rules**: If a framework has no AWS-published baseline AND the `tf-research-policy-aws` skill cannot produce a YAML, say so explicitly and suggest alternatives. Do not invent rule IDs.
+- **Never fabricate compliance rules**: If a framework has no vendor-published baseline AND the matching research skill cannot produce a YAML, say so explicitly and suggest alternatives. Do not invent rule IDs.
 
 ## Context
 

@@ -153,7 +153,7 @@ footer .files b{color:var(--muted);font-weight:500}
       <div><dt>Entry point</dt><dd>/tf-provider-plan</dd></div>
       <div><dt>Skill files</dt><dd>34 + 38 lines</dd></div>
       <div><dt>Subagents</dt><dd>5</dd></div>
-      <div><dt>Ref. skills</dt><dd>6</dd></div>
+      <div><dt>Ref. skills</dt><dd>7</dd></div>
       <div><dt>Runtime steps</dt><dd>34</dd></div>
       <div><dt>Eval coverage</dt><dd>none yet</dd></div>
     </dl>
@@ -370,7 +370,7 @@ footer .files b{color:var(--muted);font-weight:500}
       <div><span class="n">13</span><span class="t"><span class="who">tf-provider-plan</span>Confirm all seven sections are present.</span></div>
       <div class="gate"><span class="n">14</span><span class="t"><span class="who">tf-provider-plan</span><b>Human approval gate</b> — attribute counts, CRUD operations, scenario counts, checklist items.</span></div>
       <div><span class="n">15</span><span class="t"><span class="who">tf-provider-plan</span>Hand off <code>/tf-provider-implement $FEATURE $RESOURCE</code> — the only two-argument handoff in the repo.</span></div>
-      <div><span class="n">16</span><span class="t"><span class="who">tf-provider-implement</span>Resolve feature and resource. <b>The env gate is not re-run</b>, and Go is never re-checked.</span></div>
+      <div><span class="n">16</span><span class="t"><span class="who">tf-provider-implement</span>Re-run the env gate and <code>go version</code>, resolve the feature, and derive the resource from the design filename if the second argument was omitted.</span></div>
       <div><span class="n">17</span><span class="t"><span class="who">tf-provider-implement</span>Require the per-resource design file.</span></div>
       <div><span class="n">18</span><span class="t"><span class="who">tf-provider-implement</span>Resolve the issue number.</span></div>
       <div><span class="n">19</span><span class="t"><span class="who">tf-provider-implement</span>Dispatch the test-writer.</span></div>
@@ -384,8 +384,8 @@ footer .files b{color:var(--muted);font-weight:500}
       <div><span class="n">27</span><span class="t"><span class="who">tf-provider-implement</span>Launch the validator — <b>without</b> <code>run_acceptance_tests=true</code>.</span></div>
       <div><span class="n">28</span><span class="t"><span class="who">tf-provider-validator</span>Design conformance, the Go gate chain plus <code>staticcheck</code>, scenario counting, constitution review, conservative auto-fix. Acceptance tests report SKIPPED.</span></div>
       <div><span class="n">29</span><span class="t"><span class="who">tf-provider-implement</span>Re-build if auto-fixes landed.</span></div>
-      <div><span class="n">30</span><span class="t"><span class="who">tf-provider-implement</span>Remediate remaining issues — “repeat until resolved”, with <b>no round cap</b>.</span></div>
-      <div class="gate"><span class="n">31</span><span class="t"><span class="who">tf-provider-implement</span>Step 10 of the skill reads, in full: “Run acceptance tests.” No command, no <code>TF_ACC</code>, no flag.</span></div>
+      <div><span class="n">30</span><span class="t"><span class="who">tf-provider-implement</span>Remediate remaining issues and re-validate — <b>max 3 rounds</b>, then stop short of the PR.</span></div>
+      <div class="gate"><span class="n">31</span><span class="t"><span class="who">tf-provider-implement</span>Acceptance tests: opt-in. A real <code>TF_ACC=1</code> command, gated on passing <code>run_acceptance_tests=true</code> and exporting credentials.</span></div>
       <div><span class="n">32</span><span class="t"><span class="who">tf-provider-implement</span>Write the validation report — here the orchestrator writes it, not the validator.</span></div>
       <div><span class="n">33</span><span class="t"><span class="who">tf-provider-implement</span>Checkpoint, push, open the PR. No <code>semver:*</code> label.</span></div>
       <div><span class="n">34</span><span class="t"><span class="who">tf-guard hooks</span>Throughout: a <code>.go</code> write matches no fix branch; at Stop, validate and tflint glob <code>*.tf</code> and exit 0, trivy reads IaC not Go, and only the private-key grep touches the file.</span></div>
@@ -397,12 +397,12 @@ footer .files b{color:var(--muted);font-weight:500}
   <div class="wrap">
     <div class="snum">03</div>
     <h2>What each actor knows</h2>
-    <p class="lead">Six reference skills, and a distinct family from every other track — the <code>provider-*</code> skills rather than the <code>tf-*</code> ones.</p>
+    <p class="lead">Seven reference skills, and a distinct family from every other track — the <code>provider-*</code> skills rather than the <code>tf-*</code> ones.</p>
     <figure>
       <div class="scroller">
       <svg data-wide viewBox="104 -18 796 420" role="img" aria-labelledby="v2t v2d">
         <title id="v2t">Which reference skills each actor loads on the provider track</title>
-        <desc id="v2d">A matrix of seven actors against six reference skills. Only tf-provider-validator loads provider-run-acceptance-tests, and it is the one agent that does not load provider-test-patterns despite judging test structure. The implement orchestrator loads tf-report-template because it writes the validation report itself.</desc>
+        <desc id="v2d">A matrix of seven actors against seven reference skills. Only tf-provider-validator loads provider-run-acceptance-tests, and it is the one agent that does not load provider-test-patterns despite judging test structure. The implement orchestrator loads tf-report-template because it writes the validation report itself.</desc>
         <g font-family="var(--mono)" font-size="9" fill="var(--muted)">
           <text transform="translate(330,118) rotate(-52)">tf-domain-category</text>
           <text transform="translate(400,118) rotate(-52)">provider-resources</text>
@@ -410,8 +410,9 @@ footer .files b{color:var(--muted);font-weight:500}
           <text transform="translate(540,118) rotate(-52)">provider-test-patterns</text>
           <text transform="translate(610,118) rotate(-52)">provider-run-acceptance-tests</text>
           <text transform="translate(680,118) rotate(-52)">tf-report-template</text>
+          <text transform="translate(750,118) rotate(-52)" fill="var(--accent)" font-weight="600">tf-judge-criteria</text>
         </g>
-        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".5"><line x1="330" y1="126" x2="330" y2="358"/><line x1="400" y1="126" x2="400" y2="358"/><line x1="470" y1="126" x2="470" y2="358"/><line x1="540" y1="126" x2="540" y2="358"/><line x1="610" y1="126" x2="610" y2="358"/><line x1="680" y1="126" x2="680" y2="358"/></g>
+        <g stroke="var(--rule-strong)" stroke-width="1" opacity=".5"><line x1="330" y1="126" x2="330" y2="358"/><line x1="400" y1="126" x2="400" y2="358"/><line x1="470" y1="126" x2="470" y2="358"/><line x1="540" y1="126" x2="540" y2="358"/><line x1="610" y1="126" x2="610" y2="358"/><line x1="680" y1="126" x2="680" y2="358"/><line x1="750" y1="126" x2="750" y2="358"/></g>
         <line x1="120" y1="126" x2="856" y2="126" stroke="var(--rule-strong)" stroke-width="1"/>
         <line x1="120" y1="358" x2="856" y2="358" stroke="var(--rule-strong)" stroke-width="1" opacity=".45"/>
         <g font-family="var(--mono)" font-size="9.5" text-anchor="end">
@@ -442,6 +443,7 @@ footer .files b{color:var(--muted);font-weight:500}
         <circle cx="400" cy="342" r="5" fill="var(--h-val)"/>
         <circle cx="610" cy="342" r="5" fill="var(--h-val)"/>
         <circle cx="680" cy="342" r="5" fill="var(--h-val)"/>
+        <circle cx="750" cy="342" r="5" fill="var(--h-val)"/>
       </svg>
       </div>
       <figcaption><b>Fig. 3</b> — reference-skill loading · a dot means that actor loads that skill</figcaption>
@@ -452,10 +454,10 @@ footer .files b{color:var(--muted);font-weight:500}
         <tr><th scope="row">tf-provider-design</th><td>provider-resources</td></tr>
         <tr><th scope="row">tf-provider-test-writer</th><td>provider-test-patterns</td></tr>
         <tr><th scope="row">tf-provider-developer</th><td>provider-resources, provider-actions, provider-test-patterns</td></tr>
-        <tr><th scope="row">tf-provider-validator</th><td>provider-resources, provider-run-acceptance-tests, tf-report-template</td></tr>
+        <tr><th scope="row">tf-provider-validator</th><td>provider-resources, provider-run-acceptance-tests, tf-judge-criteria, tf-report-template</td></tr>
       </tbody></table></div>
     </figure>
-    <p>Two cells are worth reading against each other. <code>provider-run-acceptance-tests</code> is loaded by the validator alone — the one agent positioned to run them, and the one the orchestrator never asks to. And the validator is the only test-touching agent that does <em>not</em> load <code>provider-test-patterns</code>, so it judges test structure against the constitution rather than against the skill that generated the tests. It is also the only validator in the repo that does not load <code>tf-judge-criteria</code> — the shared rubric the other three tracks score against.</p>
+    <p>Two cells are worth reading against each other. <code>provider-run-acceptance-tests</code> is loaded by the validator alone — the one agent positioned to run them, and the one the orchestrator never asks to. And the validator is the only test-touching agent that does <em>not</em> load <code>provider-test-patterns</code>, so it judges test structure against the constitution rather than against the skill that generated the tests. It now also loads <code>tf-judge-criteria</code>, the shared rubric the other three tracks score against; until recently it was the only validator that did not.</p>
   </div>
 </section>
 
@@ -479,16 +481,16 @@ footer .files b{color:var(--muted);font-weight:500}
 
         <g>
           <rect x="60" y="80" width="180" height="20" rx="10" fill="var(--accent)" opacity=".1"/>
-          <text x="150" y="94" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--accent)" font-weight="700">BLOCK 1 · THE SKILL</text>
+          <text x="150" y="94" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.3" fill="var(--accent)" font-weight="700">BLOCK 1 · BY DESIGN</text>
           <text x="150" y="126" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--body)">
-            <tspan x="150" dy="0">Step 10 of tf-provider-implement</tspan>
-            <tspan x="150" dy="15">reads, in full:</tspan>
+            <tspan x="150" dy="0">Step 10 is now explicit, but</tspan>
+            <tspan x="150" dy="15">deliberately opt-in:</tspan>
           </text>
           <rect x="66" y="140" width="168" height="22" rx="4" fill="var(--ink)" opacity=".07"/>
-          <text x="150" y="155" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)" font-weight="600">“Run acceptance tests.”</text>
+          <text x="150" y="155" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)" font-weight="600">not run by default</text>
           <text x="150" y="182" text-anchor="middle" font-family="var(--sans)" font-size="10" fill="var(--muted)">
-            <tspan x="150" dy="0">No command. No TF_ACC=1.</tspan>
-            <tspan x="150" dy="13">No credential precondition.</tspan>
+            <tspan x="150" dy="0">They provision billable</tspan>
+            <tspan x="150" dy="13">cloud resources.</tspan>
           </text>
         </g>
 
@@ -530,9 +532,9 @@ footer .files b{color:var(--muted);font-weight:500}
         <text x="705" y="145" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="var(--accent)">and even if fixed</text>
 
         <line x1="60" y1="228" x2="1000" y2="228" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>
-        <text x="530" y="252" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--accent)">The scaffold is real, complete and correct. The constitution makes running it a release blocker — and no step, hook or CI job ever does.</text>
+        <text x="530" y="252" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--accent)">The scaffold is real, complete and correct. Nothing that runs automatically ever asks it to prove anything.</text>
         <text x="530" y="272" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--muted)">The only verification the whole track performs on its tests is <tspan font-family="var(--mono)" font-size="10" fill="var(--ink)">go test -c -o /dev/null</tspan> — compile, then discard.</text>
-        <text x="530" y="306" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.2" fill="var(--muted)">THE DONE BLOCK HEDGES ACCORDINGLY: “ACCEPTANCE TEST RESULTS (IF RUN)”</text>
+        <text x="530" y="306" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.2" fill="var(--muted)">THE DONE BLOCK NOW REPORTS THE POSITION EXPLICITLY: NOT RUN, OR RAN/SKIPPED COUNTS</text>
       </svg>
       </div>
       <p class="scrollnote">Scroll the diagram sideways to see all of it →</p>
@@ -556,10 +558,10 @@ footer .files b{color:var(--muted);font-weight:500}
       <div><span class="n">01</span><span class="t"><span class="who">language</span>Go under <code>internal/service/&lt;service&gt;/</code> using the Plugin Framework. The verification vocabulary is <code>gofmt</code>, <code>go build</code>, <code>go vet</code>, <code>staticcheck</code> — none of which any hook runs.</span></div>
       <div><span class="n">02</span><span class="t"><span class="who">two arguments</span><code>provider-design-{resource}.md</code> is the only design artifact whose filename carries a second identifier, and it propagates through the whole call shape.</span></div>
       <div><span class="n">03</span><span class="t"><span class="who">toolchain gate</span>The only track that gates on a language runtime — <code>go version</code>, Go ≥ 1.21 — though only at plan time; implement never re-checks.</span></div>
-      <div><span class="n">04</span><span class="t"><span class="who">no implement gate</span>Unlike every sibling, <code>tf-provider-implement</code> does not re-run <code>validate-env.sh</code> at all.</span></div>
+      <div><span class="n">04</span><span class="t"><span class="who">two-stage gate</span>The only track that gates on a language runtime, now at both plan and implement time.</span></div>
       <div><span class="n">05</span><span class="t"><span class="who">research tools</span>WebSearch and WebFetch instead of the terraform MCP server — reasonable, since registry and workspace tools cannot help author Go. The test-writer has neither — the only agent on the track without both.</span></div>
       <div><span class="n">06</span><span class="t"><span class="who">tests</span>Compile-only. The module track executes <code>terraform test</code> after every checklist item and again at the end; nothing here ever executes a test.</span></div>
-      <div><span class="n">07</span><span class="t"><span class="who">fix loop</span>“Repeat until resolved” — uncapped, against the module track’s explicit maximum of three rounds.</span></div>
+      <div><span class="n">07</span><span class="t"><span class="who">fix loop</span>Capped at three rounds, matching every sibling track.</span></div>
       <div><span class="n">08</span><span class="t"><span class="who">report owner</span>Inverted: the orchestrator writes the validation report, where the module validator writes its own.</span></div>
       <div><span class="n">09</span><span class="t"><span class="who">PR</span>No <code>semver:*</code> label and no label bootstrap.</span></div>
       <div><span class="n">10</span><span class="t"><span class="who">measurement</span>No e2e skill, no eval cases, no judge — though the harness is closer than it looks: the case schema already lists <code>provider</code> as a track and a Provider rubric already exists.</span></div>
@@ -571,14 +573,14 @@ footer .files b{color:var(--muted);font-weight:500}
   <div class="wrap">
     <div class="snum">06</div>
     <h2>Findings</h2>
-    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code.</p>
+    <p class="lead">Produced by an independent review pass over the same source files, then verified against the code. Four further findings — the missing plan step, unrecoverable <code>$RESOURCE</code>, the uncapped fix loop and the overstated parity in <code>AGENTS.md</code> — were fixed at source rather than documented here.</p>
 
     <div class="finding">
       <div class="sev hi">High</div>
       <div>
-        <h3>The acceptance-test suite is scaffolding that can never run</h3>
-        <p>Three independent blocks, described in Fig. 3. Removing any one leaves the other two standing: the skill step has no command, the validator’s real invocation is gated on a flag nobody passes, and every test function carries <code>t.Skip</code> that nothing instructs anyone to remove. The developer agent “reports skip count vs implemented count”, and the constitution expects the stubs to be filled in — but nothing in any skill, hook or CI job ever verifies that a single one was.</p>
-        <p>The effect is a track that produces a complete, compiling, correctly-structured test suite which asserts nothing about the provider it ships alongside.</p>
+        <h3>The acceptance-test suite still does not run by default</h3>
+        <p>One of the three blocks in Fig. 3 is now gone: the skill’s step 10 carries a real command, states the credential precondition, and explains that a green run with every test skipped is not a passing suite. The other two stand. Acceptance tests remain opt-in — deliberately, since they provision billable cloud resources — and the test-writer still emits every function with <code>t.Skip</code>, with nothing anywhere verifying that a single skip was removed.</p>
+        <p>So the default outcome is unchanged — a complete, compiling, correctly-structured test suite that asserts nothing — but it is now a documented choice with an escape hatch rather than a dead four-word instruction.</p>
         <span class="cite">.claude/skills/tf-provider-implement/SKILL.md step 10 · .claude/agents/tf-provider-validator.md · tf-provider-test-writer.md</span>
       </div>
     </div>
@@ -593,41 +595,6 @@ footer .files b{color:var(--muted);font-weight:500}
       </div>
     </div>
 
-    <div class="finding">
-      <div class="sev md">Medium</div>
-      <div>
-        <h3>Plan step 3 does not exist, and the argument parse went with it</h3>
-        <p>Phase 1 numbers its steps 1, 2, 4, 5, 6, 7. Comparing against the module track shows what happened: the module’s step 2 parses <code>$ARGUMENTS</code> and its step 3 creates the issue; the provider skill dropped the parse step and renumbered only partially. The consequence is not cosmetic — the skill never explicitly parses its arguments, yet step 4 needs the resource name and step 8 needs <code>RESOURCE</code>.</p>
-        <span class="cite">.claude/skills/tf-provider-plan/SKILL.md:17–22 vs. tf-module-plan/SKILL.md:18–19</span>
-      </div>
-    </div>
-
-    <div class="finding">
-      <div class="sev md">Medium</div>
-      <div>
-        <h3><code>$RESOURCE</code> cannot be recovered from the branch name</h3>
-        <p><code>tf-provider-implement</code> resolves both the feature and the resource “from <code>$ARGUMENTS</code> or current git branch name”. Branches are created as <code>NNN-&lt;short-name&gt;</code>, which encodes the short name given at plan time — not the resource. Omit the second argument and the design-exists Glob has no reliable <code>{resource}</code> to substitute, so the gate misfires.</p>
-        <span class="cite">.claude/skills/tf-provider-implement/SKILL.md:17–18 · .foundations/scripts/bash/create-new-feature.sh</span>
-      </div>
-    </div>
-
-    <div class="finding">
-      <div class="sev lo">Low</div>
-      <div>
-        <h3>The validator fix loop has no round cap</h3>
-        <p>“Repeat until resolved” where every sibling track caps at three rounds. With no bound and no harness timeout around it, a validator and developer that disagree can loop until the session limit.</p>
-        <span class="cite">.claude/skills/tf-provider-implement/SKILL.md — validator remediation step</span>
-      </div>
-    </div>
-
-    <div class="finding">
-      <div class="sev lo">Low</div>
-      <div>
-        <h3>The docs present a parity that does not exist</h3>
-        <p><code>AGENTS.md</code> lays out four co-equal workflows — a clean four-column agent matrix, constitutions and templates four-for-four, and “these rules apply to ALL four workflows”. Only the passing phrase “the 2 e2e harnesses” hints that two of the four have no executable guardrail and no measurement at all. A reader would reasonably conclude parity.</p>
-        <span class="cite">AGENTS.md — Component Inventory</span>
-      </div>
-    </div>
   </div>
 </section>
 
