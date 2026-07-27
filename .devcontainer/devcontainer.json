@@ -82,5 +82,18 @@
 
   // post-create is chained here (see note above) and allowed to fail without
   // blocking post-start.
-  "postStartCommand": "cd /workspace/${localWorkspaceFolderBasename}; bash .devcontainer/bob-podman/scripts/post-create.sh || echo 'post-create failed (continuing)'; bash .devcontainer/bob-podman/scripts/post-start.sh"
+  //
+  // Do NOT use ${localWorkspaceFolderBasename} in this value. The extension has
+  // TWO config readers and only one of them substitutes variables:
+  //   su()  -- local, at container-create time; pipes values through ne(),
+  //            so ${...} IS expanded. This is why the runArgs above work.
+  //   at()  -- used by gu() to run postStartCommand INSIDE the container;
+  //            `return Ae(o)` is a raw JSON5 parse with NO substitution.
+  // The literal "${localWorkspaceFolderBasename}" therefore reaches bash,
+  // expands to the empty string, and the cd lands in /workspace:
+  //   bash: .devcontainer/bob-podman/scripts/post-create.sh: No such file or directory
+  // CODIUM_WS is injected by the extension as -e CODIUM_WS=/workspace/<basename>
+  // and is correct inside the container. The container's default cwd is already
+  // the workspace folder, so $PWD is a safe fallback.
+  "postStartCommand": "cd \"${CODIUM_WS:-$PWD}\"; bash .devcontainer/bob-podman/scripts/post-create.sh || echo 'post-create failed (continuing)'; bash .devcontainer/bob-podman/scripts/post-start.sh"
 }
