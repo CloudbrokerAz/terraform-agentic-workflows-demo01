@@ -167,7 +167,7 @@ footer .files b{color:var(--muted);font-weight:500}
 <div class="bleed">
   <div class="wrap">
     <div class="snum">01</div>
-    <h2 style="margin-bottom:8px">Who calls whom, and where the hooks fire</h2>
+    <h2 style="margin-bottom:8px">From a request to a merged module</h2>
     <p class="lead" style="margin-top:6px;max-width:74ch">Two orchestrating skills, five in-workflow subagents and one deliberately kept outside. Every subagent starts with a fresh context, so what they share is only what is on disk — chiefly <code>design.md</code>, which every implementation agent reads — and every file any of them writes passes through guard hooks that no skill file mentions.</p>
 
     <figure>
@@ -175,13 +175,21 @@ footer .files b{color:var(--muted);font-weight:500}
       <!-- ===== FIG 1 — delegation + interception ===== -->
       <svg viewBox="0 0 1160 648" role="img" aria-labelledby="f1t f1d">
         <title id="f1t">Delegation and hook interception for tf-module-e2e</title>
-        <desc id="f1d">The e2e skill delegates to two orchestrating skills, which dispatch five subagents. Everything those subagents write passes through a PreToolUse deny hook and a PostToolUse fix hook, with a Stop hook firing at every turn boundary and a git pre-commit hook firing on every checkpoint commit. The e2e judge sits outside the boundary, launched by the eval harness with all hooks disabled, and it is forbidden from reading the validator report.</desc>
+        <desc id="f1d">A human invokes the e2e skill, which delegates to two orchestrating skills, which dispatch five subagents. Everything those subagents write passes through a PreToolUse deny hook and a PostToolUse fix hook, with a Stop hook firing at every turn boundary and a git pre-commit hook firing on every checkpoint commit. The e2e judge sits outside the boundary, launched by the eval harness with all hooks disabled, and it is forbidden from reading the validator report.</desc>
 
         <!-- ============ out-of-band column ============ -->
         <rect x="930" y="26" width="200" height="540" rx="6" fill="none" stroke="var(--h-judge)" stroke-width="1" stroke-dasharray="5 4" opacity=".55"/>
         <text x="1030" y="20" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="1.6" fill="var(--h-judge)">OUT OF BAND</text>
 
         <!-- ============ entry ============ -->
+        <circle cx="150" cy="58" r="15" fill="none" stroke="var(--accent)" stroke-width="1" opacity=".3"/>
+        <circle cx="150" cy="58" r="7" fill="var(--accent)"/>
+        <text x="150" y="30" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--accent)" letter-spacing=".4">THE HUMAN</text>
+        <text x="150" y="44" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--body)">starts the run, then steps out</text>
+        <line x1="167" y1="58" x2="452" y2="58" stroke="var(--accent)" stroke-width="1" opacity=".45"/>
+        <polygon points="452,55 460,58 452,61" fill="var(--accent)" opacity=".6"/>
+        <text x="310" y="52" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">invokes /tf-module-e2e</text>
+        <circle r="3" fill="var(--accent)" opacity="0"><animateMotion dur="3.4s" repeatCount="indefinite" path="M167,58 L452,58"/><animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.9;1" dur="3.4s" repeatCount="indefinite"/></circle>
         <circle cx="480" cy="58" r="14" fill="none" stroke="var(--ink)" stroke-width="1" opacity=".22"/>
         <circle cx="480" cy="58" r="6.5" fill="var(--ink)"/>
         <text x="480" y="30" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--ink)" letter-spacing=".4">tf-module-e2e</text>
@@ -210,7 +218,7 @@ footer .files b{color:var(--muted);font-weight:500}
         </rect>
         <text x="480" y="157" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">HUMAN</text>
         <text x="480" y="168" text-anchor="middle" font-family="var(--mono)" font-size="7.5" font-weight="700" fill="var(--accent)">GATE</text>
-        <text x="480" y="189" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">skipped in E2E</text>
+        <text x="480" y="189" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--accent)">skipped — nobody here</text>
 
         <!-- ============ fan to subagents ============ -->
         <g fill="none" stroke-width="1.1" opacity=".42">
@@ -288,7 +296,10 @@ footer .files b{color:var(--muted);font-weight:500}
 
         <!-- ============ hook band ============ -->
         <rect x="92" y="364" width="816" height="112" rx="6" fill="var(--accent-soft)"/>
-        <text x="92" y="357" font-family="var(--mono)" font-size="8" letter-spacing="2" fill="var(--accent)" font-weight="700">HOOKS</text>
+        <text x="60" y="62" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">ENTRY</text>
+        <text x="60" y="162" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">SKILLS</text>
+        <text x="60" y="276" font-family="var(--mono)" font-size="7.5" letter-spacing="1.5" fill="var(--muted)">AGENTS</text>
+        <text x="60" y="357" font-family="var(--mono)" font-size="8" letter-spacing="2" fill="var(--accent)" font-weight="700">HOOKS</text>
 
         <!-- agent verticals through the per-tool-call rows -->
         <g stroke-width="1.2" opacity=".55" stroke-dasharray="2 3">
