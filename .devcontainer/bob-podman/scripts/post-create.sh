@@ -41,4 +41,51 @@ if [ -d .githooks ]; then
   echo "git core.hooksPath set to .githooks"
 fi
 
+# Install the reference approval profile into the container.
+#
+# The bob-code extension declares no extensionKind, so it defaults to
+# "workspace" and runs in the REMOTE extension host -- inside this container.
+# It resolves its config as os.homedir() + "/.bob", i.e. /home/node/.bob here,
+# NOT the developer's ~/.bob on the Mac. Approvals configured on the host
+# therefore have no effect in the devcontainer, and every command prompts.
+#
+# Bob has no checked-in workspace-level approval file, so seeding the
+# container's user-level config is the only way to ship this with the repo.
+#
+# Merges only the "approval" key so anything else Bob has written (notably
+# "migrations", which it creates on first start) is preserved. Idempotent:
+# post-create runs on every container start.
+BOB_SETTINGS_EXAMPLE=".bob/settings.example.json"
+BOB_SETTINGS_DEST="${HOME}/.bob/settings/settings.json"
+if [ -f "${BOB_SETTINGS_EXAMPLE}" ]; then
+  echo "Installing Bob approval profile..."
+  mkdir -p "$(dirname "${BOB_SETTINGS_DEST}")"
+  if python3 - "${BOB_SETTINGS_EXAMPLE}" "${BOB_SETTINGS_DEST}" <<'PY'
+import json, sys, os
+src, dest = sys.argv[1], sys.argv[2]
+example = json.load(open(src))
+current = {}
+if os.path.exists(dest):
+    try:
+        current = json.load(open(dest))
+    except (ValueError, OSError):
+        current = {}          # unreadable/corrupt -> rewrite rather than fail
+if "approval" not in example:
+    sys.exit("  settings.example.json has no 'approval' key")
+current["approval"] = example["approval"]
+with open(dest, "w") as fh:
+    json.dump(current, fh, indent=2)
+    fh.write("\n")
+ap = current["approval"]
+print("  approval profile installed -> %s" % dest)
+print("  autoApprovalEnabled=%s, %d permission groups, %d approved commands"
+      % (ap.get("autoApprovalEnabled"),
+         len(ap.get("allowed_permissions", [])),
+         len(ap.get("allowedExecutors", [{}])[0].get("approvedCommands", []))))
+PY
+  then :; else echo "  Bob approval profile install failed; commands will prompt"; fi
+else
+  echo "  ${BOB_SETTINGS_EXAMPLE} not found; skipping Bob approval profile"
+fi
+
 echo "=== Post-Create Setup Complete ==="
