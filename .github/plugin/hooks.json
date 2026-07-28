@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "bash": "bash \"${CLAUDE_PLUGIN_ROOT}/.claude/hooks/deny-config-files.sh\" copilot",
+        "matcher": "Write|Edit|MultiEdit",
+        "timeoutSec": 10
+      }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/tf-guard.sh\" fix",
+        "timeoutSec": 60
+      }
+    ],
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/tf-guard.sh\" verify",
+        "timeoutSec": 120
+      }
+    ]
+  }
+}

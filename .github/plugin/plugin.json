@@ -8,5 +8,6 @@
   "repository": "https://github.com/hashi-demo-lab/terraform-agentic-workflows",
   "keywords": ["terraform", "sdd", "aws", "azure", "hcp-terraform", "iac"],
   "skills": ".claude/skills",
-  "agents": ".agents/agents"
+  "agents": ".agents/agents",
+  "hooks": ".github/plugin/hooks.json"
 }

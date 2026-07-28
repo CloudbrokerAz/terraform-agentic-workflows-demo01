@@ -95,6 +95,14 @@ copilot plugin install tf-workflows@tf-workflows
 - **Copilot CLI**: bundled servers keep their names (`terraform`, `aws-documentation-mcp-server`), so the plugin agents' `terraform/*` tool references work out of the box — the consuming machine just needs the server runtimes (`docker` + `TFE_TOKEN` for terraform, `uvx` for AWS docs).
 - **Claude Code**: plugin-bundled MCP tools are renamed to `mcp__plugin_tf-workflows_<server>__*`, which does NOT match the agents' `mcp__terraform__*` tool allowlists. Copy this repo's `.mcp.json` into the consuming repo (project scope) so the agents' allowlisted tools exist, and set `CLAUDE_CODE_SKIP_PLUGIN_MCP_SERVERS=1` to suppress the plugin-scoped duplicates (otherwise each server runs twice).
 
+**Hooks** — each manifest declares a hook config in its harness's dialect, carrying the repo-level guards into plugin installs: the `deny-config-files.sh` PreToolUse guard (all three) and the `tf-guard.sh` fix/verify pipeline (Claude Code and Copilot, matching the repo wiring — Cursor gets the deny guard only). Commands reference scripts inside the installed plugin via `${CLAUDE_PLUGIN_ROOT}`, which all three loaders substitute.
+
+- **Claude Code**: `.claude-plugin/hooks.json`, referenced from the manifest `hooks` field; `claude plugin validate --strict` resolves the path.
+- **Copilot CLI**: `.github/plugin/hooks.json`. Verified against the CLI's native config loader (1.0.71): `configLoaderDiscoverPluginHookConfigs` resolves the manifest `hooks` path (defaults would be plugin-root `hooks.json` / `hooks/hooks.json`) and `configLoaderExpandPluginHookConfig` expands `${CLAUDE_PLUGIN_ROOT}`. A live agent run was not exercised (account-restricted).
+- **Cursor**: `.cursor-plugin/hooks.json` (Claude shape — the loader's Claude-compat converter handles it, hard-coding `failClosed: false`). The plugin loader *discovers* it, but `cursor-agent` CLI 2026.07.16 does **not execute** plugin-delivered hooks: identical hooks fire from a workspace `.cursor/hooks.json` yet never from `--plugin-dir` plugins in any layout (manifest path, native dialect, or `hooks/hooks.json` convention). For hook coverage in Cursor today, copy this repo's `.cursor/hooks.json` into the consuming repo; the plugin entry is forward-looking.
+
+The `verify`/`fix` hooks need the consuming repo's toolchain (below) on PATH; each check no-ops when its tool is absent, and targets are discovered from the consuming repo's git tree, so the hooks are safe in repos that don't use Terraform in every directory.
+
 **What the plugin does NOT carry** — the consuming repository must provide:
 
 - **`.foundations/`**: constitutions, design templates, and helper scripts are referenced repo-relatively by the workflows — copy `.foundations/` into the consuming repo (tailor the constitutions to your organization).

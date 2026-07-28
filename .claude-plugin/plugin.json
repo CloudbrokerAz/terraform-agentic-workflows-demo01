@@ -16,6 +16,7 @@
     "iac"
   ],
   "skills": "./.claude/skills/",
+  "hooks": "./.claude-plugin/hooks.json",
   "agents": [
     "./.claude/agents/module-upgrade-remediation.md",
     "./.claude/agents/tf-consumer-design.md",
