@@ -121,16 +121,38 @@ live session rather than code.
 
 | | Claude Code | Copilot CLI 1.0.70 | Cursor 3.12.17 | IBM Bob 2.0.1 |
 | --- | --- | --- | --- | --- |
-| Hook system | yes | yes | yes | **none** |
+| Hook system | yes | yes | yes | **none for its agent** |
 | Repo config | `.claude/settings.json` `"hooks"` | `.github/hooks/*.json` (only path; cloud agent reads nothing else) | `.cursor/hooks.json` | — |
 | Other config | `settings.local.json` | `.github/copilot/settings.json`, `.claude/settings.json` (inline), `~/.copilot/hooks/`, `$COPILOT_HOME/hooks/`, policy dir, plugins | enterprise `hooks.json` under `/Library/Application Support/Cursor`, `C:\ProgramData\Cursor`, `/etc/cursor` | — |
 | Event case | `PascalCase` | accepts **both** (`preToolUse` and `PreToolUse`) | `camelCase` | — |
 | Hook types | command | `command`, `http` (url/headers/allowedEnvVars), `prompt` | `command`, `prompt` | — |
 | Tool matcher | yes | yes (`matcher`) | yes (`matcher`, omitted when `"*"`) | — |
 
-**Bob has no hook system at all.** Zero occurrences of `preToolUse`, `postToolUse`, `hooksDir`,
-`userHooks` or `hooks.json` in either the stable or insiders bundle. Nothing to port; enforcement in
-Bob has to live in mode `groups`/`permission` and the `execute_command` allow/deny lists instead.
+**Bob's agent runs no hooks.** Scope this claim to the agent, not the app bundle — a bundle-wide grep
+gives false positives. In `bob-code`'s `extension.js` (both `2.0.1` and `2.0.1-insider.1`), every hook
+literal is zero: `preToolUse`, `postToolUse`, `hooksDir`, `userHooks`, `hooks.json`, and Gemini-CLI's
+vocabulary too (`BeforeTool`, `AfterTool`, `HookEventName`, `hookSpecificOutput`, `permissionDecision`).
+Decisively, the extension's `contributes` block — `authentication`, `commands`, `menus`, `submenus`,
+`themes`, `views`, `viewsContainers` — has **no `configuration` key**, so `bob-code` ships zero VS Code
+settings and there is nothing through which a hook file could be registered. The `BeforeAgent` /
+`BeforeModel` hits that do appear are LangChain agent middleware internals
+(`lc_namespace=["langchain","agents",…]`), not a Bob feature.
+
+The app bundle *does* carry a complete hook engine, inherited from upstream VS Code and left unwired:
+`out/vs/workbench/workbench.desktop.main.js` holds `PreToolUse` ×23, `PostToolUse` ×14, `SubagentStop`
+×14, `UserPromptSubmit` ×11, `PreCompact` ×9, `hooks.json` ×5, a `chat.useHooks` setting defaulting on,
+a `chat.hookFilesLocations` key and an "Add Hook" command. None of it reaches Bob: `bob-code` registers
+no chat participant and no session provider (the provider enum lists only `copilotcli`, `claude-code`,
+`openai-codex`, `copilot-growth`, `agent-host-copilot`), and `defaultChatAgent` points at
+`GitHub.copilot-chat`, which is not bundled and is not on the configured open-vsx gallery. So no hook
+can fire on a Bob tool call. Stable and insiders are identical on every count above.
+
+Nothing to port; enforcement in Bob has to live in mode `groups`/`permission` and the
+`execute_command` allow/deny lists instead. Tracked in #74.
+
+Not to be confused with `bobshell` (npm, `1.0.x`), the sibling CLI harness the IDE extension
+auto-installs from `bob.ibm.com` — a Gemini-CLI derivative on its own version line, not covered by
+this document. It ships an 11-event hook *contract* with no dispatcher, so it runs no hooks either.
 
 **Event names.** Copilot 1.0.70 accepts 14: `sessionStart`, `sessionEnd`, `userPromptSubmitted`,
 `preToolUse`, `preMcpToolCall`, `postToolUse`, `postToolUseFailure`, `errorOccurred`, `agentStop`,

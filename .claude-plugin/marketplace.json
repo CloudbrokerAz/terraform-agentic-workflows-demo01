@@ -2,8 +2,7 @@
   "name": "tf-workflows",
   "description": "Marketplace for the Terraform Agentic Workflows plugin: SDD plan/implement workflows for Terraform module, consumer, policy, and provider development.",
   "owner": {
-    "name": "hashi-demo-lab",
-    "email": "srlynch@gmail.com"
+    "name": "IBM"
   },
   "plugins": [
     {
